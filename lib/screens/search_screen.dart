@@ -54,7 +54,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 controller: _controller,
                 style: GoogleFonts.spaceMono(color: Theme.of(context).colorScheme.primary),
                 decoration: InputDecoration(
-                  labelText: '> ENTER SEARCH QUERY_',
+                  labelText: '> Search Any Anime Series',
                   labelStyle: GoogleFonts.spaceMono(color: Theme.of(context).colorScheme.primary),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.zero,

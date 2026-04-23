@@ -53,7 +53,7 @@ class ApiReaderApp extends StatelessWidget {
     final darkPrimary = const Color(0xFFFF4B4B);
 
     return MaterialApp(
-      title: 'API Reader',
+      title: 'Disconime',
       themeMode: Provider.of<ThemeProvider>(context).themeMode,
       theme: ThemeData(
         useMaterial3: true,
