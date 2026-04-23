@@ -76,7 +76,22 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Discover'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/icon/app_logo.png',
+              width: 28,
+              height: 28,
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, size: 28),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Discovering Anime',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ],
+        ),
         flexibleSpace: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
