@@ -35,11 +35,11 @@ class AboutScreen extends StatelessWidget {
                 children: [
                   Text('> PROJECT_INFO', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 10),
-                  const Text('  [NAME] API Data Reader V1.0'),
+                  const Text('  [NAME] Disconime'),
                   const SizedBox(height: 30),
                   Text('> SQUAD_ROSTER', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 10),
-                  _buildMember(context, '1. [Member Name 1]'),
+                  _buildMember(context, '1. [Srun Sochettra]'),
                   _buildMember(context, '2. [Member Name 2]'),
                   _buildMember(context, '3. [Member Name 3]'),
                   _buildMember(context, '4. [Member Name 4]'),
