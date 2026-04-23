@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'detail_screen.dart';
@@ -51,10 +52,10 @@ class _SearchScreenState extends State<SearchScreen> {
             children: [
               TextField(
                 controller: _controller,
-                style: TextStyle(color: Theme.of(context).colorScheme.primary, fontFamily: 'monospace'),
+                style: GoogleFonts.spaceMono(color: Theme.of(context).colorScheme.primary),
                 decoration: InputDecoration(
                   labelText: '> ENTER SEARCH QUERY_',
-                  labelStyle: TextStyle(color: Theme.of(context).colorScheme.primary),
+                  labelStyle: GoogleFonts.spaceMono(color: Theme.of(context).colorScheme.primary),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.zero,
                     borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),

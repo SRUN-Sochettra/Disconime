@@ -23,11 +23,35 @@ class ThemeProvider extends ChangeNotifier {
   }
 }
 
+TextTheme _buildTextTheme(TextTheme base, Color color) {
+  return GoogleFonts.interTextTheme(base).copyWith(
+    displayLarge: GoogleFonts.spaceMono(color: color, fontWeight: FontWeight.bold),
+    displayMedium: GoogleFonts.spaceMono(color: color, fontWeight: FontWeight.bold),
+    displaySmall: GoogleFonts.spaceMono(color: color, fontWeight: FontWeight.bold),
+    headlineLarge: GoogleFonts.spaceMono(color: color, fontWeight: FontWeight.bold),
+    headlineMedium: GoogleFonts.spaceMono(color: color, fontWeight: FontWeight.bold),
+    headlineSmall: GoogleFonts.spaceMono(color: color, fontWeight: FontWeight.bold),
+    titleLarge: GoogleFonts.spaceMono(color: color, fontWeight: FontWeight.bold),
+    titleMedium: GoogleFonts.spaceMono(color: color, fontWeight: FontWeight.bold),
+    titleSmall: GoogleFonts.spaceMono(color: color, fontWeight: FontWeight.bold),
+    labelLarge: GoogleFonts.spaceMono(color: color),
+    labelMedium: GoogleFonts.spaceMono(color: color),
+    labelSmall: GoogleFonts.spaceMono(color: color),
+    bodyLarge: GoogleFonts.inter(color: color),
+    bodyMedium: GoogleFonts.inter(color: color),
+    bodySmall: GoogleFonts.inter(color: color),
+  );
+}
+
 class ApiReaderApp extends StatelessWidget {
   const ApiReaderApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final lightColor = const Color(0xFF1F2937);
+    final darkColor = const Color(0xFFFAFAFA);
+    final darkPrimary = const Color(0xFFFF4B4B);
+
     return MaterialApp(
       title: 'API Reader',
       themeMode: Provider.of<ThemeProvider>(context).themeMode,
@@ -45,6 +69,11 @@ class ApiReaderApp extends StatelessWidget {
           backgroundColor: const Color(0xFFFF4B4B).withValues(alpha: 0.7),
           foregroundColor: const Color(0xFFFAFAFA),
           elevation: 0,
+          titleTextStyle: GoogleFonts.spaceMono(
+            color: const Color(0xFFFAFAFA),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: const Color(0xFFFFFFFF).withValues(alpha: 0.7),
@@ -59,17 +88,8 @@ class ApiReaderApp extends StatelessWidget {
             side: BorderSide(color: Color(0xFFFF4B4B), width: 1),
           ),
         ),
-        textTheme: TextTheme(
-          bodyLarge: GoogleFonts.inter(color: const Color(0xFF1F2937)),
-          bodyMedium: GoogleFonts.inter(color: const Color(0xFF1F2937)),
-          bodySmall: GoogleFonts.inter(color: const Color(0xFF1F2937)),
-          titleLarge: GoogleFonts.spaceMono(color: const Color(0xFF1F2937), fontWeight: FontWeight.bold),
-          titleMedium: GoogleFonts.spaceMono(color: const Color(0xFF1F2937), fontWeight: FontWeight.bold),
-          titleSmall: GoogleFonts.spaceMono(color: const Color(0xFF1F2937), fontWeight: FontWeight.bold),
-          labelLarge: GoogleFonts.spaceMono(color: const Color(0xFF1F2937)),
-          labelMedium: GoogleFonts.spaceMono(color: const Color(0xFF1F2937)),
-          labelSmall: GoogleFonts.spaceMono(color: const Color(0xFF1F2937)),
-        ),
+        textTheme: _buildTextTheme(ThemeData.light().textTheme, lightColor),
+        primaryTextTheme: _buildTextTheme(ThemeData.light().primaryTextTheme, lightColor),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
@@ -85,6 +105,11 @@ class ApiReaderApp extends StatelessWidget {
           backgroundColor: const Color(0xFF111827).withValues(alpha: 0.7),
           foregroundColor: const Color(0xFFFF4B4B),
           elevation: 0,
+          titleTextStyle: GoogleFonts.spaceMono(
+            color: const Color(0xFFFF4B4B),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: const Color(0xFF111827).withValues(alpha: 0.7),
@@ -99,17 +124,15 @@ class ApiReaderApp extends StatelessWidget {
             side: BorderSide(color: Color(0xFFFF4B4B), width: 1),
           ),
         ),
-        textTheme: TextTheme(
-          bodyLarge: GoogleFonts.inter(color: const Color(0xFFFAFAFA)),
-          bodyMedium: GoogleFonts.inter(color: const Color(0xFFFAFAFA)),
-          bodySmall: GoogleFonts.inter(color: const Color(0xFFFAFAFA)),
-          titleLarge: GoogleFonts.spaceMono(color: const Color(0xFFFF4B4B), fontWeight: FontWeight.bold),
-          titleMedium: GoogleFonts.spaceMono(color: const Color(0xFFFF4B4B), fontWeight: FontWeight.bold),
-          titleSmall: GoogleFonts.spaceMono(color: const Color(0xFFFF4B4B), fontWeight: FontWeight.bold),
-          labelLarge: GoogleFonts.spaceMono(color: const Color(0xFFFF4B4B)),
-          labelMedium: GoogleFonts.spaceMono(color: const Color(0xFFFF4B4B)),
-          labelSmall: GoogleFonts.spaceMono(color: const Color(0xFFFF4B4B)),
+        textTheme: _buildTextTheme(ThemeData.dark().textTheme, darkColor).copyWith(
+          titleLarge: GoogleFonts.spaceMono(color: darkPrimary, fontWeight: FontWeight.bold),
+          titleMedium: GoogleFonts.spaceMono(color: darkPrimary, fontWeight: FontWeight.bold),
+          titleSmall: GoogleFonts.spaceMono(color: darkPrimary, fontWeight: FontWeight.bold),
+          labelLarge: GoogleFonts.spaceMono(color: darkPrimary),
+          labelMedium: GoogleFonts.spaceMono(color: darkPrimary),
+          labelSmall: GoogleFonts.spaceMono(color: darkPrimary),
         ),
+        primaryTextTheme: _buildTextTheme(ThemeData.dark().primaryTextTheme, darkColor),
       ),
       home: const MainScreen(),
     );

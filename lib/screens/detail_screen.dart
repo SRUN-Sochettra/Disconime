@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class DetailScreen extends StatelessWidget {
   final dynamic data;
@@ -57,7 +58,7 @@ class DetailScreen extends StatelessWidget {
                       const SizedBox(height: 10),
                       Text(
                         '[STATUS]: ${data['status']}',
-                        style: TextStyle(color: Theme.of(context).colorScheme.primary, fontFamily: 'monospace'),
+                        style: GoogleFonts.spaceMono(color: Theme.of(context).colorScheme.primary),
                       ),
                       const SizedBox(height: 20),
                       Text(data['synopsis'] ?? 'No synopsis available.'),

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -58,7 +59,7 @@ class AboutScreen extends StatelessWidget {
         children: [
           Icon(Icons.terminal, color: Theme.of(context).colorScheme.primary, size: 20),
           const SizedBox(width: 10),
-          Text(name, style: TextStyle(fontSize: 16, fontFamily: 'monospace')),
+          Text(name, style: GoogleFonts.spaceMono(fontSize: 16)),
         ],
       ),
     );
