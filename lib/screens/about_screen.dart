@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class AboutScreen extends StatelessWidget {
@@ -6,22 +7,45 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('About Us')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Project:', style: Theme.of(context).textTheme.titleLarge),
-            const Text('API Data Reader V1.0'),
-            const SizedBox(height: 30),
-            Text('The Squad:', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 10),
-            _buildMember(context, '1. [Member Name 1]'),
-            _buildMember(context, '2. [Member Name 2]'),
-            _buildMember(context, '3. [Member Name 3]'),
-            _buildMember(context, '4. [Member Name 4]'),
-          ],
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: const Text('About Us'),
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24.0, kToolbarHeight + 40, 24.0, 24.0),
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
+                border: Border.all(color: Theme.of(context).colorScheme.primary, width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('> PROJECT_INFO', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 10),
+                  const Text('  [NAME] API Data Reader V1.0'),
+                  const SizedBox(height: 30),
+                  Text('> SQUAD_ROSTER', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 10),
+                  _buildMember(context, '1. [Member Name 1]'),
+                  _buildMember(context, '2. [Member Name 2]'),
+                  _buildMember(context, '3. [Member Name 3]'),
+                  _buildMember(context, '4. [Member Name 4]'),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -32,9 +56,9 @@ class AboutScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
-          Icon(Icons.account_tree, color: Theme.of(context).colorScheme.primary, size: 20),
+          Icon(Icons.terminal, color: Theme.of(context).colorScheme.primary, size: 20),
           const SizedBox(width: 10),
-          Text(name, style: const TextStyle(fontSize: 16)),
+          Text(name, style: TextStyle(fontSize: 16, fontFamily: 'monospace')),
         ],
       ),
     );
