@@ -80,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Image.asset(
-              'assets/icon/app_logo.png',
+              'assets/icons/app_logo.png',
               width: 28,
               height: 28,
               errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, size: 28),
