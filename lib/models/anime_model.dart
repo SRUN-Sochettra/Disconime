@@ -54,7 +54,7 @@ class Anime {
       score: Score.fromJson(json),
       synopsis: Synopsis.fromJson(json),
       genres: genreList,
-      year: json['year']?.toString(),
+      year: json['year']?.toString() ?? json['aired']?['prop']?['from']?['year']?.toString(),
     );
   }
 }
@@ -74,7 +74,7 @@ class Score {
 
   factory Score.fromJson(Map<String, dynamic> json) {
     return Score(
-      value: (json['score'] as num?)?.toDouble(),
+      value: json['score'] != null ? (json['score'] as num).toDouble() : null,
       scoredBy: json['scored_by'],
       rank: json['rank'],
       popularity: json['popularity'],

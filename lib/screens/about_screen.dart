@@ -33,16 +33,20 @@ class AboutScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('> PROJECT_INFO', style: Theme.of(context).textTheme.titleLarge),
+                  Text('> SYSTEM_INFO', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 10),
-                  const Text('  [NAME] Disconime'),
+                  _buildInfoRow(context, 'App Name:', 'Disconime'),
+                  _buildInfoRow(context, 'Version:', '1.0.0+1'),
+                  _buildInfoRow(context, 'Developer:', 'SRUN-Sochettra'),
+                  _buildInfoRow(context, 'Architecture:', 'Enterprise Layered'),
+                  _buildInfoRow(context, 'Theme:', 'Cyber-Minimalist'),
                   const SizedBox(height: 30),
-                  Text('> SQUAD_ROSTER', style: Theme.of(context).textTheme.titleLarge),
+                  Text('> DEPENDENCIES', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 10),
-                  _buildMember(context, '1. [Srun Sochettra]'),
-                  _buildMember(context, '2. [Member Name 2]'),
-                  _buildMember(context, '3. [Member Name 3]'),
-                  _buildMember(context, '4. [Member Name 4]'),
+                  _buildDependency(context, 'provider'),
+                  _buildDependency(context, 'http'),
+                  _buildDependency(context, 'google_fonts'),
+                  _buildDependency(context, 'flutter_dotenv'),
                 ],
               ),
             ),
@@ -52,14 +56,32 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMember(BuildContext context, String name) {
+  Widget _buildInfoRow(BuildContext context, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(label, style: GoogleFonts.spaceMono(color: Theme.of(context).colorScheme.primary, fontSize: 14)),
+          ),
+          Expanded(
+            child: Text(value, style: GoogleFonts.spaceMono(fontSize: 14)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDependency(BuildContext context, String name) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
-          Icon(Icons.terminal, color: Theme.of(context).colorScheme.primary, size: 20),
+          Icon(Icons.terminal, color: Theme.of(context).colorScheme.primary, size: 16),
           const SizedBox(width: 10),
-          Text(name, style: GoogleFonts.spaceMono(fontSize: 16)),
+          Text(name, style: GoogleFonts.spaceMono(fontSize: 14)),
         ],
       ),
     );

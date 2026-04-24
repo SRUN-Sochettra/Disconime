@@ -147,13 +147,25 @@ class _DetailScreenState extends State<DetailScreen> {
                             final rec = provider.recommendations[index];
                             
                             return GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => DetailScreen(anime: rec),
-                                  ),
-                                );
+                              onTap: () async {
+                                final provider = context.read<AnimeProvider>();
+                                try {
+                                  final fullAnime = await provider.getAnimeDetails(rec.malId);
+                                  if (context.mounted) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => DetailScreen(anime: fullAnime),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('[ERROR]: FAILED_TO_RETRIEVE_DATA')),
+                                    );
+                                  }
+                                }
                               },
                               child: Container(
                                 width: 140,
