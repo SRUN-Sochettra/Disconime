@@ -1,30 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/main_screen.dart';
+import 'providers/anime_provider.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => ThemeProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => AnimeProvider()),
+      ],
       child: const ApiReaderApp(),
     ),
   );
 }
 
 class ThemeProvider extends ChangeNotifier {
-  ThemeMode themeMode = ThemeMode.light;
+  ThemeMode themeMode = ThemeMode.dark;
 
   bool get isDarkMode => themeMode == ThemeMode.dark;
 
   void toggleTheme(bool isOn) {
-    themeMode = isOn ? ThemeMode.dark : ThemeMode.light;
+    themeMode = isOn ? ThemeMode.dark : ThemeMode.dark; // Strict dark theme
     notifyListeners();
   }
 }
 
 TextTheme _buildTextTheme(TextTheme base, Color color) {
-  return GoogleFonts.interTextTheme(base).copyWith(
+  return GoogleFonts.spaceMonoTextTheme(base).copyWith(
     displayLarge: GoogleFonts.spaceMono(color: color, fontWeight: FontWeight.bold),
     displayMedium: GoogleFonts.spaceMono(color: color, fontWeight: FontWeight.bold),
     displaySmall: GoogleFonts.spaceMono(color: color, fontWeight: FontWeight.bold),
@@ -37,9 +44,9 @@ TextTheme _buildTextTheme(TextTheme base, Color color) {
     labelLarge: GoogleFonts.spaceMono(color: color),
     labelMedium: GoogleFonts.spaceMono(color: color),
     labelSmall: GoogleFonts.spaceMono(color: color),
-    bodyLarge: GoogleFonts.inter(color: color),
-    bodyMedium: GoogleFonts.inter(color: color),
-    bodySmall: GoogleFonts.inter(color: color),
+    bodyLarge: GoogleFonts.spaceMono(color: color),
+    bodyMedium: GoogleFonts.spaceMono(color: color),
+    bodySmall: GoogleFonts.spaceMono(color: color),
   );
 }
 
@@ -48,90 +55,53 @@ class ApiReaderApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lightColor = const Color(0xFF1F2937);
-    final darkColor = const Color(0xFFFAFAFA);
-    final darkPrimary = const Color(0xFFFF4B4B);
+    final cyberCyan = const Color(0xFF00E5FF);
+    final darkColor = const Color(0xFFE0E0E0);
+    final scaffoldDark = const Color(0xFF050505);
+    final surfaceDark = const Color(0xFF111111);
 
     return MaterialApp(
       title: 'Disconime',
-      themeMode: Provider.of<ThemeProvider>(context).themeMode,
+      themeMode: ThemeMode.dark, // Strict dark theme adherence
       theme: ThemeData(
         useMaterial3: true,
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: const Color(0xFFFAFAFA),
-        colorScheme: const ColorScheme.light(
-          surface: Color(0xFFFFFFFF),
-          primary: Color(0xFFFF4B4B),
-          secondary: Color(0xFFFF8A00),
-          onSurface: Color(0xFF1F2937),
-        ),
-        appBarTheme: AppBarTheme(
-          backgroundColor: const Color(0xFFFF4B4B).withValues(alpha: 0.7),
-          foregroundColor: const Color(0xFFFAFAFA),
-          elevation: 0,
-          titleTextStyle: GoogleFonts.spaceMono(
-            color: const Color(0xFFFAFAFA),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          backgroundColor: const Color(0xFFFFFFFF).withValues(alpha: 0.7),
-          selectedItemColor: const Color(0xFFFF4B4B),
-          unselectedItemColor: const Color(0xFF1F2937),
-        ),
-        cardTheme: const CardThemeData(
-          color: Colors.transparent,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-            side: BorderSide(color: Color(0xFFFF4B4B), width: 1),
-          ),
-        ),
-        textTheme: _buildTextTheme(ThemeData.light().textTheme, lightColor),
-        primaryTextTheme: _buildTextTheme(ThemeData.light().primaryTextTheme, lightColor),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF1F2937),
-        colorScheme: const ColorScheme.dark(
-          surface: Color(0xFF111827),
-          primary: Color(0xFFFF4B4B),
-          secondary: Color(0xFFFF8A00),
-          onSurface: Color(0xFFFAFAFA),
+        scaffoldBackgroundColor: scaffoldDark,
+        colorScheme: ColorScheme.dark(
+          surface: surfaceDark,
+          primary: cyberCyan,
+          secondary: const Color(0xFFFF003C),
+          onSurface: darkColor,
         ),
         appBarTheme: AppBarTheme(
-          backgroundColor: const Color(0xFF111827).withValues(alpha: 0.7),
-          foregroundColor: const Color(0xFFFF4B4B),
+          backgroundColor: scaffoldDark,
+          foregroundColor: cyberCyan,
           elevation: 0,
           titleTextStyle: GoogleFonts.spaceMono(
-            color: const Color(0xFFFF4B4B),
+            color: cyberCyan,
             fontSize: 20,
             fontWeight: FontWeight.bold,
+            letterSpacing: 2.0,
           ),
+          iconTheme: IconThemeData(color: cyberCyan),
         ),
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          backgroundColor: const Color(0xFF111827).withValues(alpha: 0.7),
-          selectedItemColor: const Color(0xFFFF4B4B),
-          unselectedItemColor: Colors.grey,
+          backgroundColor: surfaceDark,
+          selectedItemColor: cyberCyan,
+          unselectedItemColor: Colors.grey[800],
+          showSelectedLabels: true,
+          showUnselectedLabels: false,
+          type: BottomNavigationBarType.fixed,
         ),
-        cardTheme: const CardThemeData(
+        cardTheme: CardThemeData(
           color: Colors.transparent,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.zero,
-            side: BorderSide(color: Color(0xFFFF4B4B), width: 1),
+            side: BorderSide(color: cyberCyan.withAlpha(128), width: 1),
           ),
         ),
-        textTheme: _buildTextTheme(ThemeData.dark().textTheme, darkColor).copyWith(
-          titleLarge: GoogleFonts.spaceMono(color: darkPrimary, fontWeight: FontWeight.bold),
-          titleMedium: GoogleFonts.spaceMono(color: darkPrimary, fontWeight: FontWeight.bold),
-          titleSmall: GoogleFonts.spaceMono(color: darkPrimary, fontWeight: FontWeight.bold),
-          labelLarge: GoogleFonts.spaceMono(color: darkPrimary),
-          labelMedium: GoogleFonts.spaceMono(color: darkPrimary),
-          labelSmall: GoogleFonts.spaceMono(color: darkPrimary),
-        ),
+        textTheme: _buildTextTheme(ThemeData.dark().textTheme, darkColor),
         primaryTextTheme: _buildTextTheme(ThemeData.dark().primaryTextTheme, darkColor),
       ),
       home: const MainScreen(),

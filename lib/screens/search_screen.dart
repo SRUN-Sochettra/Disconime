@@ -1,8 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:provider/provider.dart';
+import '../models/anime_model.dart';
+import '../providers/anime_provider.dart';
 import 'detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -14,20 +15,32 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
-  List<dynamic> _searchResults = [];
-  bool _isSearching = false;
+  final ScrollController _scrollController = ScrollController();
 
-  Future<void> searchApi(String query) async {
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+        final provider = context.read<AnimeProvider>();
+        if (provider.searchState != FetchState.loading && _controller.text.isNotEmpty) {
+          provider.searchAnime(_controller.text, loadMore: true);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _performSearch(String query) {
     FocusScope.of(context).unfocus();
-    if (query.isEmpty) return;
-    setState(() => _isSearching = true);
-    
-    final response = await http.get(Uri.parse('https://api.jikan.moe/v4/anime?q=$query&limit=10'));
-    if (response.statusCode == 200) {
-      setState(() {
-        _searchResults = json.decode(response.body)['data'];
-        _isSearching = false;
-      });
+    if (query.isNotEmpty) {
+      context.read<AnimeProvider>().searchAnime(query);
     }
   }
 
@@ -36,7 +49,7 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Search'),
+        title: const Text('SYS.SEARCH'),
         flexibleSpace: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -54,7 +67,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 controller: _controller,
                 style: GoogleFonts.spaceMono(color: Theme.of(context).colorScheme.primary),
                 decoration: InputDecoration(
-                  labelText: '> Search Any Anime Series',
+                  labelText: '> INPUT QUERY',
                   labelStyle: GoogleFonts.spaceMono(color: Theme.of(context).colorScheme.primary),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.zero,
@@ -66,30 +79,59 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(Icons.search, color: Theme.of(context).colorScheme.primary),
-                    onPressed: () => searchApi(_controller.text),
+                    onPressed: () => _performSearch(_controller.text),
                   ),
                 ),
-                onSubmitted: searchApi,
+                onSubmitted: _performSearch,
               ),
               const SizedBox(height: 20),
-            Expanded(
-              child: _isSearching
-                  ? const Center(child: CircularProgressIndicator())
-                  : _searchResults.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.search, size: 64, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3)),
-                              const SizedBox(height: 16),
-                              const Text("Type an anime name to start searching"),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                      itemCount: _searchResults.length,
+              Expanded(
+                child: Consumer<AnimeProvider>(
+                  builder: (context, provider, child) {
+                    if (provider.searchState == FetchState.initial) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.search, size: 64, color: Theme.of(context).colorScheme.onSurface.withAlpha(76)),
+                            const SizedBox(height: 16),
+                            const Text("> AWAITING_INPUT"),
+                          ],
+                        ),
+                      );
+                    }
+
+                    if (provider.searchState == FetchState.loading && provider.searchResults.isEmpty) {
+                      return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+                    }
+
+                    if (provider.searchState == FetchState.error && provider.searchResults.isEmpty) {
+                      return Center(
+                        child: Text(
+                          '[ERROR]: ${provider.errorMessage}',
+                          style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                        ),
+                      );
+                    }
+
+                    if (provider.searchState == FetchState.loaded && provider.searchResults.isEmpty) {
+                      return const Center(child: Text('[NO_RECORDS_FOUND]'));
+                    }
+
+                    return ListView.builder(
+                      controller: _scrollController,
+                      itemCount: provider.searchResults.length + (provider.searchState == FetchState.loading ? 1 : 0),
                       itemBuilder: (context, index) {
-                        final item = _searchResults[index];
+                        if (index == provider.searchResults.length) {
+                          return Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Center(
+                              child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+                            ),
+                          );
+                        }
+
+                        final Anime item = provider.searchResults[index];
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           child: ClipRect(
@@ -97,21 +139,17 @@ class _SearchScreenState extends State<SearchScreen> {
                               filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                               child: Card(
                                 margin: EdgeInsets.zero,
-                                shape: RoundedRectangleBorder(
-                                  side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3), width: 1),
-                                  borderRadius: BorderRadius.zero,
-                                ),
                                 child: InkWell(
                                   onTap: () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => DetailScreen(data: item),
+                                        builder: (context) => DetailScreen(anime: item),
                                       ),
                                     );
                                   },
                                   child: Container(
-                                    color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
+                                    color: Theme.of(context).colorScheme.surface.withAlpha(100),
                                     padding: const EdgeInsets.all(12),
                                     child: Row(
                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,7 +159,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                             border: Border.all(color: Theme.of(context).colorScheme.primary, width: 1),
                                           ),
                                           child: Image.network(
-                                            item['images']['jpg']['image_url'],
+                                            item.imageUrl,
                                             width: 60,
                                             height: 80,
                                             fit: BoxFit.cover,
@@ -134,14 +172,14 @@ class _SearchScreenState extends State<SearchScreen> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                '> ${item['title']}',
+                                                '> ${item.title}',
                                                 style: Theme.of(context).textTheme.titleMedium,
                                                 maxLines: 2,
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                               const SizedBox(height: 8),
                                               Text(
-                                                '[SCORE]: ${item['score'] ?? 'N/A'}',
+                                                '[SCORE]: ${item.score.value ?? 'N/A'}',
                                                 style: Theme.of(context).textTheme.labelMedium,
                                               ),
                                             ],
@@ -156,11 +194,13 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                         );
                       },
-                    ),
-            ),
-          ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
