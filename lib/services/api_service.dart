@@ -10,7 +10,7 @@ class ApiService {
 
   String get baseUrl {
     try {
-      return dotenv.env['JIKAN_API_BASE_URL'] ?? 'https://api.jikan.moe/v4';
+      return dotenv.env['JIKAN_API_URL'] ?? 'https://api.jikan.moe/v4';
     } catch (_) {
       return 'https://api.jikan.moe/v4';
     }
