@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/anime_model.dart';
 import '../providers/anime_provider.dart';
 import 'detail_screen.dart';
+import '../main.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -53,6 +54,20 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+        actions: [
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return Switch(
+                value: themeProvider.isDarkMode,
+                onChanged: (value) {
+                  themeProvider.toggleTheme(value);
+                },
+                activeColor: Theme.of(context).colorScheme.primary,
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
         flexibleSpace: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),

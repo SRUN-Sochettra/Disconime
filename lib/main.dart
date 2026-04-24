@@ -30,7 +30,7 @@ class ThemeProvider extends ChangeNotifier {
   bool get isDarkMode => themeMode == ThemeMode.dark;
 
   void toggleTheme(bool isOn) {
-    themeMode = isOn ? ThemeMode.dark : ThemeMode.dark; // Strict dark theme
+    themeMode = isOn ? ThemeMode.dark : ThemeMode.light;
     notifyListeners();
   }
 }
@@ -61,14 +61,64 @@ class ApiReaderApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cyberCyan = const Color(0xFF00E5FF);
+    
+    // Dark Theme Colors
     final darkColor = const Color(0xFFE0E0E0);
     final scaffoldDark = const Color(0xFF050505);
     final surfaceDark = const Color(0xFF111111);
+    
+    // Light Theme Colors
+    final lightColor = const Color(0xFF1A1A1A);
+    final scaffoldLight = const Color(0xFFF5F5F5);
+    final surfaceLight = const Color(0xFFFFFFFF);
+
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
     return MaterialApp(
       title: 'Disconime',
-      themeMode: ThemeMode.dark, // Strict dark theme adherence
+      themeMode: themeProvider.themeMode,
       theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: scaffoldLight,
+        colorScheme: ColorScheme.light(
+          surface: surfaceLight,
+          primary: cyberCyan,
+          secondary: const Color(0xFFFF003C),
+          onSurface: lightColor,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: scaffoldLight,
+          foregroundColor: cyberCyan,
+          elevation: 0,
+          titleTextStyle: GoogleFonts.spaceMono(
+            color: cyberCyan,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2.0,
+          ),
+          iconTheme: IconThemeData(color: cyberCyan),
+        ),
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+          backgroundColor: surfaceLight,
+          selectedItemColor: cyberCyan,
+          unselectedItemColor: Colors.grey[400],
+          showSelectedLabels: true,
+          showUnselectedLabels: false,
+          type: BottomNavigationBarType.fixed,
+        ),
+        cardTheme: CardThemeData(
+          color: Colors.transparent,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+            side: BorderSide(color: cyberCyan.withAlpha(128), width: 1),
+          ),
+        ),
+        textTheme: _buildTextTheme(ThemeData.light().textTheme, lightColor),
+        primaryTextTheme: _buildTextTheme(ThemeData.light().primaryTextTheme, lightColor),
+      ),
+      darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
         scaffoldBackgroundColor: scaffoldDark,

@@ -1,5 +1,4 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+
 import 'package:flutter/material.dart';
 import '../models/anime_model.dart';
 import '../services/api_service.dart';
