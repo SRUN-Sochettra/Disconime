@@ -5,6 +5,7 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:anime_discovery/services/api_service.dart';
 import 'package:anime_discovery/services/connectivity_service.dart';
+import 'package:anime_discovery/services/cache_service.dart';
 import '../helpers/test_data.dart';
 
 /// Creates a [MockClient] that returns [body] with [statusCode].
@@ -25,12 +26,15 @@ http.Client _errorClient(int code) {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late ApiService service;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    // Clear cache to prevent test pollution
+    await CacheService.instance.clearAll();
     // Ensure connectivity service reports online.
-    await ConnectivityService.instance.init();
+    ConnectivityService.instance.setMockOnline(true);
   });
 
   group('getTopAnime', () {

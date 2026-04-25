@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../models/anime_model.dart';
 import '../models/schedule_model.dart';
 import '../providers/schedule_provider.dart';
 import '../router/route_names.dart';

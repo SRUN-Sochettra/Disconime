@@ -59,14 +59,14 @@ class ScheduleProvider extends ChangeNotifier {
       if (_states[day] == FetchState.loading) return;
       _states[day] = FetchState.loading;
       _errors[day] = '';
-      notifyListeners();
+      Future.microtask(() => notifyListeners());
     } else {
       _schedules[day] = [];
       _pages[day] = 1;
       _hasMore[day] = true;
       _states[day] = FetchState.loading;
       _errors[day] = '';
-      notifyListeners();
+      Future.microtask(() => notifyListeners());
     }
 
     final currentPage = _pages[day] ?? 1;

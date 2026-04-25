@@ -8,6 +8,7 @@ import '../models/schedule_model.dart';
 import '../models/character_model.dart';
 import 'cache_service.dart';
 import 'connectivity_service.dart';
+import '../widgets/global_error_handler.dart';
 
 class ApiService {
   final http.Client client;
@@ -103,8 +104,9 @@ class ApiService {
         }
         throw Exception('Request failed after retries.');
       });
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('[ApiService] Error fetching $uri: $e');
+      GlobalErrorHandler.reportError(e, stack);
       rethrow;
     }
   }

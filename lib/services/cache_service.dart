@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/global_error_handler.dart';
 
 /// A lightweight key-value cache backed by [SharedPreferences].
 ///
@@ -56,8 +57,9 @@ class CacheService {
         '$_timePrefix$key',
         DateTime.now().millisecondsSinceEpoch,
       );
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('[CacheService] Failed to write $key: $e');
+      GlobalErrorHandler.reportError(e, stack);
     }
   }
 
@@ -71,7 +73,7 @@ class CacheService {
       if (timestamp == null) return null;
 
       final age = DateTime.now().millisecondsSinceEpoch - timestamp;
-      if (age > ttl.inMilliseconds) {
+      if (age >= ttl.inMilliseconds) {
         // Expired — clean up silently.
         await _delete(prefs, key);
         return null;
@@ -81,8 +83,9 @@ class CacheService {
       if (encoded == null) return null;
 
       return json.decode(encoded);
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('[CacheService] Failed to read $key: $e');
+      GlobalErrorHandler.reportError(e, stack);
       return null;
     }
   }
@@ -92,8 +95,9 @@ class CacheService {
     try {
       final prefs = await _getPrefs();
       await _delete(prefs, key);
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('[CacheService] Failed to invalidate $key: $e');
+      GlobalErrorHandler.reportError(e, stack);
     }
   }
 
@@ -108,8 +112,9 @@ class CacheService {
         }
       }
       debugPrint('[CacheService] All cache cleared.');
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('[CacheService] Failed to clear cache: $e');
+      GlobalErrorHandler.reportError(e, stack);
     }
   }
 

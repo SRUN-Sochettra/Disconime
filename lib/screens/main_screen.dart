@@ -85,13 +85,18 @@ class MainScreen extends StatelessWidget {
     final currentIndex = _currentIndex(context);
 
     return Scaffold(
-      body: Column(
+      body: Stack(
         children: [
-          // ── Offline banner ──────────────────────────────────
-          const OfflineBanner(),
-
           // ── Active tab content ──────────────────────────────
-          Expanded(child: child),
+          child,
+
+          // ── Offline banner ──────────────────────────────────
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: OfflineBanner(),
+          ),
         ],
       ),
       bottomNavigationBar: Container(

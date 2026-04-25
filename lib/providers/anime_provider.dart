@@ -137,14 +137,14 @@ class AnimeProvider extends ChangeNotifier {
       if (_topAnimeState == FetchState.loading) return;
       _topAnimeState = FetchState.loading;
       _topAnimeError = '';
-      notifyListeners();
+      Future.microtask(() => notifyListeners());
     } else {
       _topAnime = [];
       _currentTopPage = 1;
       _hasMoreTopAnime = true;
       _topAnimeState = FetchState.loading;
       _topAnimeError = '';
-      notifyListeners();
+      Future.microtask(() => notifyListeners());
     }
 
     final pageToFetch = loadMore ? _currentTopPage + 1 : 1;
@@ -228,7 +228,7 @@ class AnimeProvider extends ChangeNotifier {
     _recommendations = [];
     _recommendationsState = FetchState.loading;
     _recommendationsError = '';
-    notifyListeners();
+    Future.microtask(() => notifyListeners());
 
     try {
       _recommendations = await _apiService.getAnimeRecommendations(malId);
@@ -259,7 +259,7 @@ class AnimeProvider extends ChangeNotifier {
     _characters = [];
     _charactersState = FetchState.loading;
     _charactersError = '';
-    notifyListeners();
+    Future.microtask(() => notifyListeners());
 
     try {
       _characters = await _apiService.getAnimeCharacters(malId);
@@ -290,7 +290,7 @@ class AnimeProvider extends ChangeNotifier {
     _staff = [];
     _staffState = FetchState.loading;
     _staffError = '';
-    notifyListeners();
+    Future.microtask(() => notifyListeners());
 
     try {
       _staff = await _apiService.getAnimeStaff(malId);

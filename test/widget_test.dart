@@ -9,25 +9,51 @@ import 'package:anime_discovery/providers/anime_provider.dart';
 import 'package:anime_discovery/providers/favorites_provider.dart';
 import 'package:anime_discovery/providers/search_history_provider.dart';
 
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:anime_discovery/services/api_service.dart';
+import 'package:anime_discovery/providers/schedule_provider.dart';
+import 'package:anime_discovery/providers/characters_provider.dart';
+import 'package:anime_discovery/providers/connectivity_provider.dart';
+
 void main() {
   setUpAll(() async {
+    // Initializing SharedPreferences for tests
+    SharedPreferences.setMockInitialValues({});
+    
     // Initializing dotenv with mergeWith for testing
     await dotenv.load(mergeWith: {'JIKAN_API_URL': 'https://api.jikan.moe/v4'});
-    GoogleFonts.config.allowRuntimeFetching = false;
+    // GoogleFonts.config.allowRuntimeFetching = false;
   });
 
   testWidgets('App renders without crashing', (WidgetTester tester) async {
+    // ── Mock API responses ────────────────────────────────────
+    final mockClient = MockClient((request) async {
+      return http.Response(
+        json.encode({'data': [], 'pagination': {'has_next_page': false}}),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    
+    final apiService = ApiService(client: mockClient);
+
     await tester.pumpWidget(
       MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
-          ChangeNotifierProvider(create: (_) => AnimeProvider()),
+          ChangeNotifierProvider(create: (_) => AnimeProvider(apiService: apiService)),
           ChangeNotifierProvider(create: (_) => FavoritesProvider()),
           ChangeNotifierProvider(create: (_) => SearchHistoryProvider()),
+          ChangeNotifierProvider(create: (_) => ScheduleProvider(apiService: apiService)),
+          ChangeNotifierProvider(create: (_) => CharactersProvider(apiService: apiService)),
+          ChangeNotifierProvider(create: (_) => ConnectivityProvider(initialStatus: true)),
         ],
         child: ApiReaderApp(
-          theme: ThemeData(useMaterial3: true),
-          darkTheme: ThemeData(useMaterial3: true, brightness: Brightness.dark),
+          theme: ThemeData.light(),
+          darkTheme: ThemeData.dark(),
         ),
       ),
     );
@@ -35,11 +61,9 @@ void main() {
     // Initial pump
     await tester.pump();
     
-    // ApiService uses Timers for throttling and retries.
-    // We need to run these timers or they will cause "Timer still pending" errors.
-    // Using runAsync allows real timers and background work to complete.
+    // Settling timers and async work
     await tester.runAsync(() async {
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 1));
     });
 
     // Final pump to settle the UI

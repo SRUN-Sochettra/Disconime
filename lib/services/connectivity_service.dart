@@ -3,6 +3,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 
+import '../widgets/global_error_handler.dart';
+
 /// Monitors real internet connectivity and exposes a stream
 /// of [bool] values — true = online, false = offline.
 ///
@@ -24,25 +26,35 @@ class ConnectivityService {
 
   /// Call once in [main] before [runApp].
   Future<void> init() async {
-    // Check current status.
-    _isOnline = await InternetConnection().hasInternetAccess;
+    try {
+      // Check current status.
+      _isOnline = await InternetConnection().hasInternetAccess;
 
-    // Listen for connectivity changes.
-    _connectivitySub = Connectivity().onConnectivityChanged.listen(
-      (results) async {
-        if (results.contains(ConnectivityResult.none)) {
-          _updateStatus(false);
-          return;
-        }
-        // Verify actual internet access — not just network association.
-        final hasAccess = await InternetConnection().hasInternetAccess;
-        _updateStatus(hasAccess);
-      },
-    );
+      // Listen for connectivity changes.
+      _connectivitySub = Connectivity().onConnectivityChanged.listen(
+        (results) async {
+          try {
+            if (results.contains(ConnectivityResult.none)) {
+              _updateStatus(false);
+              return;
+            }
+            // Verify actual internet access — not just network association.
+            final hasAccess = await InternetConnection().hasInternetAccess;
+            _updateStatus(hasAccess);
+          } catch (e, stack) {
+            debugPrint('[ConnectivityService] listener error: $e');
+            GlobalErrorHandler.reportError(e, stack);
+          }
+        },
+      );
 
-    debugPrint(
-      '[ConnectivityService] Initialised. Online: $_isOnline',
-    );
+      debugPrint(
+        '[ConnectivityService] Initialised. Online: $_isOnline',
+      );
+    } catch (e, stack) {
+      debugPrint('[ConnectivityService] init error: $e');
+      GlobalErrorHandler.reportError(e, stack);
+    }
   }
 
   void _updateStatus(bool isOnline) {
@@ -50,6 +62,12 @@ class ConnectivityService {
     _isOnline = isOnline;
     _controller.add(_isOnline);
     debugPrint('[ConnectivityService] Status changed: online=$_isOnline');
+  }
+
+  /// Only for testing. Forces the online state.
+  @visibleForTesting
+  void setMockOnline(bool online) {
+    _isOnline = online;
   }
 
   Future<void> dispose() async {

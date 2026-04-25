@@ -41,14 +41,14 @@ class CharactersProvider extends ChangeNotifier {
       if (_topCharactersState == FetchState.loading) return;
       _topCharactersState = FetchState.loading;
       _topCharactersError = '';
-      notifyListeners();
+      Future.microtask(() => notifyListeners());
     } else {
       _topCharacters = [];
       _currentPage = 1;
       _hasMore = true;
       _topCharactersState = FetchState.loading;
       _topCharactersError = '';
-      notifyListeners();
+      Future.microtask(() => notifyListeners());
     }
 
     final pageToFetch = loadMore ? _currentPage + 1 : 1;
@@ -79,7 +79,7 @@ class CharactersProvider extends ChangeNotifier {
 
     _detailStates[malId] = FetchState.loading;
     _detailErrors[malId] = '';
-    notifyListeners();
+    Future.microtask(() => notifyListeners());
 
     try {
       final character = await _apiService.getCharacterDetail(malId);

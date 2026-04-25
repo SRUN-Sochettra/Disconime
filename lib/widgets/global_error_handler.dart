@@ -57,8 +57,14 @@ class GlobalErrorHandler {
 
   static void _handleError(Object error, StackTrace stack) {
     debugPrint('[GlobalErrorHandler] Uncaught error: $error');
-    debugPrintStack(stackTrace: stack, label: '[GlobalErrorHandler]');
+    debugPrint(stack.toString());
     _reporter?.call(error, stack);
+  }
+
+  /// Manually reports an error to the global handler.
+  /// Use this for catching and reporting errors in services/providers.
+  static void reportError(Object error, [StackTrace? stack]) {
+    _handleError(error, stack ?? StackTrace.current);
   }
 
   /// Replaces the default red-screen [ErrorWidget] with a clean
