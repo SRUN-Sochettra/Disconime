@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/anime_provider.dart';
 import '../widgets/error_view.dart';
 import '../widgets/skeleton_loader.dart';
-import '../widgets/page_transitions.dart';
 import '../widgets/empty_state.dart';
-import 'genre_detail_screen.dart';
+import '../router/route_names.dart';
 
 class GenresScreen extends StatefulWidget {
   const GenresScreen({super.key});
@@ -62,7 +62,6 @@ class _GenresScreenState extends State<GenresScreen> {
             );
           }
 
-          // ── Empty state illustration ─────────────────────────
           if (provider.genres.isEmpty) {
             return EmptyState(
               type: EmptyStateType.genres,
@@ -85,16 +84,12 @@ class _GenresScreenState extends State<GenresScreen> {
               final genre = provider.genres[index];
               final name = genre['name'] as String;
               final count = genre['count'] as int? ?? 0;
+              final genreId = genre['mal_id'] as int;
 
               return InkWell(
-                onTap: () => Navigator.push(
-                  context,
-                  SlidePageRoute(
-                    page: GenreDetailScreen(
-                      genreId: genre['mal_id'] as int,
-                      genreName: name,
-                    ),
-                  ),
+                onTap: () => context.push(
+                  '${RouteNames.genreDetailPath(genreId)}'
+                  '?name=${Uri.encodeComponent(name)}',
                 ),
                 borderRadius: BorderRadius.circular(12),
                 child: Container(

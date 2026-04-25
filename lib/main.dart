@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:anime_discovery/theme/app_theme.dart';
-import 'package:anime_discovery/screens/main_screen.dart';
+import 'package:anime_discovery/router/app_router.dart';
 import 'package:anime_discovery/providers/anime_provider.dart';
 import 'package:anime_discovery/providers/favorites_provider.dart';
 import 'package:anime_discovery/providers/search_history_provider.dart';
@@ -22,12 +22,8 @@ Future<void> main() async {
     debugPrint('[main] .env not found or failed to load: $e');
   }
 
-  // ── Connectivity ───────────────────────────────────────────────
-  // Initialised before runApp so the initial status is known
-  // before the first frame renders.
   await ConnectivityService.instance.init();
 
-  // ── Persisted preferences ──────────────────────────────────────
   final themeProvider = ThemeProvider();
   await themeProvider.loadTheme();
 
@@ -46,8 +42,6 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: searchHistoryProvider),
         ChangeNotifierProvider(create: (_) => ScheduleProvider()),
         ChangeNotifierProvider(create: (_) => CharactersProvider()),
-        // ConnectivityProvider reads initial status from
-        // ConnectivityService which is already initialised above.
         ChangeNotifierProvider(
           create: (_) => ConnectivityProvider(
             initialStatus: ConnectivityService.instance.isOnline,
@@ -73,18 +67,20 @@ class ApiReaderApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
 
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Disconime',
       debugShowCheckedModeBanner: false,
       themeMode: themeProvider.themeMode,
       theme: theme ?? AppTheme.light,
       darkTheme: darkTheme ?? AppTheme.dark,
+      // ── GoRouter wiring ─────────────────────────────────────
+      routerConfig: appRouter,
+      // ── Global error boundary ────────────────────────────────
       builder: (context, child) {
         return AsyncErrorBoundary(
           child: child ?? const SizedBox.shrink(),
         );
       },
-      home: const MainScreen(),
     );
   }
 }

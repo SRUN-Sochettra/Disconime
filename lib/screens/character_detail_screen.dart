@@ -346,22 +346,22 @@ class _AnimeographySection extends StatelessWidget {
   }
 
   Future<void> _openAnime(
-      BuildContext context, CharacterAnime item) async {
-    final animeProvider = context.read<AnimeProvider>();
-    try {
-      final fullAnime = await animeProvider.getAnimeDetails(item.malId);
-      if (!context.mounted) return;
-      Navigator.push(
-        context,
-        ScaleFadePageRoute(page: DetailScreen(anime: fullAnime)),
-      );
-    } catch (_) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load anime details.')),
-      );
-    }
+    BuildContext context, CharacterAnime item) async {
+  final animeProvider = context.read<AnimeProvider>();
+  try {
+    final fullAnime = await animeProvider.getAnimeDetails(item.malId);
+    if (!context.mounted) return;
+    context.push(
+      RouteNames.animeDetailPath(fullAnime.malId),
+      extra: fullAnime,
+    );
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Failed to load anime details.')),
+    );
   }
+}
 }
 
 // ── Voice actors section ──────────────────────────────────────────

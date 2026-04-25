@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:anime_discovery/models/anime_model.dart';
 import 'package:anime_discovery/providers/anime_provider.dart';
@@ -11,9 +12,8 @@ import 'package:anime_discovery/widgets/skeleton_loader.dart';
 import 'package:anime_discovery/widgets/error_view.dart';
 import 'package:anime_discovery/widgets/filter_sheet.dart';
 import 'package:anime_discovery/widgets/anime_image.dart';
-import 'package:anime_discovery/widgets/page_transitions.dart';
 import 'package:anime_discovery/widgets/pagination_indicator.dart';
-import 'package:anime_discovery/screens/detail_screen.dart';
+import 'package:anime_discovery/router/route_names.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -42,7 +42,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-
     final position = _scrollController.position;
     if (position.maxScrollExtent <= 0) return;
 
@@ -89,6 +88,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _openDetail(BuildContext context, Anime anime, String heroTag) {
+    context.push(
+      RouteNames.animeDetailPath(anime.malId),
+      extra: anime,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -127,6 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _TopAnimeBody(
         isGridView: _isGridView,
         scrollController: _scrollController,
+        onAnimeSelected: _openDetail,
       ),
     );
   }
@@ -185,14 +192,16 @@ class _FilterActionButton extends StatelessWidget {
   }
 }
 
-// ── Body ─────────────────────────────────────────────────────────
+// ── Body ──────────────────────────────────────────────────────────
 class _TopAnimeBody extends StatelessWidget {
   final bool isGridView;
   final ScrollController scrollController;
+  final void Function(BuildContext, Anime, String) onAnimeSelected;
 
   const _TopAnimeBody({
     required this.isGridView,
     required this.scrollController,
+    required this.onAnimeSelected,
   });
 
   @override
@@ -227,18 +236,14 @@ class _TopAnimeBody extends StatelessWidget {
 
     return Column(
       children: [
-        // ── Pagination indicator bar ────────────────────────
         PaginationIndicator(
           loadedCount: topAnime.length,
           isLoading: topAnimeState == FetchState.loading,
           hasMore: hasMore,
         ),
-
-        // ── List / Grid ─────────────────────────────────────
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () =>
-                context.read<AnimeProvider>().fetchTopAnime(),
+            onRefresh: () => context.read<AnimeProvider>().fetchTopAnime(),
             child: isGridView
                 ? _TopAnimeGridView(
                     topAnime: topAnime,
@@ -246,6 +251,7 @@ class _TopAnimeBody extends StatelessWidget {
                     scrollController: scrollController,
                     currentPage: currentPage,
                     hasMore: hasMore,
+                    onAnimeSelected: onAnimeSelected,
                   )
                 : _TopAnimeListView(
                     topAnime: topAnime,
@@ -254,6 +260,7 @@ class _TopAnimeBody extends StatelessWidget {
                     scrollController: scrollController,
                     currentPage: currentPage,
                     hasMore: hasMore,
+                    onAnimeSelected: onAnimeSelected,
                   ),
           ),
         ),
@@ -270,6 +277,7 @@ class _TopAnimeListView extends StatelessWidget {
   final ScrollController scrollController;
   final int currentPage;
   final bool hasMore;
+  final void Function(BuildContext, Anime, String) onAnimeSelected;
 
   const _TopAnimeListView({
     required this.topAnime,
@@ -278,6 +286,7 @@ class _TopAnimeListView extends StatelessWidget {
     required this.scrollController,
     required this.currentPage,
     required this.hasMore,
+    required this.onAnimeSelected,
   });
 
   @override
@@ -290,16 +299,13 @@ class _TopAnimeListView extends StatelessWidget {
                   topAnimeState == FetchState.error
               ? 1
               : 0) +
-          // Page counter footer
           (topAnime.isNotEmpty ? 1 : 0),
       itemBuilder: (context, index) {
-        // ── Load-more skeleton ───────────────────────────────
         if (index == topAnime.length &&
             topAnimeState == FetchState.loading) {
           return const LoadMoreSkeleton();
         }
 
-        // ── Inline error ─────────────────────────────────────
         if (index == topAnime.length &&
             topAnimeState == FetchState.error) {
           return ErrorView(
@@ -310,16 +316,11 @@ class _TopAnimeListView extends StatelessWidget {
           );
         }
 
-        // ── Page counter footer ──────────────────────────────
-        if (index == topAnime.length ||
-            index == topAnime.length + 1) {
-          if (topAnimeState == FetchState.loaded ||
-              (!hasMore && topAnimeState != FetchState.loading)) {
-            return PageCounter(
-              currentPage: currentPage,
-              isLoading: false,
-            );
-          }
+        if (index >= topAnime.length) {
+          return PageCounter(
+            currentPage: currentPage,
+            isLoading: topAnimeState == FetchState.loading,
+          );
         }
 
         final anime = topAnime[index];
@@ -328,12 +329,7 @@ class _TopAnimeListView extends StatelessWidget {
           anime: anime,
           showRank: true,
           heroTag: heroTag,
-          onTap: () => Navigator.push(
-            context,
-            ScaleFadePageRoute(
-              page: DetailScreen(anime: anime, heroTag: heroTag),
-            ),
-          ),
+          onTap: () => onAnimeSelected(context, anime, heroTag),
         );
       },
     );
@@ -347,6 +343,7 @@ class _TopAnimeGridView extends StatelessWidget {
   final ScrollController scrollController;
   final int currentPage;
   final bool hasMore;
+  final void Function(BuildContext, Anime, String) onAnimeSelected;
 
   const _TopAnimeGridView({
     required this.topAnime,
@@ -354,6 +351,7 @@ class _TopAnimeGridView extends StatelessWidget {
     required this.scrollController,
     required this.currentPage,
     required this.hasMore,
+    required this.onAnimeSelected,
   });
 
   @override
@@ -397,12 +395,7 @@ class _TopAnimeGridView extends StatelessWidget {
         final heroTag = 'anime_hero_${anime.malId}';
         return InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => Navigator.push(
-            context,
-            ScaleFadePageRoute(
-              page: DetailScreen(anime: anime, heroTag: heroTag),
-            ),
-          ),
+          onTap: () => onAnimeSelected(context, anime, heroTag),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

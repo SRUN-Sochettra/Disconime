@@ -482,20 +482,15 @@ class _ScheduleEntryTile extends StatelessWidget {
   }
 
   Future<void> _openDetail(
-    BuildContext context,
-    Anime anime,
-    String heroTag,
-  ) async {
-    // The list tile already has the Anime object so we can navigate
-    // immediately. If the user needs full detail data the detail
-    // screen fetches it via the /full endpoint.
-    Navigator.push(
-      context,
-      ScaleFadePageRoute(
-        page: DetailScreen(anime: anime, heroTag: heroTag),
-      ),
-    );
-  }
+  BuildContext context,
+  Anime anime,
+  String heroTag,
+) async {
+  context.push(
+    RouteNames.animeDetailPath(anime.malId),
+    extra: anime,
+  );
+}
 }
 
 // ── Time badge ────────────────────────────────────────────────────

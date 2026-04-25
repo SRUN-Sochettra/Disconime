@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';  
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/anime_model.dart';
@@ -7,7 +8,6 @@ import '../providers/favorites_provider.dart';
 import '../widgets/anime_image.dart';
 import '../widgets/anime_card_skeleton.dart';
 import '../widgets/skeleton_loader.dart';
-import '../widgets/page_transitions.dart';
 import '../widgets/share_sheet.dart';
 
 class DetailScreen extends StatefulWidget {
@@ -65,7 +65,7 @@ class _DetailScreenState extends State<DetailScreen>
               Icons.arrow_back_rounded,
               color: Colors.white,
             ),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
           ),
         ),
         actions: [
@@ -1023,29 +1023,24 @@ class _RecommendationsSection extends StatelessWidget {
 
               return GestureDetector(
                 onTap: () async {
-                  final animeProvider = context.read<AnimeProvider>();
-                  try {
-                    final fullAnime =
-                        await animeProvider.getAnimeDetails(rec.malId);
-                    if (!context.mounted) return;
-                    Navigator.push(
-                      context,
-                      ScaleFadePageRoute(
-                        page: DetailScreen(
-                          anime: fullAnime,
-                          heroTag: recHeroTag,
-                        ),
-                      ),
-                    );
-                  } catch (_) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Failed to load anime details.'),
-                      ),
-                    );
-                  }
-                },
+  final animeProvider = context.read<AnimeProvider>();
+  try {
+    final fullAnime =
+        await animeProvider.getAnimeDetails(rec.malId);
+    if (!context.mounted) return;
+    context.push(
+      RouteNames.animeDetailPath(fullAnime.malId),
+      extra: fullAnime,
+    );
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Failed to load anime details.'),
+      ),
+    );
+  }
+},
                 child: Padding(
                   padding: const EdgeInsets.only(right: 12),
                   child: Column(

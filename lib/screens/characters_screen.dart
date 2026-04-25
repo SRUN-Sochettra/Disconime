@@ -197,15 +197,10 @@ class _CharacterCard extends StatelessWidget {
     final primary = theme.colorScheme.primary;
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        ScaleFadePageRoute(
-          page: CharacterDetailScreen(
-            character: character,
-            heroTag: heroTag,
-          ),
-        ),
-      ),
+      onTap: () => context.push(
+  RouteNames.characterDetailPath(character.malId),
+  extra: character,
+);
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

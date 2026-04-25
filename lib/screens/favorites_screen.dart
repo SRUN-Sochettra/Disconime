@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/favorites_provider.dart';
 import '../models/anime_model.dart';
 import '../widgets/anime_list_tile.dart';
-import '../widgets/page_transitions.dart';
 import '../widgets/empty_state.dart';
-import 'detail_screen.dart';
+import '../router/route_names.dart';
 
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
@@ -18,11 +18,8 @@ class FavoritesScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('SAVED')),
       body: Consumer<FavoritesProvider>(
         builder: (context, provider, child) {
-          // ── Empty state illustration ───────────────────────────
           if (provider.favorites.isEmpty) {
-            return const EmptyState(
-              type: EmptyStateType.favorites,
-            );
+            return const EmptyState(type: EmptyStateType.favorites);
           }
 
           final favorites = provider.favorites.reversed.toList();
@@ -36,14 +33,9 @@ class FavoritesScreen extends StatelessWidget {
               return AnimeListTile(
                 anime: item,
                 heroTag: heroTag,
-                onTap: () => Navigator.push(
-                  context,
-                  ScaleFadePageRoute(
-                    page: DetailScreen(
-                      anime: item,
-                      heroTag: heroTag,
-                    ),
-                  ),
+                onTap: () => context.push(
+                  RouteNames.animeDetailPath(item.malId),
+                  extra: item,
                 ),
                 trailing: IconButton(
                   onPressed: () => provider.toggleFavorite(item),

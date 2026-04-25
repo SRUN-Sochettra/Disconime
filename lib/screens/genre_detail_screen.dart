@@ -1,16 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/anime_model.dart';
 import '../providers/anime_provider.dart';
 import '../widgets/anime_list_tile.dart';
 import '../widgets/anime_card_skeleton.dart';
 import '../widgets/error_view.dart';
-import '../widgets/page_transitions.dart';
 import '../widgets/pagination_indicator.dart';
 import '../widgets/empty_state.dart';
-import 'detail_screen.dart';
+import '../router/route_names.dart';
 
 class GenreDetailScreen extends StatefulWidget {
   final int genreId;
@@ -103,12 +103,11 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
             );
           }
 
-          // ── Empty state illustration ─────────────────────────
           if (provider.genreAnimeState == FetchState.loaded &&
               provider.genreAnime.isEmpty) {
             return EmptyState(
               type: EmptyStateType.genreDetail,
-              onAction: () => Navigator.pop(context),
+              onAction: () => context.pop(),
               actionLabel: 'Go Back',
             );
           }
@@ -132,15 +131,13 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
                     padding: const EdgeInsets.all(16),
                     itemCount: provider.genreAnime.length +
                         (provider.genreAnimeState == FetchState.loading ||
-                                provider.genreAnimeState ==
-                                    FetchState.error
+                                provider.genreAnimeState == FetchState.error
                             ? 1
                             : 0) +
                         (provider.genreAnime.isNotEmpty ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == provider.genreAnime.length &&
-                          provider.genreAnimeState ==
-                              FetchState.loading) {
+                          provider.genreAnimeState == FetchState.loading) {
                         return const LoadMoreSkeleton();
                       }
 
@@ -170,14 +167,9 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
                       return AnimeListTile(
                         anime: item,
                         heroTag: heroTag,
-                        onTap: () => Navigator.push(
-                          context,
-                          ScaleFadePageRoute(
-                            page: DetailScreen(
-                              anime: item,
-                              heroTag: heroTag,
-                            ),
-                          ),
+                        onTap: () => context.push(
+                          RouteNames.animeDetailPath(item.malId),
+                          extra: item,
                         ),
                       );
                     },

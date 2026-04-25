@@ -1,16 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/anime_model.dart';
 import '../providers/anime_provider.dart';
 import '../widgets/anime_list_tile.dart';
 import '../widgets/anime_card_skeleton.dart';
 import '../widgets/error_view.dart';
-import '../widgets/page_transitions.dart';
 import '../widgets/pagination_indicator.dart';
 import '../widgets/empty_state.dart';
-import 'detail_screen.dart';
+import '../router/route_names.dart';
 
 class SeasonalScreen extends StatefulWidget {
   const SeasonalScreen({super.key});
@@ -116,10 +116,8 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Select Season',
-                        style: theme.textTheme.titleMedium,
-                      ),
+                      Text('Select Season',
+                          style: theme.textTheme.titleMedium),
                       TextButton(
                         onPressed: () {
                           provider.fetchSeasonalAnime();
@@ -128,8 +126,7 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                         child: Text(
                           'Current Season',
                           style: theme.textTheme.labelMedium?.copyWith(
-                            color: primary,
-                          ),
+                              color: primary),
                         ),
                       ),
                     ],
@@ -148,9 +145,7 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
+                              horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? primary.withAlpha(20)
@@ -192,9 +187,7 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 10,
-                          ),
+                              horizontal: 20, vertical: 10),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? primary.withAlpha(20)
@@ -207,8 +200,7 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                             ),
                           ),
                           child: Text(
-                            season[0].toUpperCase() +
-                                season.substring(1),
+                            season[0].toUpperCase() + season.substring(1),
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: isSelected
                                   ? primary
@@ -296,7 +288,6 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
             );
           }
 
-          // ── Empty state ──────────────────────────────────────
           if (provider.seasonalState == FetchState.loaded &&
               provider.seasonalAnime.isEmpty) {
             return EmptyState(
@@ -325,15 +316,13 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                     padding: const EdgeInsets.all(16),
                     itemCount: provider.seasonalAnime.length +
                         (provider.seasonalState == FetchState.loading ||
-                                provider.seasonalState ==
-                                    FetchState.error
+                                provider.seasonalState == FetchState.error
                             ? 1
                             : 0) +
                         (provider.seasonalAnime.isNotEmpty ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == provider.seasonalAnime.length &&
-                          provider.seasonalState ==
-                              FetchState.loading) {
+                          provider.seasonalState == FetchState.loading) {
                         return const LoadMoreSkeleton();
                       }
 
@@ -364,14 +353,9 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                         anime: item,
                         showTypeBadge: true,
                         heroTag: heroTag,
-                        onTap: () => Navigator.push(
-                          context,
-                          ScaleFadePageRoute(
-                            page: DetailScreen(
-                              anime: item,
-                              heroTag: heroTag,
-                            ),
-                          ),
+                        onTap: () => context.push(
+                          RouteNames.animeDetailPath(item.malId),
+                          extra: item,
                         ),
                       );
                     },

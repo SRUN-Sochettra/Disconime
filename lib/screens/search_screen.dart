@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:anime_discovery/models/anime_model.dart';
 import 'package:anime_discovery/providers/anime_provider.dart';
@@ -8,10 +9,9 @@ import 'package:anime_discovery/providers/search_history_provider.dart';
 import 'package:anime_discovery/widgets/anime_card_skeleton.dart';
 import 'package:anime_discovery/widgets/anime_list_tile.dart';
 import 'package:anime_discovery/widgets/error_view.dart';
-import 'package:anime_discovery/widgets/page_transitions.dart';
 import 'package:anime_discovery/widgets/pagination_indicator.dart';
 import 'package:anime_discovery/widgets/empty_state.dart';
-import 'package:anime_discovery/screens/detail_screen.dart';
+import 'package:anime_discovery/router/route_names.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -104,6 +104,14 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  void _openDetail(Anime anime) {
+    context.read<SearchHistoryProvider>().addQuery(_controller.text);
+    context.push(
+      RouteNames.animeDetailPath(anime.malId),
+      extra: anime,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -113,7 +121,6 @@ class _SearchScreenState extends State<SearchScreen> {
       appBar: AppBar(title: const Text('SEARCH')),
       body: Column(
         children: [
-          // ── Search field ──────────────────────────────────────
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextField(
@@ -150,23 +157,18 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
           ),
-
-          // ── Results / History ─────────────────────────────────
           Expanded(
             child: Consumer<AnimeProvider>(
               builder: (context, provider, child) {
-                // ── Empty field → show history ─────────────────
                 if (provider.searchState == FetchState.initial) {
                   return _buildHistory(context);
                 }
 
-                // ── Loading first page ─────────────────────────
                 if (provider.searchState == FetchState.loading &&
                     provider.searchResults.isEmpty) {
                   return const AnimeListSkeleton();
                 }
 
-                // ── Full-screen error ──────────────────────────
                 if (provider.searchState == FetchState.error &&
                     provider.searchResults.isEmpty) {
                   return ErrorView(
@@ -177,7 +179,6 @@ class _SearchScreenState extends State<SearchScreen> {
                   );
                 }
 
-                // ── No results empty state ─────────────────────
                 if (provider.searchResults.isEmpty) {
                   return EmptyState(
                     type: EmptyStateType.searchNoResults,
@@ -188,7 +189,6 @@ class _SearchScreenState extends State<SearchScreen> {
                   );
                 }
 
-                // ── Results list ───────────────────────────────
                 return Column(
                   children: [
                     PaginationIndicator(
@@ -227,20 +227,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           return AnimeListTile(
                             anime: anime,
                             heroTag: heroTag,
-                            onTap: () {
-                              context
-                                  .read<SearchHistoryProvider>()
-                                  .addQuery(_controller.text);
-                              Navigator.push(
-                                context,
-                                ScaleFadePageRoute(
-                                  page: DetailScreen(
-                                    anime: anime,
-                                    heroTag: heroTag,
-                                  ),
-                                ),
-                              );
-                            },
+                            onTap: () => _openDetail(anime),
                           );
                         },
                       ),
@@ -255,16 +242,12 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // ── Search history ────────────────────────────────────────────
   Widget _buildHistory(BuildContext context) {
     final theme = Theme.of(context);
     return Consumer<SearchHistoryProvider>(
       builder: (context, historyProvider, child) {
-        // ── No history → empty state illustration ──────────────
         if (historyProvider.history.isEmpty) {
-          return EmptyState(
-            type: EmptyStateType.search,
-          );
+          return const EmptyState(type: EmptyStateType.search);
         }
 
         return Column(
@@ -275,10 +258,8 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Recent Searches',
-                    style: theme.textTheme.titleMedium,
-                  ),
+                  Text('Recent Searches',
+                      style: theme.textTheme.titleMedium),
                   TextButton(
                     onPressed: () => historyProvider.clearHistory(),
                     child: Text(
@@ -303,10 +284,8 @@ class _SearchScreenState extends State<SearchScreen> {
                       color:
                           theme.colorScheme.onSurface.withAlpha(100),
                     ),
-                    title: Text(
-                      query,
-                      style: theme.textTheme.bodyMedium,
-                    ),
+                    title: Text(query,
+                        style: theme.textTheme.bodyMedium),
                     trailing: IconButton(
                       icon: Icon(
                         Icons.close_rounded,
