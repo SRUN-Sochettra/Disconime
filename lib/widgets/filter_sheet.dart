@@ -29,39 +29,37 @@ class _FilterSheetState extends State<FilterSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(top: BorderSide(color: primary, width: 2)),
+        color: theme.scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Handle bar ──────────────────────────────────────────
+          // ── Handle ────────────────────────────────────────────
           Center(
             child: Container(
               width: 40,
               height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
+              margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                color: primary.withAlpha(128),
+                color: theme.dividerColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
 
-          // ── Header ─────────────────────────────────────────────
+          // ── Header ────────────────────────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '> FILTERS',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              Text('Filters', style: theme.textTheme.titleMedium),
               if (_filter.isActive)
                 TextButton(
                   onPressed: () {
@@ -69,125 +67,112 @@ class _FilterSheetState extends State<FilterSheet> {
                     Navigator.pop(context);
                   },
                   child: Text(
-                    'CLEAR_ALL',
-                    style: GoogleFonts.spaceMono(
-                      color: Theme.of(context).colorScheme.secondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                    'Clear all',
+                    style: GoogleFonts.inter(
+                      color: primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-          // ── Scrollable filter options ───────────────────────────
+          // ── Scrollable options ─────────────────────────────────
           Flexible(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildFilterSection(
+                  _buildSection(
                     context,
-                    label: 'TYPE',
+                    label: 'Type',
                     options: AnimeFilter.typeOptions,
                     selectedValue: _filter.type,
-                    onSelected: (value) {
-                      setState(() {
-                        _filter = _filter.copyWith(
-                          type: () => _filter.type == value ? null : value,
-                        );
-                      });
-                    },
+                    onSelected: (value) => setState(() {
+                      _filter = _filter.copyWith(
+                        type: () => _filter.type == value ? null : value,
+                      );
+                    }),
                   ),
-                  const SizedBox(height: 16),
-                  _buildFilterSection(
+                  const SizedBox(height: 20),
+                  _buildSection(
                     context,
-                    label: 'STATUS',
+                    label: 'Status',
                     options: AnimeFilter.filterOptions,
                     selectedValue: _filter.filter,
-                    onSelected: (value) {
-                      setState(() {
-                        _filter = _filter.copyWith(
-                          filter: () =>
-                              _filter.filter == value ? null : value,
-                        );
-                      });
-                    },
+                    onSelected: (value) => setState(() {
+                      _filter = _filter.copyWith(
+                        filter: () =>
+                            _filter.filter == value ? null : value,
+                      );
+                    }),
                   ),
-                  const SizedBox(height: 16),
-                  _buildFilterSection(
+                  const SizedBox(height: 20),
+                  _buildSection(
                     context,
-                    label: 'RATING',
+                    label: 'Rating',
                     options: AnimeFilter.ratingOptions,
                     selectedValue: _filter.rating,
-                    onSelected: (value) {
-                      setState(() {
-                        _filter = _filter.copyWith(
-                          rating: () =>
-                              _filter.rating == value ? null : value,
-                        );
-                      });
-                    },
+                    onSelected: (value) => setState(() {
+                      _filter = _filter.copyWith(
+                        rating: () =>
+                            _filter.rating == value ? null : value,
+                      );
+                    }),
                   ),
-                  const SizedBox(height: 16),
-                  _buildFilterSection(
+                  const SizedBox(height: 20),
+                  _buildSection(
                     context,
-                    label: 'ORDER_BY',
+                    label: 'Order By',
                     options: AnimeFilter.orderByOptions,
                     selectedValue: _filter.orderBy,
-                    onSelected: (value) {
-                      setState(() {
-                        _filter = _filter.copyWith(
-                          orderBy: () =>
-                              _filter.orderBy == value ? null : value,
-                        );
-                      });
-                    },
+                    onSelected: (value) => setState(() {
+                      _filter = _filter.copyWith(
+                        orderBy: () =>
+                            _filter.orderBy == value ? null : value,
+                      );
+                    }),
                   ),
-                  const SizedBox(height: 16),
-                  _buildFilterSection(
+                  const SizedBox(height: 20),
+                  _buildSection(
                     context,
-                    label: 'SORT',
+                    label: 'Sort',
                     options: AnimeFilter.sortOptions,
                     selectedValue: _filter.sort,
-                    onSelected: (value) {
-                      setState(() {
-                        _filter = _filter.copyWith(
-                          sort: () => _filter.sort == value ? null : value,
-                        );
-                      });
-                    },
+                    onSelected: (value) => setState(() {
+                      _filter = _filter.copyWith(
+                        sort: () => _filter.sort == value ? null : value,
+                      );
+                    }),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
-          // ── Apply button ───────────────────────────────────────
+          // ── Apply ─────────────────────────────────────────────
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton.icon(
+            child: FilledButton(
               onPressed: () {
                 widget.onApply(_filter);
                 Navigator.pop(context);
               },
-              icon: Icon(Icons.check, color: primary, size: 18),
-              label: Text(
-                'APPLY_FILTERS',
-                style: GoogleFonts.spaceMono(
-                  color: primary,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: primary, width: 1),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.zero,
+              child: Text(
+                'Apply Filters',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
           ),
@@ -196,27 +181,24 @@ class _FilterSheetState extends State<FilterSheet> {
     );
   }
 
-  Widget _buildFilterSection(
+  Widget _buildSection(
     BuildContext context, {
     required String label,
     required Map<String, String> options,
     required String? selectedValue,
     required ValueChanged<String> onSelected,
   }) {
-    final primary = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '[$label]',
-          style: GoogleFonts.spaceMono(
-            color: primary,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
+          label.toUpperCase(),
+          style: theme.textTheme.labelSmall,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -224,25 +206,24 @@ class _FilterSheetState extends State<FilterSheet> {
             final isSelected = selectedValue == entry.value;
             return GestureDetector(
               onTap: () => onSelected(entry.value),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? primary.withAlpha(40) : Colors.transparent,
+                  color: isSelected ? primary.withAlpha(20) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected ? primary : primary.withAlpha(80),
-                    width: isSelected ? 2 : 1,
+                    color: isSelected ? primary : theme.dividerColor,
+                    width: isSelected ? 1.5 : 1,
                   ),
                 ),
                 child: Text(
                   entry.key,
-                  style: GoogleFonts.spaceMono(
-                    fontSize: 11,
-                    color: isSelected
-                        ? primary
-                        : Theme.of(context).colorScheme.onSurface,
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: isSelected ? primary : theme.colorScheme.onSurface,
                   ),
                 ),
               ),

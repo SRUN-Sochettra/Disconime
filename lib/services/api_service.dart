@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
@@ -55,9 +54,7 @@ class ApiService {
     String? orderBy,
     String? sort,
   }) async {
-    final params = <String, String>{
-      'page': page.toString(),
-    };
+    final params = <String, String>{'page': page.toString()};
 
     if (type != null && type.isNotEmpty) params['type'] = type;
     if (filter != null && filter.isNotEmpty) params['filter'] = filter;
@@ -65,7 +62,9 @@ class ApiService {
     if (orderBy != null && orderBy.isNotEmpty) params['order_by'] = orderBy;
     if (sort != null && sort.isNotEmpty) params['sort'] = sort;
 
-    final uri = Uri.parse('$baseUrl/top/anime').replace(queryParameters: params);
+    final uri = Uri.parse(
+      '$baseUrl/top/anime',
+    ).replace(queryParameters: params);
     final data = await _getJson(uri);
     final List<dynamic> animeList = data['data'] ?? [];
     return animeList
@@ -75,8 +74,9 @@ class ApiService {
 
   Future<List<Anime>> searchAnime(String query, {int page = 1}) async {
     final encoded = Uri.encodeComponent(query);
-    final data =
-        await _getJson(Uri.parse('$baseUrl/anime?q=$encoded&page=$page'));
+    final data = await _getJson(
+      Uri.parse('$baseUrl/anime?q=$encoded&page=$page'),
+    );
     final List<dynamic> animeList = data['data'] ?? [];
     return animeList
         .map((item) => Anime.fromJson(item as Map<String, dynamic>))
@@ -109,16 +109,19 @@ class ApiService {
         final images = entry['images'] as Map<String, dynamic>?;
         final jpg = images?['jpg'] as Map<String, dynamic>?;
 
-        results.add(Anime(
-          malId: entry['mal_id'] as int? ?? 0,
-          title: entry['title'] as String? ?? '',
-          imageUrl: jpg?['large_image_url'] as String? ??
-              jpg?['image_url'] as String? ??
-              '',
-          score: const Score(),
-          synopsis: const Synopsis(text: ''),
-          genres: const [],
-        ));
+        results.add(
+          Anime(
+            malId: entry['mal_id'] as int? ?? 0,
+            title: entry['title'] as String? ?? '',
+            imageUrl:
+                jpg?['large_image_url'] as String? ??
+                jpg?['image_url'] as String? ??
+                '',
+            score: const Score(),
+            synopsis: const Synopsis(text: 'No synopsis available.'),
+            genres: const [],
+          ),
+        );
       } catch (e, stack) {
         debugPrint('[ApiService] failed to parse rec entry: $e\n$stack');
         continue;
@@ -126,5 +129,45 @@ class ApiService {
     }
 
     return results;
+  }
+
+  /// Fetches currently airing seasonal anime.
+  Future<List<Anime>> getSeasonNow({int page = 1}) async {
+    final data = await _getJson(Uri.parse('$baseUrl/seasons/now?page=$page'));
+    final List<dynamic> animeList = data['data'] ?? [];
+    return animeList
+        .map((item) => Anime.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Fetches anime for a specific season and year.
+  Future<List<Anime>> getSeason(int year, String season, {int page = 1}) async {
+    final data = await _getJson(
+      Uri.parse('$baseUrl/seasons/$year/$season?page=$page'),
+    );
+    final List<dynamic> animeList = data['data'] ?? [];
+    return animeList
+        .map((item) => Anime.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Fetches all anime genres.
+  Future<List<Map<String, dynamic>>> getGenres() async {
+    final data = await _getJson(Uri.parse('$baseUrl/genres/anime'));
+    final List<dynamic> genres = data['data'] ?? [];
+    return genres.cast<Map<String, dynamic>>();
+  }
+
+  /// Fetches anime filtered by genre ID.
+  Future<List<Anime>> getAnimeByGenre(int genreId, {int page = 1}) async {
+    final data = await _getJson(
+      Uri.parse(
+        '$baseUrl/anime?genres=$genreId&order_by=score&sort=desc&page=$page',
+      ),
+    );
+    final List<dynamic> animeList = data['data'] ?? [];
+    return animeList
+        .map((item) => Anime.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 }

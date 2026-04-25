@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  /// Optional — if true fills the whole screen,
-  /// if false renders inline (e.g. inside a column).
+  /// If true fills the whole available space (full screen error).
+  /// If false renders inline with minimum height (load-more error).
   final bool expand;
 
   const ErrorView({
@@ -18,79 +17,72 @@ class ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
 
     final content = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
       children: [
-        // ── Error icon ──────────────────────────────────────────
+        // ── Icon ──────────────────────────────────────────────
         Container(
-          padding: const EdgeInsets.all(16),
+          width: 64,
+          height: 64,
           decoration: BoxDecoration(
-            border: Border.all(color: primary, width: 1),
+            color: primary.withAlpha(15),
+            shape: BoxShape.circle,
           ),
           child: Icon(
-            Icons.error_outline,
+            Icons.wifi_off_rounded,
             color: primary,
-            size: 40,
+            size: 30,
           ),
         ),
         const SizedBox(height: 20),
 
-        // ── Error label ─────────────────────────────────────────
+        // ── Title ─────────────────────────────────────────────
         Text(
-          '> SYS.ERROR',
-          style: Theme.of(context).textTheme.titleLarge,
+          'Something went wrong',
+          style: theme.textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
 
-        // ── Error message ───────────────────────────────────────
+        // ── Message ───────────────────────────────────────────
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0),
+          padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Text(
             message,
             textAlign: TextAlign.center,
-            style: GoogleFonts.spaceMono(
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.onSurface.withAlpha(180),
-            ),
+            style: theme.textTheme.bodySmall,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         const SizedBox(height: 24),
 
-        // ── Retry button ────────────────────────────────────────
-        OutlinedButton.icon(
+        // ── Retry button ──────────────────────────────────────
+        FilledButton.icon(
           onPressed: onRetry,
-          icon: Icon(Icons.refresh, color: primary, size: 18),
-          label: Text(
-            'RETRY',
-            style: GoogleFonts.spaceMono(
-              color: primary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2,
-            ),
-          ),
-          style: OutlinedButton.styleFrom(
-            side: BorderSide(color: primary, width: 1),
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.zero,
-            ),
+          icon: const Icon(Icons.refresh_rounded, size: 18),
+          label: const Text('Try Again'),
+          style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(
-              horizontal: 24,
+              horizontal: 28,
               vertical: 12,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         ),
       ],
     );
 
-    // Expand fills screen, inline wraps content.
     return expand
         ? Center(child: content)
         : Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(vertical: 24),
             child: Center(child: content),
           );
   }

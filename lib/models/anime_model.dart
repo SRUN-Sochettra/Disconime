@@ -109,7 +109,7 @@ class Anime {
         popularity: json['popularity'] as int?,
       ),
       synopsis: Synopsis(
-        text: json['synopsis'] as String? ?? '',
+        text: json['synopsis'] as String? ?? 'No synopsis available.',
         background: json['background'] as String?,
       ),
       genres: (json['genres'] as List<dynamic>?)

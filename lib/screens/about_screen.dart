@@ -1,89 +1,85 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('SYS.ABOUT'),
-        flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(color: Colors.transparent),
-          ),
+        title: Text(
+          'ABOUT',
+          style: theme.textTheme.displayLarge?.copyWith(fontSize: 24),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24.0, kToolbarHeight + 40, 24.0, 24.0),
-        child: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
-                border: Border.all(color: Theme.of(context).colorScheme.primary, width: 1),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('> SYSTEM_INFO', style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 10),
-                  _buildInfoRow(context, 'App Name:', 'Disconime'),
-                  _buildInfoRow(context, 'Version:', '1.0.0+1'),
-                  _buildInfoRow(context, 'Developer:', 'SRUN-Sochettra'),
-                  _buildInfoRow(context, 'Architecture:', 'Enterprise Layered'),
-                  _buildInfoRow(context, 'Theme:', 'Cyber-Minimalist'),
-                  const SizedBox(height: 30),
-                  Text('> DEPENDENCIES', style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 10),
-                  _buildDependency(context, 'provider'),
-                  _buildDependency(context, 'http'),
-                  _buildDependency(context, 'google_fonts'),
-                  _buildDependency(context, 'flutter_dotenv'),
-                ],
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            Center(
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_mosaic_rounded,
+                  color: Colors.black,
+                  size: 40,
+                ),
               ),
             ),
-          ),
+            const SizedBox(height: 24),
+            Text('Disconime', style: theme.textTheme.titleLarge),
+            Text('Version 1.0.0', style: theme.textTheme.labelSmall),
+            const SizedBox(height: 40),
+            _buildSection(
+              context,
+              'The Project',
+              'A high-end anime discovery platform built with Flutter '
+                  'and the Jikan API. Designed for enthusiasts who appreciate '
+                  'minimalist aesthetics and a premium content-first experience.',
+            ),
+            const SizedBox(height: 24),
+            _buildSection(context, 'Developer', 'SRUN-Sochettra'),
+            const SizedBox(height: 24),
+            _buildSection(
+              context,
+              'Architecture',
+              'Enterprise Layered Clean Architecture with Provider '
+                  'State Management.',
+            ),
+            const SizedBox(height: 40),
+            Divider(color: theme.dividerColor.withAlpha(40)),
+            const SizedBox(height: 20),
+            Text('Powered by Jikan API v4',
+                style: theme.textTheme.labelSmall),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(BuildContext context, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 140,
-            child: Text(label, style: GoogleFonts.spaceMono(color: Theme.of(context).colorScheme.primary, fontSize: 14)),
+  Widget _buildSection(BuildContext context, String title, String body) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title.toUpperCase(),
+          style: theme.textTheme.labelSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.primary,
           ),
-          Expanded(
-            child: Text(value, style: GoogleFonts.spaceMono(fontSize: 14)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDependency(BuildContext context, String name) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Icon(Icons.terminal, color: Theme.of(context).colorScheme.primary, size: 16),
-          const SizedBox(width: 10),
-          Text(name, style: GoogleFonts.spaceMono(fontSize: 14)),
-        ],
-      ),
+        ),
+        const SizedBox(height: 8),
+        Text(body, style: theme.textTheme.bodyMedium),
+      ],
     );
   }
 }

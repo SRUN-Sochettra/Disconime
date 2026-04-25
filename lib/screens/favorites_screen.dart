@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/favorites_provider.dart';
@@ -11,17 +10,11 @@ class FavoritesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const Text('SYS.FAVORITES'),
-        flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(color: Colors.transparent),
-          ),
-        ),
-      ),
+      appBar: AppBar(title: const Text('SAVED')),
       body: Consumer<FavoritesProvider>(
         builder: (context, provider, child) {
           if (provider.favorites.isEmpty) {
@@ -30,17 +23,17 @@ class FavoritesScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.bookmark_outline,
+                    Icons.bookmark_outline_rounded,
                     size: 64,
-                    color:
-                        Theme.of(context).colorScheme.onSurface.withAlpha(76),
+                    color: theme.colorScheme.onSurface.withAlpha(60),
                   ),
                   const SizedBox(height: 16),
-                  const Text('> NO_FAVORITES_FOUND'),
+                  Text('No saved anime yet.',
+                      style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Text(
                     'Bookmark anime from the detail screen.',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: theme.textTheme.bodyMedium,
                   ),
                 ],
               ),
@@ -48,96 +41,69 @@ class FavoritesScreen extends StatelessWidget {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.only(top: kToolbarHeight + 20),
+            padding: const EdgeInsets.all(16),
             itemCount: provider.favorites.length,
             itemBuilder: (context, index) {
-              final Anime item = provider.favorites.reversed.toList()[index];
+              final Anime item =
+                  provider.favorites.reversed.toList()[index];
               return Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                    child: Card(
-                      margin: EdgeInsets.zero,
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => DetailScreen(anime: item),
+                padding: const EdgeInsets.only(bottom: 20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DetailScreen(anime: item),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AnimeImage(
+                        imageUrl: item.imageUrl,
+                        width: 100,
+                        height: 140,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Text(
+                              item.title,
+                              style: theme.textTheme.titleMedium,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          );
-                        },
-                        child: Container(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surface
-                              .withAlpha(100),
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: AnimeImage(
-                                  imageUrl: item.imageUrl,
-                                  size: AnimeImageSize.small,
-                                ),
+                            const SizedBox(height: 6),
+                            if (item.genres.isNotEmpty)
+                              Text(
+                                item.genres.take(3).join(' • '),
+                                style: theme.textTheme.labelSmall,
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '> ${item.title}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      '[SCORE]: ${item.score.value ?? 'N/A'}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelMedium,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    if (item.genres.isNotEmpty)
-                                      Text(
-                                        '[GENRE]: ${item.genres.take(2).join(', ')}',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelMedium,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                  ],
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Icon(Icons.star_rounded,
+                                    color: primary, size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                  item.score.value?.toString() ?? 'N/A',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13),
                                 ),
-                              ),
-                              IconButton(
-                                onPressed: () => provider.toggleFavorite(item),
-                                icon: Icon(
-                                  Icons.bookmark_remove_outlined,
-                                  color:
-                                      Theme.of(context).colorScheme.primary,
-                                ),
-                                tooltip: 'Remove from favorites',
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                    ),
+                      IconButton(
+                        onPressed: () => provider.toggleFavorite(item),
+                        icon: const Icon(Icons.bookmark_remove_outlined),
+                      ),
+                    ],
                   ),
                 ),
               );

@@ -1,11 +1,11 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/anime_model.dart';
 import '../providers/anime_provider.dart';
+import '../providers/search_history_provider.dart';
 import '../widgets/anime_image.dart';
-import '../widgets/error_view.dart';
+import '../widgets/anime_card_skeleton.dart';
 import 'detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -38,8 +38,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
-    _controller.dispose();
     _scrollController.removeListener(_onScroll);
+    _controller.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -47,239 +47,241 @@ class _SearchScreenState extends State<SearchScreen> {
   void _performSearch(String query) {
     FocusScope.of(context).unfocus();
     if (query.isNotEmpty) {
+      context.read<SearchHistoryProvider>().addQuery(query);
       context.read<AnimeProvider>().searchAnime(query);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const Text('SYS.SEARCH'),
-        flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(color: Colors.transparent),
-          ),
-        ),
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              // ── Search field ──────────────────────────────────
-              TextField(
-                controller: _controller,
-                style: GoogleFonts.spaceMono(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                decoration: InputDecoration(
-                  labelText: '> INPUT QUERY',
-                  labelStyle: GoogleFonts.spaceMono(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.zero,
-                    borderSide: BorderSide(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.zero,
-                    borderSide: BorderSide(
-                      color: Theme.of(context).colorScheme.primary,
-                      width: 2,
-                    ),
-                  ),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      Icons.search,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    onPressed: () => _performSearch(_controller.text),
-                  ),
-                ),
-                onSubmitted: _performSearch,
-              ),
-              const SizedBox(height: 20),
+    final primary = Theme.of(context).colorScheme.primary;
 
-              // ── Results area ──────────────────────────────────
-              Expanded(
-                child: Consumer<AnimeProvider>(
-                  builder: (context, provider, child) {
-                    // Awaiting first input.
-                    if (provider.searchState == FetchState.initial) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+    return Scaffold(
+      appBar: AppBar(title: const Text('SEARCH')),
+      body: Column(
+        children: [
+          // ── Search field ──────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _controller,
+              style: GoogleFonts.inter(),
+              onSubmitted: _performSearch,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Search anime...',
+                prefixIcon: Icon(Icons.search_rounded, color: primary),
+                suffixIcon: _controller.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded),
+                        onPressed: () {
+                          _controller.clear();
+                          context.read<AnimeProvider>().searchAnime('');
+                          setState(() {});
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).dividerColor.withAlpha(30),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: primary, width: 1.5),
+                ),
+              ),
+            ),
+          ),
+
+          // ── Results / History ─────────────────────────────
+          Expanded(
+            child: Consumer<AnimeProvider>(
+              builder: (context, provider, child) {
+                if (provider.searchState == FetchState.initial) {
+                  return _buildHistory(context);
+                }
+
+                if (provider.searchState == FetchState.loading &&
+                    provider.searchResults.isEmpty) {
+                  return const AnimeListSkeleton();
+                }
+
+                if (provider.searchResults.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No results found.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: provider.searchResults.length +
+                      (provider.searchState == FetchState.loading ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == provider.searchResults.length) {
+                      return const LoadMoreSkeleton();
+                    }
+
+                    final Anime anime = provider.searchResults[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DetailScreen(anime: anime),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              Icons.search,
-                              size: 64,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withAlpha(76),
+                            AnimeImage(
+                              imageUrl: anime.imageUrl,
+                              width: 100,
+                              height: 140,
                             ),
-                            const SizedBox(height: 16),
-                            const Text("> AWAITING_INPUT"),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    anime.title,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  if (anime.genres.isNotEmpty)
+                                    Text(
+                                      anime.genres.take(3).join(' • '),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall,
+                                    ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.star_rounded,
+                                          color: primary, size: 16),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        anime.score.value?.toString() ??
+                                            'N/A',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
-                      );
-                    }
-
-                    // Full screen loader — first page only.
-                    if (provider.searchState == FetchState.loading &&
-                        provider.searchResults.isEmpty) {
-                      return Center(
-                        child: CircularProgressIndicator(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      );
-                    }
-
-                    // Full screen error — no results to show at all.
-                    if (provider.searchState == FetchState.error &&
-                        provider.searchResults.isEmpty) {
-                      return ErrorView(
-                        message: provider.errorMessage,
-                        onRetry: () =>
-                            provider.searchAnime(_controller.text),
-                      );
-                    }
-
-                    // Empty results state.
-                    if (provider.searchState == FetchState.loaded &&
-                        provider.searchResults.isEmpty) {
-                      return const Center(
-                          child: Text('[NO_RECORDS_FOUND]'));
-                    }
-
-                    return ListView.builder(
-                      controller: _scrollController,
-                      itemCount: provider.searchResults.length +
-                          // Extra slot for loader or inline error.
-                          (provider.searchState == FetchState.loading ||
-                                  provider.searchState == FetchState.error
-                              ? 1
-                              : 0),
-                      itemBuilder: (context, index) {
-                        // ── Bottom loader ─────────────────────
-                        if (index == provider.searchResults.length &&
-                            provider.searchState == FetchState.loading) {
-                          return Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color:
-                                    Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                          );
-                        }
-
-                        // ── Inline load-more error with retry ─
-                        if (index == provider.searchResults.length &&
-                            provider.searchState == FetchState.error) {
-                          return ErrorView(
-                            message: provider.errorMessage,
-                            onRetry: () => provider.searchAnime(
-                              _controller.text,
-                              loadMore: true,
-                            ),
-                            expand: false,
-                          );
-                        }
-
-                        final Anime item = provider.searchResults[index];
-                        return Padding(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 8),
-                          child: ClipRect(
-                            child: BackdropFilter(
-                              filter:
-                                  ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                              child: Card(
-                                margin: EdgeInsets.zero,
-                                child: InkWell(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            DetailScreen(anime: item),
-                                      ),
-                                    );
-                                  },
-                                  child: Container(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .surface
-                                        .withAlpha(100),
-                                    padding: const EdgeInsets.all(12),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            border: Border.all(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary,
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: AnimeImage(
-                                            imageUrl: item.imageUrl,
-                                            size: AnimeImageSize.small,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                '> ${item.title}',
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .titleMedium,
-                                                maxLines: 2,
-                                                overflow:
-                                                    TextOverflow.ellipsis,
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                '[SCORE]: ${item.score.value ?? 'N/A'}',
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .labelMedium,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                      ),
                     );
                   },
-                ),
-              ),
-            ],
+                );
+              },
+            ),
           ),
-        ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildHistory(BuildContext context) {
+    final theme = Theme.of(context);
+    return Consumer<SearchHistoryProvider>(
+      builder: (context, historyProvider, child) {
+        if (historyProvider.history.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.search_rounded,
+                  size: 64,
+                  color: theme.colorScheme.onSurface.withAlpha(60),
+                ),
+                const SizedBox(height: 16),
+                Text('Search for anime',
+                    style: theme.textTheme.titleMedium),
+                const SizedBox(height: 8),
+                Text(
+                  'Your recent searches will appear here.',
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Recent Searches',
+                      style: theme.textTheme.titleMedium),
+                  TextButton(
+                    onPressed: () => historyProvider.clearHistory(),
+                    child: const Text('Clear all'),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                itemCount: historyProvider.history.length,
+                itemBuilder: (context, index) {
+                  final query = historyProvider.history[index];
+                  return ListTile(
+                    leading: Icon(
+                      Icons.history_rounded,
+                      color: theme.colorScheme.onSurface.withAlpha(100),
+                    ),
+                    title: Text(query, style: theme.textTheme.bodyMedium),
+                    trailing: IconButton(
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withAlpha(100),
+                      ),
+                      onPressed: () =>
+                          historyProvider.removeQuery(query),
+                    ),
+                    onTap: () {
+                      _controller.text = query;
+                      _performSearch(query);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

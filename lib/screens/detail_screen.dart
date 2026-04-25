@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -6,11 +5,10 @@ import '../models/anime_model.dart';
 import '../providers/anime_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../widgets/anime_image.dart';
-import '../widgets/error_view.dart';
+import '../widgets/anime_card_skeleton.dart';
 
 class DetailScreen extends StatefulWidget {
   final Anime anime;
-
   const DetailScreen({super.key, required this.anime});
 
   @override
@@ -29,336 +27,145 @@ class _DetailScreenState extends State<DetailScreen> {
   @override
   Widget build(BuildContext context) {
     final anime = widget.anime;
-    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('SYS.INFO'),
-        flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(color: Colors.transparent),
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        leading: CircleAvatar(
+          backgroundColor: Colors.black.withAlpha(100),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
           ),
         ),
         actions: [
-          Consumer<FavoritesProvider>(
-            builder: (context, favProvider, child) {
-              final isFav = favProvider.isFavorite(anime.malId);
-              return IconButton(
-                tooltip:
-                    isFav ? 'Remove from favorites' : 'Add to favorites',
-                icon: Icon(
-                  isFav ? Icons.bookmark : Icons.bookmark_outline,
-                  color: primary,
-                ),
-                onPressed: () => favProvider.toggleFavorite(anime),
-              );
-            },
+          CircleAvatar(
+            backgroundColor: Colors.black.withAlpha(100),
+            child: Consumer<FavoritesProvider>(
+              builder: (context, favProvider, child) {
+                final isFav = favProvider.isFavorite(anime.malId);
+                return IconButton(
+                  icon: Icon(
+                    isFav
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_outline_rounded,
+                    color: isFav
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.white,
+                  ),
+                  onPressed: () => favProvider.toggleFavorite(anime),
+                );
+              },
+            ),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-            16.0, kToolbarHeight + 40, 16.0, 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Hero Image ─────────────────────────────────────────
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  border: Border.all(color: primary, width: 2),
-                ),
-                child: AnimeImage(
-                  imageUrl: anime.imageUrl,
-                  size: AnimeImageSize.large,
-                  fit: BoxFit.contain,
-                ),
-              ),
+            // ── Hero Image ─────────────────────────────────────
+            AnimeImage(
+              imageUrl: anime.imageUrl,
+              width: double.infinity,
+              height: 450,
+              borderRadius: 0,
             ),
-            const SizedBox(height: 20),
-
-            // ── Titles ─────────────────────────────────────────────
-            _buildPanel(
-              context,
+            Padding(
+              padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionHeader(context, 'TITLES'),
-                  const SizedBox(height: 10),
-                  _buildInfoRow(context, 'MAIN', anime.title),
+                  // ── Title ─────────────────────────────────────
+                  Text(
+                    anime.title,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                   if (anime.titleEnglish != null &&
                       anime.titleEnglish!.isNotEmpty &&
-                      anime.titleEnglish != anime.title)
-                    _buildInfoRow(context, 'EN', anime.titleEnglish!),
+                      anime.titleEnglish != anime.title) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      anime.titleEnglish!,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
                   if (anime.titleJapanese != null &&
-                      anime.titleJapanese!.isNotEmpty)
-                    _buildInfoRow(context, 'JP', anime.titleJapanese!),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
+                      anime.titleJapanese!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      anime.titleJapanese!,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ],
+                  const SizedBox(height: 24),
 
-            // ── Stats ──────────────────────────────────────────────
-            _buildPanel(
-              context,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader(context, 'STATS'),
-                  const SizedBox(height: 10),
+                  // ── Stats ─────────────────────────────────────
                   Row(
                     children: [
-                      Expanded(
-                        child: _buildStatBox(
-                          context,
-                          label: 'SCORE',
-                          value: anime.score.value?.toStringAsFixed(2) ??
-                              'N/A',
-                          icon: Icons.star_outline,
-                        ),
+                      _buildStatBadge(
+                        context,
+                        icon: Icons.star_rounded,
+                        value: anime.score.value?.toStringAsFixed(1) ?? 'N/A',
+                        label: 'Score',
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildStatBox(
-                          context,
-                          label: 'RANK',
-                          value: anime.score.rank != null
-                              ? '#${anime.score.rank}'
-                              : 'N/A',
-                          icon: Icons.leaderboard_outlined,
-                        ),
+                      const SizedBox(width: 12),
+                      _buildStatBadge(
+                        context,
+                        icon: Icons.leaderboard_rounded,
+                        value: anime.score.rank != null
+                            ? '#${anime.score.rank}'
+                            : 'N/A',
+                        label: 'Rank',
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildStatBox(
-                          context,
-                          label: 'POPULAR',
-                          value: anime.score.popularity != null
-                              ? '#${anime.score.popularity}'
-                              : 'N/A',
-                          icon: Icons.trending_up,
-                        ),
+                      const SizedBox(width: 12),
+                      _buildStatBadge(
+                        context,
+                        icon: Icons.trending_up_rounded,
+                        value: anime.score.popularity != null
+                            ? '#${anime.score.popularity}'
+                            : 'N/A',
+                        label: 'Popular',
                       ),
                     ],
                   ),
-                  if (anime.score.scoredBy != null) ...[
-                    const SizedBox(height: 10),
-                    _buildInfoRow(
-                      context,
-                      'SCORED BY',
-                      '${_formatNumber(anime.score.scoredBy!)} users',
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
+                  const SizedBox(height: 24),
 
-            // ── Info ───────────────────────────────────────────────
-            _buildPanel(
-              context,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader(context, 'INFO'),
-                  const SizedBox(height: 10),
-                  if (anime.type != null)
-                    _buildInfoRow(context, 'TYPE', anime.type!),
-                  if (anime.status != null)
-                    _buildInfoRow(context, 'STATUS', anime.status!),
-                  if (anime.episodes != null)
-                    _buildInfoRow(
-                        context, 'EPISODES', anime.episodes.toString()),
-                  if (anime.duration != null)
-                    _buildInfoRow(context, 'DURATION', anime.duration!),
-                  if (anime.rating != null)
-                    _buildInfoRow(context, 'RATING', anime.rating!),
-                  if (anime.year != null)
-                    _buildInfoRow(context, 'YEAR', anime.year!),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // ── Genres ─────────────────────────────────────────────
-            if (anime.genres.isNotEmpty) ...[
-              _buildPanel(
-                context,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader(context, 'GENRES'),
-                    const SizedBox(height: 10),
+                  // ── Genres ────────────────────────────────────
+                  if (anime.genres.isNotEmpty) ...[
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: anime.genres
-                          .map((genre) => _buildGenreChip(context, genre))
+                          .map((g) => _buildGenreChip(context, g))
                           .toList(),
                     ),
+                    const SizedBox(height: 24),
                   ],
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
 
-            // ── Synopsis ───────────────────────────────────────────
-            _buildPanel(
-              context,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader(context, 'SYNOPSIS'),
-                  const SizedBox(height: 10),
+                  // ── Synopsis ──────────────────────────────────
                   Text(
-                    anime.synopsis.text.isEmpty
-                        ? 'No synopsis available.'
-                        : anime.synopsis.text,
+                    'Synopsis',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    anime.synopsis.text,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
-                  if (anime.synopsis.background != null &&
-                      anime.synopsis.background!.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _buildSectionHeader(context, 'BACKGROUND'),
-                    const SizedBox(height: 10),
-                    Text(
-                      anime.synopsis.background!,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
+                  const SizedBox(height: 32),
+
+                  // ── Info ──────────────────────────────────────
+                  _buildInfoSection(context, anime),
+                  const SizedBox(height: 32),
+
+                  // ── Recommendations ───────────────────────────
+                  _buildRecommendations(context, anime),
                 ],
               ),
-            ),
-            const SizedBox(height: 30),
-
-            // ── Recommendations ────────────────────────────────────
-            Consumer<AnimeProvider>(
-              builder: (context, provider, child) {
-                final isLoading =
-                    provider.recommendationsState == FetchState.loading;
-                final hasError =
-                    provider.recommendationsState == FetchState.error;
-                final isEmpty = provider.recommendations.isEmpty;
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isEmpty && !isLoading
-                          ? '> SIMILAR_DATA: NOT_FOUND'
-                          : '> SIMILAR_DATA',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 10),
-                    if (isLoading && isEmpty)
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32.0),
-                          child: CircularProgressIndicator(color: primary),
-                        ),
-                      )
-                    else if (hasError && isEmpty)
-                      ErrorView(
-                        message: provider.errorMessage,
-                        onRetry: () => context
-                            .read<AnimeProvider>()
-                            .fetchRecommendations(anime.malId),
-                        expand: false,
-                      )
-                    else if (!isEmpty)
-                      SizedBox(
-                        height: 200,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: provider.recommendations.length,
-                          itemBuilder: (context, index) {
-                            final rec = provider.recommendations[index];
-                            return GestureDetector(
-                              onTap: () async {
-                                final animeProvider =
-                                    context.read<AnimeProvider>();
-                                try {
-                                  final fullAnime = await animeProvider
-                                      .getAnimeDetails(rec.malId);
-                                  if (context.mounted) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            DetailScreen(anime: fullAnime),
-                                      ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            '[ERROR]: FAILED_TO_RETRIEVE_DATA'),
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                              child: Container(
-                                width: 140,
-                                margin: const EdgeInsets.only(right: 16),
-                                child: ClipRect(
-                                  child: BackdropFilter(
-                                    filter: ImageFilter.blur(
-                                        sigmaX: 5, sigmaY: 5),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .surface
-                                            .withAlpha(100),
-                                        border: Border.all(
-                                            color: primary, width: 1),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Expanded(
-                                            child: AnimeImage(
-                                              imageUrl: rec.imageUrl,
-                                              size: AnimeImageSize.medium,
-                                            ),
-                                          ),
-                                          Padding(
-                                            padding:
-                                                const EdgeInsets.all(8.0),
-                                            child: Text(
-                                              rec.title,
-                                              maxLines: 2,
-                                              overflow:
-                                                  TextOverflow.ellipsis,
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .labelMedium
-                                                  ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                );
-              },
             ),
           ],
         ),
@@ -366,109 +173,183 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
-  Widget _buildPanel(BuildContext context, {required Widget child}) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface.withAlpha(100),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.primary,
-              width: 1,
+  Widget _buildStatBadge(
+    BuildContext context, {
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    final theme = Theme.of(context);
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: theme.colorScheme.surface,
+          border: Border.all(color: theme.dividerColor.withAlpha(30)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: theme.colorScheme.primary, size: 20),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-          ),
-          child: child,
+            Text(label, style: theme.textTheme.labelSmall),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String label) {
-    return Text(
-      '> $label',
-      style: Theme.of(context).textTheme.titleLarge,
-    );
-  }
-
-  Widget _buildInfoRow(BuildContext context, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '[$label]',
-              style: GoogleFonts.spaceMono(
-                color: Theme.of(context).colorScheme.primary,
-                fontSize: 12,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: GoogleFonts.spaceMono(fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatBox(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    final primary = Theme.of(context).colorScheme.primary;
+  Widget _buildGenreChip(BuildContext context, String label) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        border: Border.all(color: primary.withAlpha(128), width: 1),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: primary, size: 20),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: GoogleFonts.spaceMono(
-              color: primary,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: GoogleFonts.spaceMono(fontSize: 10),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGenreChip(BuildContext context, String genre) {
-    final primary = Theme.of(context).colorScheme.primary;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        border: Border.all(color: primary, width: 1),
-        color: primary.withAlpha(20),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withAlpha(100),
+        ),
       ),
       child: Text(
-        genre,
-        style: GoogleFonts.spaceMono(
-          color: primary,
-          fontSize: 11,
-        ),
+        label,
+        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500),
       ),
+    );
+  }
+
+  Widget _buildInfoSection(BuildContext context, Anime anime) {
+    final rows = <Widget>[];
+
+    void addRow(String label, String? value) {
+      if (value == null || value.isEmpty) return;
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 90,
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  value,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    addRow('Type', anime.type);
+    addRow('Status', anime.status);
+    addRow('Episodes', anime.episodes?.toString());
+    addRow('Duration', anime.duration);
+    addRow('Rating', anime.rating);
+    addRow('Year', anime.year);
+    if (anime.score.scoredBy != null) {
+      addRow('Scored By', '${_formatNumber(anime.score.scoredBy!)} users');
+    }
+
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Information', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
+        ...rows,
+      ],
+    );
+  }
+
+  Widget _buildRecommendations(BuildContext context, Anime anime) {
+    return Consumer<AnimeProvider>(
+      builder: (context, provider, child) {
+        if (provider.recommendationsState == FetchState.loading) {
+          return const RecommendationListSkeleton();
+        }
+        if (provider.recommendations.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'You Might Also Like',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 220,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: provider.recommendations.length,
+                itemBuilder: (context, index) {
+                  final rec = provider.recommendations[index];
+                  return GestureDetector(
+                    onTap: () async {
+                      final animeProvider = context.read<AnimeProvider>();
+                      try {
+                        final fullAnime =
+                            await animeProvider.getAnimeDetails(rec.malId);
+                        // Guard context across async gap using
+                        // State.mounted check.
+                        if (!mounted) return;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DetailScreen(anime: fullAnime),
+                          ),
+                        );
+                      } catch (_) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Failed to load anime details.'),
+                          ),
+                        );
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AnimeImage(
+                            imageUrl: rec.imageUrl,
+                            width: 130,
+                            height: 180,
+                          ),
+                          const SizedBox(height: 6),
+                          SizedBox(
+                            width: 130,
+                            child: Text(
+                              rec.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.labelSmall,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -38,19 +38,52 @@ class AnimeProvider extends ChangeNotifier {
   List<Anime> get recommendations => _recommendations;
   FetchState get recommendationsState => _recommendationsState;
 
+  // ── Seasonal ─────────────────────────────────────────────────
+  List<Anime> _seasonalAnime = [];
+  FetchState _seasonalState = FetchState.initial;
+  int _currentSeasonalPage = 1;
+  int? _selectedYear;
+  String? _selectedSeason;
+
+  List<Anime> get seasonalAnime => _seasonalAnime;
+  FetchState get seasonalState => _seasonalState;
+  int? get selectedYear => _selectedYear;
+  String? get selectedSeason => _selectedSeason;
+
+  String get seasonLabel {
+    if (_selectedYear == null || _selectedSeason == null) {
+      return 'Current Season';
+    }
+    return '${_selectedSeason![0].toUpperCase()}${_selectedSeason!.substring(1)} $_selectedYear';
+  }
+
+  // ── Genres ───────────────────────────────────────────────────
+  List<Map<String, dynamic>> _genres = [];
+  FetchState _genresState = FetchState.initial;
+
+  List<Map<String, dynamic>> get genres => _genres;
+  FetchState get genresState => _genresState;
+
+  List<Anime> _genreAnime = [];
+  FetchState _genreAnimeState = FetchState.initial;
+  int _currentGenrePage = 1;
+  int _currentGenreId = 0;
+  String _currentGenreName = '';
+
+  List<Anime> get genreAnime => _genreAnime;
+  FetchState get genreAnimeState => _genreAnimeState;
+  String get currentGenreName => _currentGenreName;
+
   // ── Shared ───────────────────────────────────────────────────
   String _errorMessage = '';
   String get errorMessage => _errorMessage;
 
   // ── Top Anime ────────────────────────────────────────────────
-
-  /// Applies a new filter and re-fetches from page 1.
   void applyFilter(AnimeFilter filter) {
     _currentFilter = filter;
     fetchTopAnime();
   }
 
-  /// Clears all active filters and re-fetches from page 1.
   void clearFilter() {
     _currentFilter = const AnimeFilter();
     fetchTopAnime();
@@ -60,6 +93,8 @@ class AnimeProvider extends ChangeNotifier {
     if (loadMore) {
       if (_topAnimeState == FetchState.loading) return;
       _currentTopPage++;
+      _topAnimeState = FetchState.loading;
+      notifyListeners();
     } else {
       _currentTopPage = 1;
       _topAnime = [];
@@ -76,11 +111,7 @@ class AnimeProvider extends ChangeNotifier {
         orderBy: _currentFilter.orderBy,
         sort: _currentFilter.sort,
       );
-      if (loadMore) {
-        _topAnime = [..._topAnime, ...results];
-      } else {
-        _topAnime = results;
-      }
+      _topAnime = loadMore ? [..._topAnime, ...results] : results;
       _topAnimeState = FetchState.loaded;
     } catch (e) {
       _topAnimeState = FetchState.error;
@@ -107,6 +138,8 @@ class AnimeProvider extends ChangeNotifier {
     if (loadMore) {
       if (_searchState == FetchState.loading) return;
       _currentSearchPage++;
+      _searchState = FetchState.loading;
+      notifyListeners();
     } else {
       _currentSearchPage = 1;
       _searchResults = [];
@@ -117,11 +150,8 @@ class AnimeProvider extends ChangeNotifier {
     try {
       final results =
           await _apiService.searchAnime(query, page: _currentSearchPage);
-      if (loadMore) {
-        _searchResults = [..._searchResults, ...results];
-      } else {
-        _searchResults = results;
-      }
+      _searchResults =
+          loadMore ? [..._searchResults, ...results] : results;
       _searchState = FetchState.loaded;
     } catch (e) {
       _searchState = FetchState.error;
@@ -137,7 +167,6 @@ class AnimeProvider extends ChangeNotifier {
             _recommendationsState == FetchState.loading)) {
       return;
     }
-
     _currentRecMalId = malId;
     _recommendations = [];
     _recommendationsState = FetchState.loading;
@@ -148,6 +177,111 @@ class AnimeProvider extends ChangeNotifier {
       _recommendationsState = FetchState.loaded;
     } catch (e) {
       _recommendationsState = FetchState.error;
+      _errorMessage = e.toString();
+    }
+    notifyListeners();
+  }
+
+  // ── Seasonal ─────────────────────────────────────────────────
+  Future<void> fetchSeasonalAnime({
+    int? year,
+    String? season,
+    bool loadMore = false,
+  }) async {
+    final isNewSelection =
+        year != _selectedYear || season != _selectedSeason;
+    if (isNewSelection) {
+      _selectedYear = year;
+      _selectedSeason = season;
+      loadMore = false;
+    }
+
+    if (loadMore) {
+      if (_seasonalState == FetchState.loading) return;
+      _currentSeasonalPage++;
+      _seasonalState = FetchState.loading;
+      notifyListeners();
+    } else {
+      _currentSeasonalPage = 1;
+      _seasonalAnime = [];
+      _seasonalState = FetchState.loading;
+      notifyListeners();
+    }
+
+    try {
+      List<Anime> results;
+      if (_selectedYear != null && _selectedSeason != null) {
+        results = await _apiService.getSeason(
+          _selectedYear!,
+          _selectedSeason!,
+          page: _currentSeasonalPage,
+        );
+      } else {
+        results =
+            await _apiService.getSeasonNow(page: _currentSeasonalPage);
+      }
+      _seasonalAnime =
+          loadMore ? [..._seasonalAnime, ...results] : results;
+      _seasonalState = FetchState.loaded;
+    } catch (e) {
+      _seasonalState = FetchState.error;
+      _errorMessage = e.toString();
+    }
+    notifyListeners();
+  }
+
+  // ── Genres ───────────────────────────────────────────────────
+  Future<void> fetchGenres() async {
+    if (_genresState == FetchState.loaded ||
+        _genresState == FetchState.loading) {
+      return;
+    }
+
+    _genresState = FetchState.loading;
+    notifyListeners();
+
+    try {
+      _genres = await _apiService.getGenres();
+      _genresState = FetchState.loaded;
+    } catch (e) {
+      _genresState = FetchState.error;
+      _errorMessage = e.toString();
+    }
+    notifyListeners();
+  }
+
+  Future<void> fetchAnimeByGenre(
+    int genreId,
+    String genreName, {
+    bool loadMore = false,
+  }) async {
+    if (_currentGenreId != genreId) {
+      _currentGenreId = genreId;
+      _currentGenreName = genreName;
+      loadMore = false;
+    }
+
+    if (loadMore) {
+      if (_genreAnimeState == FetchState.loading) return;
+      _currentGenrePage++;
+      _genreAnimeState = FetchState.loading;
+      notifyListeners();
+    } else {
+      _currentGenrePage = 1;
+      _genreAnime = [];
+      _genreAnimeState = FetchState.loading;
+      notifyListeners();
+    }
+
+    try {
+      final results = await _apiService.getAnimeByGenre(
+        genreId,
+        page: _currentGenrePage,
+      );
+      _genreAnime = loadMore ? [..._genreAnime, ...results] : results;
+      _genreAnimeState = FetchState.loaded;
+    } catch (e) {
+      _genreAnimeState = FetchState.error;
       _errorMessage = e.toString();
     }
     notifyListeners();
