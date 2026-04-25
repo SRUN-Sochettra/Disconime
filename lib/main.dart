@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -10,7 +11,15 @@ import 'providers/theme_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+
+  // Load environment variables if available.
+  // If .env is missing, continue safely — ApiService already has
+  // a fallback base URL.
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint('[main] .env not found or failed to load: $e');
+  }
 
   final favoritesProvider = FavoritesProvider();
   await favoritesProvider.loadFavorites();
