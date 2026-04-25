@@ -9,7 +9,7 @@ class AnimeProvider extends ChangeNotifier {
   final ApiService _apiService;
 
   AnimeProvider({ApiService? apiService})
-      : _apiService = apiService ?? ApiService();
+    : _apiService = apiService ?? ApiService();
 
   // ── Top Anime ────────────────────────────────────────────────
   List<Anime> _topAnime = [];
@@ -76,7 +76,9 @@ class AnimeProvider extends ChangeNotifier {
 
   // ── Shared ───────────────────────────────────────────────────
   String _errorMessage = '';
+  String _topAnimeErrorMessage = '';
   String get errorMessage => _errorMessage;
+  String get topAnimeErrorMessage => _topAnimeErrorMessage;
 
   // ── Top Anime ────────────────────────────────────────────────
   void applyFilter(AnimeFilter filter) {
@@ -92,19 +94,21 @@ class AnimeProvider extends ChangeNotifier {
   Future<void> fetchTopAnime({bool loadMore = false}) async {
     if (loadMore) {
       if (_topAnimeState == FetchState.loading) return;
-      _currentTopPage++;
       _topAnimeState = FetchState.loading;
+      _topAnimeErrorMessage = '';
       notifyListeners();
     } else {
-      _currentTopPage = 1;
       _topAnime = [];
       _topAnimeState = FetchState.loading;
+      _topAnimeErrorMessage = '';
       notifyListeners();
     }
 
+    final pageToFetch = loadMore ? _currentTopPage + 1 : 1;
+
     try {
       final results = await _apiService.getTopAnime(
-        page: _currentTopPage,
+        page: pageToFetch,
         type: _currentFilter.type,
         filter: _currentFilter.filter,
         rating: _currentFilter.rating,
@@ -112,10 +116,13 @@ class AnimeProvider extends ChangeNotifier {
         sort: _currentFilter.sort,
       );
       _topAnime = loadMore ? [..._topAnime, ...results] : results;
+      _currentTopPage = pageToFetch;
       _topAnimeState = FetchState.loaded;
+      _topAnimeErrorMessage = '';
     } catch (e) {
       _topAnimeState = FetchState.error;
-      _errorMessage = e.toString();
+      _topAnimeErrorMessage = e.toString();
+      _errorMessage = _topAnimeErrorMessage;
     }
     notifyListeners();
   }
@@ -137,21 +144,20 @@ class AnimeProvider extends ChangeNotifier {
 
     if (loadMore) {
       if (_searchState == FetchState.loading) return;
-      _currentSearchPage++;
       _searchState = FetchState.loading;
       notifyListeners();
     } else {
-      _currentSearchPage = 1;
       _searchResults = [];
       _searchState = FetchState.loading;
       notifyListeners();
     }
 
+    final pageToFetch = loadMore ? _currentSearchPage + 1 : 1;
+
     try {
-      final results =
-          await _apiService.searchAnime(query, page: _currentSearchPage);
-      _searchResults =
-          loadMore ? [..._searchResults, ...results] : results;
+      final results = await _apiService.searchAnime(query, page: pageToFetch);
+      _searchResults = loadMore ? [..._searchResults, ...results] : results;
+      _currentSearchPage = pageToFetch;
       _searchState = FetchState.loaded;
     } catch (e) {
       _searchState = FetchState.error;
@@ -188,8 +194,7 @@ class AnimeProvider extends ChangeNotifier {
     String? season,
     bool loadMore = false,
   }) async {
-    final isNewSelection =
-        year != _selectedYear || season != _selectedSeason;
+    final isNewSelection = year != _selectedYear || season != _selectedSeason;
     if (isNewSelection) {
       _selectedYear = year;
       _selectedSeason = season;
@@ -198,15 +203,15 @@ class AnimeProvider extends ChangeNotifier {
 
     if (loadMore) {
       if (_seasonalState == FetchState.loading) return;
-      _currentSeasonalPage++;
       _seasonalState = FetchState.loading;
       notifyListeners();
     } else {
-      _currentSeasonalPage = 1;
       _seasonalAnime = [];
       _seasonalState = FetchState.loading;
       notifyListeners();
     }
+
+    final pageToFetch = loadMore ? _currentSeasonalPage + 1 : 1;
 
     try {
       List<Anime> results;
@@ -214,14 +219,13 @@ class AnimeProvider extends ChangeNotifier {
         results = await _apiService.getSeason(
           _selectedYear!,
           _selectedSeason!,
-          page: _currentSeasonalPage,
+          page: pageToFetch,
         );
       } else {
-        results =
-            await _apiService.getSeasonNow(page: _currentSeasonalPage);
+        results = await _apiService.getSeasonNow(page: pageToFetch);
       }
-      _seasonalAnime =
-          loadMore ? [..._seasonalAnime, ...results] : results;
+      _seasonalAnime = loadMore ? [..._seasonalAnime, ...results] : results;
+      _currentSeasonalPage = pageToFetch;
       _seasonalState = FetchState.loaded;
     } catch (e) {
       _seasonalState = FetchState.error;
@@ -263,22 +267,23 @@ class AnimeProvider extends ChangeNotifier {
 
     if (loadMore) {
       if (_genreAnimeState == FetchState.loading) return;
-      _currentGenrePage++;
       _genreAnimeState = FetchState.loading;
       notifyListeners();
     } else {
-      _currentGenrePage = 1;
       _genreAnime = [];
       _genreAnimeState = FetchState.loading;
       notifyListeners();
     }
 
+    final pageToFetch = loadMore ? _currentGenrePage + 1 : 1;
+
     try {
       final results = await _apiService.getAnimeByGenre(
         genreId,
-        page: _currentGenrePage,
+        page: pageToFetch,
       );
       _genreAnime = loadMore ? [..._genreAnime, ...results] : results;
+      _currentGenrePage = pageToFetch;
       _genreAnimeState = FetchState.loaded;
     } catch (e) {
       _genreAnimeState = FetchState.error;

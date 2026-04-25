@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -8,7 +9,10 @@ class ApiService {
   final http.Client client;
 
   static const Duration _minRequestInterval = Duration(milliseconds: 400);
+  static const Duration _baseRetryDelay = Duration(seconds: 1);
+  static const int _maxRetries = 3;
   DateTime _lastRequestTime = DateTime.fromMillisecondsSinceEpoch(0);
+  Future<void> _requestQueue = Future.value();
 
   ApiService({http.Client? client}) : client = client ?? http.Client();
 
@@ -20,26 +24,81 @@ class ApiService {
     }
   }
 
-  Future<void> _throttle() async {
-    final now = DateTime.now();
-    final elapsed = now.difference(_lastRequestTime);
-    if (elapsed < _minRequestInterval) {
-      await Future.delayed(_minRequestInterval - elapsed);
+  Future<T> _throttle<T>(Future<T> Function() action) {
+    final previousRequest = _requestQueue;
+    final releaseQueue = Completer<void>();
+    _requestQueue = releaseQueue.future;
+
+    return previousRequest
+        .then((_) async {
+          final now = DateTime.now();
+          final elapsed = now.difference(_lastRequestTime);
+          if (elapsed < _minRequestInterval) {
+            await Future.delayed(_minRequestInterval - elapsed);
+          }
+
+          _lastRequestTime = DateTime.now();
+          return action();
+        })
+        .whenComplete(() {
+          if (!releaseQueue.isCompleted) {
+            releaseQueue.complete();
+          }
+        });
+  }
+
+  bool _shouldRetry(http.Response response) =>
+      response.statusCode == 429 || response.statusCode >= 500;
+
+  Duration _retryDelayFor(http.Response response, int attempt) {
+    final exponentialDelay = Duration(
+      milliseconds: _baseRetryDelay.inMilliseconds * (1 << attempt),
+    );
+    final retryAfterHeader = response.headers['retry-after'];
+    final retryAfterSeconds = int.tryParse(retryAfterHeader ?? '');
+
+    if (retryAfterSeconds == null) {
+      return exponentialDelay;
     }
-    _lastRequestTime = DateTime.now();
+
+    final retryAfterDelay = Duration(seconds: retryAfterSeconds);
+    return retryAfterDelay > exponentialDelay
+        ? retryAfterDelay
+        : exponentialDelay;
   }
 
   Future<Map<String, dynamic>> _getJson(Uri uri) async {
-    await _throttle();
     try {
-      final response = await client.get(uri);
-      if (response.statusCode == 200) {
-        return json.decode(response.body) as Map<String, dynamic>;
-      } else if (response.statusCode == 429) {
-        throw Exception('Rate limit exceeded. Please try again shortly.');
-      } else {
-        throw Exception('Request failed with status ${response.statusCode}.');
-      }
+      return await _throttle(() async {
+        for (var attempt = 0; attempt <= _maxRetries; attempt++) {
+          final response = await client.get(uri);
+
+          if (response.statusCode == 200) {
+            return json.decode(response.body) as Map<String, dynamic>;
+          }
+
+          if (_shouldRetry(response) && attempt < _maxRetries) {
+            final delay = _retryDelayFor(response, attempt);
+            debugPrint(
+              '[ApiService] Retrying $uri after status '
+              '${response.statusCode} in ${delay.inMilliseconds}ms '
+              '(attempt ${attempt + 1}/$_maxRetries).',
+            );
+            await Future.delayed(delay);
+            continue;
+          }
+
+          if (response.statusCode == 429) {
+            throw Exception(
+              'Rate limit exceeded after retries. Please try again shortly.',
+            );
+          }
+
+          throw Exception('Request failed with status ${response.statusCode}.');
+        }
+
+        throw Exception('Request failed after retries.');
+      });
     } catch (e) {
       debugPrint('[ApiService] Error fetching $uri: $e');
       rethrow;
