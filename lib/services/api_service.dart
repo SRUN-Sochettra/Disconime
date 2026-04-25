@@ -47,8 +47,26 @@ class ApiService {
     }
   }
 
-  Future<List<Anime>> getTopAnime({int page = 1}) async {
-    final data = await _getJson(Uri.parse('$baseUrl/top/anime?page=$page'));
+  Future<List<Anime>> getTopAnime({
+    int page = 1,
+    String? type,
+    String? filter,
+    String? rating,
+    String? orderBy,
+    String? sort,
+  }) async {
+    final params = <String, String>{
+      'page': page.toString(),
+    };
+
+    if (type != null && type.isNotEmpty) params['type'] = type;
+    if (filter != null && filter.isNotEmpty) params['filter'] = filter;
+    if (rating != null && rating.isNotEmpty) params['rating'] = rating;
+    if (orderBy != null && orderBy.isNotEmpty) params['order_by'] = orderBy;
+    if (sort != null && sort.isNotEmpty) params['sort'] = sort;
+
+    final uri = Uri.parse('$baseUrl/top/anime').replace(queryParameters: params);
+    final data = await _getJson(uri);
     final List<dynamic> animeList = data['data'] ?? [];
     return animeList
         .map((item) => Anime.fromJson(item as Map<String, dynamic>))

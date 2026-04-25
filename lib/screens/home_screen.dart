@@ -5,6 +5,7 @@ import '../models/anime_model.dart';
 import '../providers/anime_provider.dart';
 import '../widgets/anime_image.dart';
 import '../widgets/error_view.dart';
+import '../widgets/filter_sheet.dart';
 import 'detail_screen.dart';
 import '../main.dart';
 
@@ -44,15 +45,34 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  void _showFilterSheet() {
+    final provider = context.read<AnimeProvider>();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.75,
+      ),
+      builder: (context) => FilterSheet(
+        currentFilter: provider.currentFilter,
+        onApply: (filter) => provider.applyFilter(filter),
+        onClear: () => provider.clearFilter(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.terminal, color: Theme.of(context).colorScheme.primary),
+            Icon(Icons.terminal, color: primary),
             const SizedBox(width: 12),
             Text(
               'DISCOVER_ANIME',
@@ -61,12 +81,52 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          // ── Filter button with active badge ───────────────────
+          Consumer<AnimeProvider>(
+            builder: (context, provider, child) {
+              final count = provider.currentFilter.activeCount;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      provider.currentFilter.isActive
+                          ? Icons.filter_alt
+                          : Icons.filter_alt_outlined,
+                      color: primary,
+                    ),
+                    tooltip: 'Filters',
+                    onPressed: _showFilterSheet,
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.secondary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          count.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, child) {
               return Switch(
                 value: themeProvider.isDarkMode,
                 onChanged: themeProvider.toggleTheme,
-                activeThumbColor: Theme.of(context).colorScheme.primary,
+                activeThumbColor: primary,
               );
             },
           ),
@@ -86,13 +146,11 @@ class _HomeScreenState extends State<HomeScreen> {
               (provider.topAnimeState == FetchState.loading &&
                   provider.topAnime.isEmpty)) {
             return Center(
-              child: CircularProgressIndicator(
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              child: CircularProgressIndicator(color: primary),
             );
           }
 
-          // ── Full screen error (no cached data to show) ────────
+          // ── Full screen error ─────────────────────────────────
           if (provider.topAnimeState == FetchState.error &&
               provider.topAnime.isEmpty) {
             return ErrorView(
@@ -103,38 +161,34 @@ class _HomeScreenState extends State<HomeScreen> {
 
           return RefreshIndicator(
             onRefresh: () => provider.fetchTopAnime(),
-            color: Theme.of(context).colorScheme.primary,
+            color: primary,
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.only(top: kToolbarHeight + 20),
               itemCount: provider.topAnime.length +
-                  // Extra slot for loader or inline error at the bottom.
                   (provider.topAnimeState == FetchState.loading ||
                           provider.topAnimeState == FetchState.error
                       ? 1
                       : 0),
               itemBuilder: (context, index) {
-                // ── Bottom loader ───────────────────────────────
+                // ── Bottom loader ─────────────────────────────
                 if (index == provider.topAnime.length &&
                     provider.topAnimeState == FetchState.loading) {
                   return Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Center(
-                      child: CircularProgressIndicator(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                      child: CircularProgressIndicator(color: primary),
                     ),
                   );
                 }
 
-                // ── Inline load-more error with retry ───────────
-                // Shown at the bottom when pagination fails but we
-                // already have data above to show.
+                // ── Inline load-more error ────────────────────
                 if (index == provider.topAnime.length &&
                     provider.topAnimeState == FetchState.error) {
                   return ErrorView(
                     message: provider.errorMessage,
-                    onRetry: () => provider.fetchTopAnime(loadMore: true),
+                    onRetry: () =>
+                        provider.fetchTopAnime(loadMore: true),
                     expand: false,
                   );
                 }
@@ -165,14 +219,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 .withAlpha(100),
                             padding: const EdgeInsets.all(12),
                             child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
                                 Container(
                                   decoration: BoxDecoration(
                                     border: Border.all(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primary,
+                                      color: primary,
                                       width: 1,
                                     ),
                                   ),

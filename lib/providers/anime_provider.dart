@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/anime_model.dart';
+import '../models/filter_model.dart';
 import '../services/api_service.dart';
 
 enum FetchState { initial, loading, loaded, error }
@@ -7,15 +8,18 @@ enum FetchState { initial, loading, loaded, error }
 class AnimeProvider extends ChangeNotifier {
   final ApiService _apiService;
 
-  AnimeProvider({ApiService? apiService}) : _apiService = apiService ?? ApiService();
+  AnimeProvider({ApiService? apiService})
+      : _apiService = apiService ?? ApiService();
 
   // ── Top Anime ────────────────────────────────────────────────
   List<Anime> _topAnime = [];
   FetchState _topAnimeState = FetchState.initial;
   int _currentTopPage = 1;
+  AnimeFilter _currentFilter = const AnimeFilter();
 
   List<Anime> get topAnime => _topAnime;
   FetchState get topAnimeState => _topAnimeState;
+  AnimeFilter get currentFilter => _currentFilter;
 
   // ── Search ───────────────────────────────────────────────────
   List<Anime> _searchResults = [];
@@ -39,9 +43,21 @@ class AnimeProvider extends ChangeNotifier {
   String get errorMessage => _errorMessage;
 
   // ── Top Anime ────────────────────────────────────────────────
+
+  /// Applies a new filter and re-fetches from page 1.
+  void applyFilter(AnimeFilter filter) {
+    _currentFilter = filter;
+    fetchTopAnime();
+  }
+
+  /// Clears all active filters and re-fetches from page 1.
+  void clearFilter() {
+    _currentFilter = const AnimeFilter();
+    fetchTopAnime();
+  }
+
   Future<void> fetchTopAnime({bool loadMore = false}) async {
     if (loadMore) {
-      // Do not trigger another fetch while one is already in progress.
       if (_topAnimeState == FetchState.loading) return;
       _currentTopPage++;
     } else {
@@ -52,7 +68,14 @@ class AnimeProvider extends ChangeNotifier {
     }
 
     try {
-      final results = await _apiService.getTopAnime(page: _currentTopPage);
+      final results = await _apiService.getTopAnime(
+        page: _currentTopPage,
+        type: _currentFilter.type,
+        filter: _currentFilter.filter,
+        rating: _currentFilter.rating,
+        orderBy: _currentFilter.orderBy,
+        sort: _currentFilter.sort,
+      );
       if (loadMore) {
         _topAnime = [..._topAnime, ...results];
       } else {
@@ -76,14 +99,12 @@ class AnimeProvider extends ChangeNotifier {
       return;
     }
 
-    // A new query always resets pagination regardless of loadMore flag.
     if (query != _currentQuery) {
       _currentQuery = query;
       loadMore = false;
     }
 
     if (loadMore) {
-      // Do not trigger another fetch while one is already in progress.
       if (_searchState == FetchState.loading) return;
       _currentSearchPage++;
     } else {
@@ -94,7 +115,8 @@ class AnimeProvider extends ChangeNotifier {
     }
 
     try {
-      final results = await _apiService.searchAnime(query, page: _currentSearchPage);
+      final results =
+          await _apiService.searchAnime(query, page: _currentSearchPage);
       if (loadMore) {
         _searchResults = [..._searchResults, ...results];
       } else {
@@ -109,12 +131,7 @@ class AnimeProvider extends ChangeNotifier {
   }
 
   // ── Recommendations ──────────────────────────────────────────
-
-  /// Fetches recommendations for the given [malId].
-  /// The Jikan recommendations endpoint does not support pagination,
-  /// so [loadMore] is intentionally ignored — all results are returned at once.
   Future<void> fetchRecommendations(int malId) async {
-    // Skip if we already have results for this anime or a fetch is in progress.
     if (_currentRecMalId == malId &&
         (_recommendationsState == FetchState.loaded ||
             _recommendationsState == FetchState.loading)) {
