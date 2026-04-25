@@ -7,20 +7,19 @@ import 'package:anime_discovery/providers/anime_provider.dart';
 import 'package:anime_discovery/providers/favorites_provider.dart';
 import 'package:anime_discovery/providers/search_history_provider.dart';
 import 'package:anime_discovery/providers/theme_provider.dart';
+import 'package:anime_discovery/providers/schedule_provider.dart';
+import 'package:anime_discovery/providers/characters_provider.dart';
 import 'package:anime_discovery/widgets/global_error_handler.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load .env safely — ApiService has a fallback base URL if missing.
   try {
     await dotenv.load(fileName: '.env');
   } catch (e) {
     debugPrint('[main] .env not found or failed to load: $e');
   }
 
-  // Load persisted user preferences before runApp so the correct
-  // values are applied on the very first frame with no flash.
   final themeProvider = ThemeProvider();
   await themeProvider.loadTheme();
 
@@ -30,11 +29,6 @@ Future<void> main() async {
   final searchHistoryProvider = SearchHistoryProvider();
   await searchHistoryProvider.loadHistory();
 
-  // GlobalErrorHandler.run replaces runApp and installs:
-  // - FlutterError.onError  → framework / widget tree errors
-  // - ErrorWidget.builder   → replaces red screen with clean UI
-  // The optional onError callback is where you would plug in
-  // Sentry, Firebase Crashlytics, etc.
   GlobalErrorHandler.run(
     app: MultiProvider(
       providers: [
@@ -42,14 +36,11 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => AnimeProvider()),
         ChangeNotifierProvider.value(value: favoritesProvider),
         ChangeNotifierProvider.value(value: searchHistoryProvider),
+        ChangeNotifierProvider(create: (_) => ScheduleProvider()),
+        ChangeNotifierProvider(create: (_) => CharactersProvider()),
       ],
       child: const ApiReaderApp(),
     ),
-    // Uncomment and replace with your crash reporter:
-    // onError: (error, stack) => Sentry.captureException(
-    //   error,
-    //   stackTrace: stack,
-    // ),
   );
 }
 
@@ -73,9 +64,6 @@ class ApiReaderApp extends StatelessWidget {
       themeMode: themeProvider.themeMode,
       theme: theme ?? AppTheme.light,
       darkTheme: darkTheme ?? AppTheme.dark,
-      // ── Builder wraps every route in an AsyncErrorBoundary ──
-      // This means any unhandled async error inside any screen
-      // shows the clean fallback UI instead of crashing the app.
       builder: (context, child) {
         return AsyncErrorBoundary(
           child: child ?? const SizedBox.shrink(),

@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
 import '../models/anime_model.dart';
 import '../models/schedule_model.dart';
+import '../models/character_model.dart';
 
 class ApiService {
   final http.Client client;
@@ -147,7 +148,7 @@ class ApiService {
     return Anime.fromJson(data['data'] as Map<String, dynamic>);
   }
 
-  // ── Characters ────────────────────────────────────────────────
+  // ── Anime Characters ──────────────────────────────────────────
   Future<List<AnimeCharacter>> getAnimeCharacters(int malId) async {
     final data = await _getJson(
       Uri.parse('$baseUrl/anime/$malId/characters'),
@@ -165,7 +166,7 @@ class ApiService {
     return results;
   }
 
-  // ── Staff ─────────────────────────────────────────────────────
+  // ── Anime Staff ───────────────────────────────────────────────
   Future<List<AnimeStaff>> getAnimeStaff(int malId) async {
     final data = await _getJson(
       Uri.parse('$baseUrl/anime/$malId/staff'),
@@ -266,8 +267,6 @@ class ApiService {
   }
 
   // ── Schedule ──────────────────────────────────────────────────
-  /// Fetches the broadcast schedule for a specific [day].
-  /// The Jikan endpoint is GET /schedules?filter={day}&page={page}.
   Future<List<ScheduleEntry>> getSchedule(
     BroadcastDay day, {
     int page = 1,
@@ -282,18 +281,13 @@ class ApiService {
     final data = await _getJson(uri);
     final List<dynamic> animeList = data['data'] ?? [];
     final List<ScheduleEntry> results = [];
-
     for (final item in animeList) {
       try {
-        results.add(
-          ScheduleEntry.fromJson(item as Map<String, dynamic>),
-        );
+        results.add(ScheduleEntry.fromJson(item as Map<String, dynamic>));
       } catch (e) {
         debugPrint('[ApiService] failed to parse schedule entry: $e');
       }
     }
-
-    // Sort by broadcast time ascending — TBA entries go to the end.
     results.sort((a, b) {
       final at = a.timeOfDay;
       final bt = b.timeOfDay;
@@ -304,7 +298,37 @@ class ApiService {
       final bMinutes = bt.hour * 60 + bt.minute;
       return aMinutes.compareTo(bMinutes);
     });
-
     return results;
+  }
+
+  // ── Top Characters ────────────────────────────────────────────
+  /// Fetches the top characters ranked by favorites.
+  Future<List<TopCharacter>> getTopCharacters({int page = 1}) async {
+    final uri = Uri.parse('$baseUrl/top/characters').replace(
+      queryParameters: {'page': page.toString()},
+    );
+    final data = await _getJson(uri);
+    final List<dynamic> characters = data['data'] ?? [];
+    final List<TopCharacter> results = [];
+    for (final item in characters) {
+      try {
+        results.add(
+          TopCharacter.fromJson(item as Map<String, dynamic>),
+        );
+      } catch (e) {
+        debugPrint('[ApiService] failed to parse top character: $e');
+      }
+    }
+    return results;
+  }
+
+  // ── Character Detail ──────────────────────────────────────────
+  /// Fetches full character data including animeography
+  /// and voice actors.
+  Future<Character> getCharacterDetail(int malId) async {
+    final data = await _getJson(
+      Uri.parse('$baseUrl/characters/$malId/full'),
+    );
+    return Character.fromJson(data['data'] as Map<String, dynamic>);
   }
 }

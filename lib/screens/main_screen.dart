@@ -1,74 +1,99 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:anime_discovery/theme/app_theme.dart';
-import 'package:anime_discovery/screens/main_screen.dart';
-import 'package:anime_discovery/providers/anime_provider.dart';
-import 'package:anime_discovery/providers/favorites_provider.dart';
-import 'package:anime_discovery/providers/search_history_provider.dart';
-import 'package:anime_discovery/providers/theme_provider.dart';
-import 'package:anime_discovery/providers/schedule_provider.dart';
-import 'package:anime_discovery/widgets/global_error_handler.dart';
+import 'package:anime_discovery/screens/home_screen.dart';
+import 'package:anime_discovery/screens/search_screen.dart';
+import 'package:anime_discovery/screens/seasonal_screen.dart';
+import 'package:anime_discovery/screens/genres_screen.dart';
+import 'package:anime_discovery/screens/favorites_screen.dart';
+import 'package:anime_discovery/screens/schedule_screen.dart';
+import 'package:anime_discovery/screens/characters_screen.dart';
+import 'package:anime_discovery/screens/about_screen.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
 
-  try {
-    await dotenv.load(fileName: '.env');
-  } catch (e) {
-    debugPrint('[main] .env not found or failed to load: $e');
-  }
-
-  final themeProvider = ThemeProvider();
-  await themeProvider.loadTheme();
-
-  final favoritesProvider = FavoritesProvider();
-  await favoritesProvider.loadFavorites();
-
-  final searchHistoryProvider = SearchHistoryProvider();
-  await searchHistoryProvider.loadHistory();
-
-  GlobalErrorHandler.run(
-    app: MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: themeProvider),
-        ChangeNotifierProvider(create: (_) => AnimeProvider()),
-        ChangeNotifierProvider.value(value: favoritesProvider),
-        ChangeNotifierProvider.value(value: searchHistoryProvider),
-        // ScheduleProvider is lazy — created on first use.
-        ChangeNotifierProvider(create: (_) => ScheduleProvider()),
-      ],
-      child: const ApiReaderApp(),
-    ),
-  );
+  @override
+  State<MainScreen> createState() => _MainScreenState();
 }
 
-class ApiReaderApp extends StatelessWidget {
-  final ThemeData? theme;
-  final ThemeData? darkTheme;
+class _MainScreenState extends State<MainScreen> {
+  int _currentIndex = 0;
 
-  const ApiReaderApp({
-    super.key,
-    this.theme,
-    this.darkTheme,
-  });
+  final List<Widget> _screens = [
+    const HomeScreen(),
+    const SearchScreen(),
+    const SeasonalScreen(),
+    const GenresScreen(),
+    const ScheduleScreen(),
+    const CharactersScreen(),
+    const FavoritesScreen(),
+    const AboutScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
+    final theme = Theme.of(context);
 
-    return MaterialApp(
-      title: 'Disconime',
-      debugShowCheckedModeBanner: false,
-      themeMode: themeProvider.themeMode,
-      theme: theme ?? AppTheme.light,
-      darkTheme: darkTheme ?? AppTheme.dark,
-      builder: (context, child) {
-        return AsyncErrorBoundary(
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
-      home: const MainScreen(),
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: theme.dividerColor,
+              width: 1,
+            ),
+          ),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home_rounded),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search_rounded),
+              activeIcon: Icon(Icons.search_rounded),
+              label: 'Search',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today_outlined),
+              activeIcon: Icon(Icons.calendar_today_rounded),
+              label: 'Season',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.grid_view_outlined),
+              activeIcon: Icon(Icons.grid_view_rounded),
+              label: 'Genres',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.schedule_outlined),
+              activeIcon: Icon(Icons.schedule_rounded),
+              label: 'Schedule',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people_outline_rounded),
+              activeIcon: Icon(Icons.people_rounded),
+              label: 'Characters',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bookmark_border_rounded),
+              activeIcon: Icon(Icons.bookmark_rounded),
+              label: 'Saved',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline_rounded),
+              activeIcon: Icon(Icons.person_rounded),
+              label: 'About',
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
