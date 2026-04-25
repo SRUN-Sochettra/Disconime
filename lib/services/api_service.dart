@@ -102,6 +102,7 @@ class ApiService {
     }
   }
 
+  // ── Top Anime ─────────────────────────────────────────────────
   Future<List<Anime>> getTopAnime({
     int page = 1,
     String? type,
@@ -126,9 +127,7 @@ class ApiService {
         .toList();
   }
 
-  // FIX: Replaced manual string interpolation with Uri.replace
-  // queryParameters so special characters in queries are always
-  // correctly percent-encoded by the Uri class itself.
+  // ── Search ────────────────────────────────────────────────────
   Future<List<Anime>> searchAnime(String query, {int page = 1}) async {
     final uri = Uri.parse('$baseUrl/anime').replace(
       queryParameters: {
@@ -143,11 +142,57 @@ class ApiService {
         .toList();
   }
 
+  // ── Anime Detail ──────────────────────────────────────────────
   Future<Anime> getAnimeDetails(int id) async {
-    final data = await _getJson(Uri.parse('$baseUrl/anime/$id'));
+    final data = await _getJson(Uri.parse('$baseUrl/anime/$id/full'));
     return Anime.fromJson(data['data'] as Map<String, dynamic>);
   }
 
+  // ── Characters ────────────────────────────────────────────────
+  Future<List<AnimeCharacter>> getAnimeCharacters(int malId) async {
+    final data = await _getJson(
+      Uri.parse('$baseUrl/anime/$malId/characters'),
+    );
+    final List<dynamic> characters = data['data'] ?? [];
+    final List<AnimeCharacter> results = [];
+
+    for (final item in characters) {
+      try {
+        results.add(
+          AnimeCharacter.fromJson(item as Map<String, dynamic>),
+        );
+      } catch (e) {
+        debugPrint('[ApiService] failed to parse character: $e');
+      }
+    }
+
+    // Sort by favorites descending so main characters appear first.
+    results.sort((a, b) => (b.favorites ?? 0).compareTo(a.favorites ?? 0));
+    return results;
+  }
+
+  // ── Staff ─────────────────────────────────────────────────────
+  Future<List<AnimeStaff>> getAnimeStaff(int malId) async {
+    final data = await _getJson(
+      Uri.parse('$baseUrl/anime/$malId/staff'),
+    );
+    final List<dynamic> staff = data['data'] ?? [];
+    final List<AnimeStaff> results = [];
+
+    for (final item in staff) {
+      try {
+        results.add(
+          AnimeStaff.fromJson(item as Map<String, dynamic>),
+        );
+      } catch (e) {
+        debugPrint('[ApiService] failed to parse staff: $e');
+      }
+    }
+
+    return results;
+  }
+
+  // ── Recommendations ───────────────────────────────────────────
   Future<List<Anime>> getAnimeRecommendations(int malId) async {
     final data = await _getJson(
       Uri.parse('$baseUrl/anime/$malId/recommendations'),
@@ -161,10 +206,7 @@ class ApiService {
         final map = item as Map<String, dynamic>;
         final entry = map['entry'] as Map<String, dynamic>?;
 
-        if (entry == null) {
-          debugPrint('[ApiService] skipping rec — entry is null');
-          continue;
-        }
+        if (entry == null) continue;
 
         final images = entry['images'] as Map<String, dynamic>?;
         final jpg = images?['jpg'] as Map<String, dynamic>?;
@@ -183,13 +225,13 @@ class ApiService {
         );
       } catch (e, stack) {
         debugPrint('[ApiService] failed to parse rec entry: $e\n$stack');
-        continue;
       }
     }
 
     return results;
   }
 
+  // ── Seasonal ──────────────────────────────────────────────────
   Future<List<Anime>> getSeasonNow({int page = 1}) async {
     final uri = Uri.parse('$baseUrl/seasons/now').replace(
       queryParameters: {'page': page.toString()},
@@ -201,8 +243,11 @@ class ApiService {
         .toList();
   }
 
-  Future<List<Anime>> getSeason(int year, String season,
-      {int page = 1}) async {
+  Future<List<Anime>> getSeason(
+    int year,
+    String season, {
+    int page = 1,
+  }) async {
     final uri = Uri.parse('$baseUrl/seasons/$year/$season').replace(
       queryParameters: {'page': page.toString()},
     );
@@ -213,6 +258,7 @@ class ApiService {
         .toList();
   }
 
+  // ── Genres ────────────────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getGenres() async {
     final data = await _getJson(Uri.parse('$baseUrl/genres/anime'));
     final List<dynamic> genres = data['data'] ?? [];

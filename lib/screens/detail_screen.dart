@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/anime_model.dart';
 import '../providers/anime_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../widgets/anime_image.dart';
 import '../widgets/anime_card_skeleton.dart';
+import '../widgets/skeleton_loader.dart';
 import '../widgets/page_transitions.dart';
 
 class DetailScreen extends StatefulWidget {
   final Anime anime;
-  // Hero tag passed from the list screen — must match the tag
-  // used on the AnimeImage in the list tile / grid card.
   final String? heroTag;
 
   const DetailScreen({
@@ -23,15 +23,34 @@ class DetailScreen extends StatefulWidget {
   State<DetailScreen> createState() => _DetailScreenState();
 }
 
-class _DetailScreenState extends State<DetailScreen> {
+class _DetailScreenState extends State<DetailScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  // Tabs: Overview | Characters | Staff
+  static const int _tabCount = 3;
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: _tabCount, vsync: this);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<AnimeProvider>();
-      provider.clearRecommendations();
+      // Clear stale data from a previous detail screen visit.
+      provider.clearDetailData();
+      // Fire all three fetches concurrently — throttle in ApiService
+      // will queue them so we stay within rate limits.
       provider.fetchRecommendations(widget.anime.malId);
+      provider.fetchCharacters(widget.anime.malId);
+      provider.fetchStaff(widget.anime.malId);
     });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
@@ -77,114 +96,769 @@ class _DetailScreenState extends State<DetailScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Hero image ────────────────────────────────────
-            // heroTag matches the tag used in the list tile so
-            // Flutter animates the poster into the full-width
-            // detail image seamlessly.
-            AnimeImage(
-              imageUrl: anime.imageUrl,
-              width: double.infinity,
-              height: 450,
-              borderRadius: 0,
-              heroTag: widget.heroTag,
-            ),
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Hero image ──────────────────────────────
+                AnimeImage(
+                  imageUrl: anime.imageUrl,
+                  width: double.infinity,
+                  height: 420,
+                  borderRadius: 0,
+                  heroTag: widget.heroTag,
+                ),
 
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Titles ───────────────────────────────────
-                  Text(
-                    anime.title,
-                    style: theme.textTheme.titleLarge,
-                  ),
-                  if (anime.titleEnglish != null &&
-                      anime.titleEnglish!.isNotEmpty &&
-                      anime.titleEnglish != anime.title) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      anime.titleEnglish!,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ],
-                  if (anime.titleJapanese != null &&
-                      anime.titleJapanese!.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      anime.titleJapanese!,
-                      style: theme.textTheme.labelSmall,
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-
-                  // ── Stats row ────────────────────────────────
-                  Row(
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _StatBadge(
-                        icon: Icons.star_rounded,
-                        value: anime.score.value?.toStringAsFixed(1) ??
-                            'N/A',
-                        label: 'Score',
+                      // ── Titles ────────────────────────────
+                      Text(
+                        anime.title,
+                        style: theme.textTheme.titleLarge,
                       ),
-                      const SizedBox(width: 12),
-                      _StatBadge(
-                        icon: Icons.leaderboard_rounded,
-                        value: anime.score.rank != null
-                            ? '#${anime.score.rank}'
-                            : 'N/A',
-                        label: 'Rank',
+                      if (anime.titleEnglish != null &&
+                          anime.titleEnglish!.isNotEmpty &&
+                          anime.titleEnglish != anime.title) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          anime.titleEnglish!,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ],
+                      if (anime.titleJapanese != null &&
+                          anime.titleJapanese!.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          anime.titleJapanese!,
+                          style: theme.textTheme.labelSmall,
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+
+                      // ── Stats row ─────────────────────────
+                      Row(
+                        children: [
+                          _StatBadge(
+                            icon: Icons.star_rounded,
+                            value: anime.score.value
+                                    ?.toStringAsFixed(1) ??
+                                'N/A',
+                            label: 'Score',
+                          ),
+                          const SizedBox(width: 12),
+                          _StatBadge(
+                            icon: Icons.leaderboard_rounded,
+                            value: anime.score.rank != null
+                                ? '#${anime.score.rank}'
+                                : 'N/A',
+                            label: 'Rank',
+                          ),
+                          const SizedBox(width: 12),
+                          _StatBadge(
+                            icon: Icons.trending_up_rounded,
+                            value: anime.score.popularity != null
+                                ? '#${anime.score.popularity}'
+                                : 'N/A',
+                            label: 'Popular',
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      _StatBadge(
-                        icon: Icons.trending_up_rounded,
-                        value: anime.score.popularity != null
-                            ? '#${anime.score.popularity}'
-                            : 'N/A',
-                        label: 'Popular',
-                      ),
+                      const SizedBox(height: 20),
+
+                      // ── Trailer button ────────────────────
+                      if (anime.trailer?.isValid == true)
+                        _TrailerButton(trailer: anime.trailer!),
+
+                      const SizedBox(height: 4),
+
+                      // ── Genre chips ───────────────────────
+                      if (anime.genres.isNotEmpty) ...[
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: anime.genres
+                              .map((g) => _GenreChip(label: g))
+                              .toList(),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ],
                   ),
-                  const SizedBox(height: 24),
+                ),
 
-                  // ── Genre chips ──────────────────────────────
-                  if (anime.genres.isNotEmpty) ...[
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: anime.genres
-                          .map((g) => _GenreChip(label: g))
-                          .toList(),
+                // ── Tab bar ──────────────────────────────────
+                _DetailTabBar(controller: _tabController),
+              ],
+            ),
+          ),
+        ],
+        // ── Tab views ──────────────────────────────────────────
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            // Tab 0: Overview
+            _OverviewTab(anime: anime),
+            // Tab 1: Characters
+            _CharactersTab(malId: anime.malId),
+            // Tab 2: Staff
+            _StaffTab(malId: anime.malId),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Tab bar ───────────────────────────────────────────────────────
+class _DetailTabBar extends StatelessWidget {
+  final TabController controller;
+  const _DetailTabBar({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: theme.dividerColor),
+        ),
+      ),
+      child: TabBar(
+        controller: controller,
+        labelColor: primary,
+        unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+        indicatorColor: primary,
+        indicatorWeight: 2,
+        labelStyle: theme.textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
+        unselectedLabelStyle: theme.textTheme.labelMedium,
+        tabs: const [
+          Tab(text: 'Overview'),
+          Tab(text: 'Characters'),
+          Tab(text: 'Staff'),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Tab 0: Overview ───────────────────────────────────────────────
+class _OverviewTab extends StatelessWidget {
+  final Anime anime;
+  const _OverviewTab({required this.anime});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        // ── Synopsis ───────────────────────────────────────────
+        Text('Synopsis', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        _ExpandableSynopsis(text: anime.synopsis.text),
+        const SizedBox(height: 24),
+
+        // ── Background ─────────────────────────────────────────
+        if (anime.synopsis.background != null &&
+            anime.synopsis.background!.isNotEmpty) ...[
+          Text('Background', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(
+            anime.synopsis.background!,
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // ── Information table ──────────────────────────────────
+        _InfoSection(anime: anime),
+        const SizedBox(height: 32),
+
+        // ── Recommendations ────────────────────────────────────
+        _RecommendationsSection(currentAnime: anime),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+}
+
+// ── Expandable synopsis ───────────────────────────────────────────
+class _ExpandableSynopsis extends StatefulWidget {
+  final String text;
+  const _ExpandableSynopsis({required this.text});
+
+  @override
+  State<_ExpandableSynopsis> createState() => _ExpandableSynopsisState();
+}
+
+class _ExpandableSynopsisState extends State<_ExpandableSynopsis> {
+  bool _expanded = false;
+  static const int _collapsedLines = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedCrossFade(
+          firstChild: Text(
+            widget.text,
+            style: theme.textTheme.bodyMedium,
+            maxLines: _collapsedLines,
+            overflow: TextOverflow.ellipsis,
+          ),
+          secondChild: Text(
+            widget.text,
+            style: theme.textTheme.bodyMedium,
+          ),
+          crossFadeState: _expanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 250),
+        ),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Text(
+            _expanded ? 'Show less' : 'Read more',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Trailer button ────────────────────────────────────────────────
+class _TrailerButton extends StatelessWidget {
+  final Trailer trailer;
+  const _TrailerButton({required this.trailer});
+
+  Future<void> _launchTrailer(BuildContext context) async {
+    final uri = Uri.parse(trailer.watchUrl);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open trailer.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: GestureDetector(
+        onTap: () => _launchTrailer(context),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // ── Thumbnail ──────────────────────────────────────
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Image.network(
+                  trailer.thumbnailUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: theme.colorScheme.surface,
+                    child: Icon(
+                      Icons.movie_outlined,
+                      size: 48,
+                      color: primary.withAlpha(80),
                     ),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // ── Synopsis ─────────────────────────────────
-                  Text(
-                    'Synopsis',
-                    style: theme.textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    anime.synopsis.text,
-                    style: theme.textTheme.bodyMedium,
+                ),
+              ),
+            ),
+
+            // ── Dark overlay ───────────────────────────────────
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Container(
+                  color: Colors.black.withAlpha(80),
+                ),
+              ),
+            ),
+
+            // ── Play button ────────────────────────────────────
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: primary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: primary.withAlpha(80),
+                    blurRadius: 20,
+                    spreadRadius: 2,
                   ),
-                  const SizedBox(height: 32),
-
-                  // ── Info table ───────────────────────────────
-                  _InfoSection(anime: anime),
-                  const SizedBox(height: 32),
-
-                  // ── Recommendations ──────────────────────────
-                  _RecommendationsSection(currentAnime: anime),
                 ],
+              ),
+              child: const Icon(
+                Icons.play_arrow_rounded,
+                color: Colors.black,
+                size: 36,
+              ),
+            ),
+
+            // ── Label ──────────────────────────────────────────
+            Positioned(
+              bottom: 12,
+              left: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(140),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.play_circle_outline_rounded,
+                      size: 14,
+                      color: primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Watch Trailer',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Tab 1: Characters ─────────────────────────────────────────────
+class _CharactersTab extends StatelessWidget {
+  final int malId;
+  const _CharactersTab({required this.malId});
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.select<AnimeProvider, FetchState>(
+      (p) => p.charactersState,
+    );
+    final characters = context.select<AnimeProvider, List<AnimeCharacter>>(
+      (p) => p.characters,
+    );
+    final errorMessage = context.select<AnimeProvider, String>(
+      (p) => p.charactersErrorMessage,
+    );
+
+    if (state == FetchState.initial || state == FetchState.loading) {
+      return const _CharacterGridSkeleton();
+    }
+
+    if (state == FetchState.error) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                errorMessage,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () =>
+                    context.read<AnimeProvider>().fetchCharacters(malId),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (characters.isEmpty) {
+      return Center(
+        child: Text(
+          'No character data available.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 0.65,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: characters.length,
+      itemBuilder: (context, index) {
+        final character = characters[index];
+        return _CharacterCard(character: character);
+      },
+    );
+  }
+}
+
+// ── Character card ────────────────────────────────────────────────
+class _CharacterCard extends StatelessWidget {
+  final AnimeCharacter character;
+  const _CharacterCard({required this.character});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Portrait ─────────────────────────────────────────
+        Expanded(
+          child: Stack(
+            children: [
+              AnimeImage(
+                imageUrl: character.imageUrl,
+                width: double.infinity,
+                borderRadius: 10,
+              ),
+              // Role badge
+              Positioned(
+                bottom: 6,
+                left: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: character.role == 'Main'
+                        ? primary.withAlpha(220)
+                        : Colors.black.withAlpha(160),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    character.role,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: character.role == 'Main'
+                          ? Colors.black
+                          : Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+
+        // ── Name ─────────────────────────────────────────────
+        Text(
+          character.name,
+          style: theme.textTheme.labelSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+
+        // ── Favorites ────────────────────────────────────────
+        if (character.favorites != null && character.favorites! > 0)
+          Row(
+            children: [
+              Icon(
+                Icons.favorite_rounded,
+                size: 10,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 3),
+              Text(
+                _formatNumber(character.favorites!),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontSize: 10,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  String _formatNumber(int number) {
+    if (number >= 1000000) {
+      return '${(number / 1000000).toStringAsFixed(1)}M';
+    }
+    if (number >= 1000) {
+      return '${(number / 1000).toStringAsFixed(1)}K';
+    }
+    return number.toString();
+  }
+}
+
+// ── Character grid skeleton ───────────────────────────────────────
+class _CharacterGridSkeleton extends StatelessWidget {
+  const _CharacterGridSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SkeletonLoader(
+      child: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 0.65,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 16,
+        ),
+        itemCount: 12,
+        itemBuilder: (_, _) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Expanded(
+              child: SkeletonBox(
+                width: double.infinity,
+                borderRadius: 10,
+              ),
+            ),
+            SizedBox(height: 6),
+            SkeletonBox(height: 10, width: 80, borderRadius: 4),
+            SizedBox(height: 4),
+            SkeletonBox(height: 10, width: 50, borderRadius: 4),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Tab 2: Staff ──────────────────────────────────────────────────
+class _StaffTab extends StatelessWidget {
+  final int malId;
+  const _StaffTab({required this.malId});
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.select<AnimeProvider, FetchState>(
+      (p) => p.staffState,
+    );
+    final staff = context.select<AnimeProvider, List<AnimeStaff>>(
+      (p) => p.staff,
+    );
+    final errorMessage = context.select<AnimeProvider, String>(
+      (p) => p.staffErrorMessage,
+    );
+    final theme = Theme.of(context);
+
+    if (state == FetchState.initial || state == FetchState.loading) {
+      return const _StaffListSkeleton();
+    }
+
+    if (state == FetchState.error) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                errorMessage,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () =>
+                    context.read<AnimeProvider>().fetchStaff(malId),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (staff.isEmpty) {
+      return Center(
+        child: Text(
+          'No staff data available.',
+          style: theme.textTheme.bodyMedium,
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: staff.length,
+      separatorBuilder: (_, __) => Divider(
+        color: theme.dividerColor,
+        height: 1,
+      ),
+      itemBuilder: (context, index) {
+        final member = staff[index];
+        return _StaffTile(member: member);
+      },
+    );
+  }
+}
+
+// ── Staff tile ────────────────────────────────────────────────────
+class _StaffTile extends StatelessWidget {
+  final AnimeStaff member;
+  const _StaffTile({required this.member});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          // ── Avatar ────────────────────────────────────────
+          AnimeImage(
+            imageUrl: member.imageUrl,
+            width: 52,
+            height: 52,
+            borderRadius: 26,
+          ),
+          const SizedBox(width: 14),
+
+          // ── Info ──────────────────────────────────────────
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  member.name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: member.positions
+                      .take(3)
+                      .map(
+                        (pos) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: primary.withAlpha(15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: primary.withAlpha(40),
+                            ),
+                          ),
+                          child: Text(
+                            pos,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: primary,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Staff list skeleton ───────────────────────────────────────────
+class _StaffListSkeleton extends StatelessWidget {
+  const _StaffListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SkeletonLoader(
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: 10,
+        separatorBuilder: (_, __) => Divider(
+          color: Theme.of(context).dividerColor,
+          height: 1,
+        ),
+        itemBuilder: (_, _) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            children: const [
+              SkeletonBox(width: 52, height: 52, borderRadius: 26),
+              SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SkeletonBox(height: 14, width: 140, borderRadius: 4),
+                    SizedBox(height: 8),
+                    SkeletonBox(height: 10, width: 100, borderRadius: 4),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -279,10 +953,16 @@ class _InfoSection extends StatelessWidget {
             children: [
               SizedBox(
                 width: 90,
-                child: Text(label, style: theme.textTheme.labelSmall),
+                child: Text(
+                  label,
+                  style: theme.textTheme.labelSmall,
+                ),
               ),
               Expanded(
-                child: Text(value, style: theme.textTheme.bodyMedium),
+                child: Text(
+                  value,
+                  style: theme.textTheme.bodyMedium,
+                ),
               ),
             ],
           ),
@@ -360,9 +1040,6 @@ class _RecommendationsSection extends StatelessWidget {
             itemCount: recommendations.length,
             itemBuilder: (context, index) {
               final rec = recommendations[index];
-              // Each recommendation card gets a unique Hero tag
-              // so tapping it animates the poster into the next
-              // detail screen.
               final recHeroTag = 'rec_hero_${rec.malId}';
 
               return GestureDetector(

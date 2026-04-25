@@ -50,6 +50,26 @@ class AnimeProvider extends ChangeNotifier {
   FetchState get recommendationsState => _recommendationsState;
   String get recommendationsErrorMessage => _recommendationsError;
 
+  // ── Characters ───────────────────────────────────────────────
+  List<AnimeCharacter> _characters = [];
+  FetchState _charactersState = FetchState.initial;
+  int _currentCharactersMalId = 0;
+  String _charactersError = '';
+
+  List<AnimeCharacter> get characters => _characters;
+  FetchState get charactersState => _charactersState;
+  String get charactersErrorMessage => _charactersError;
+
+  // ── Staff ────────────────────────────────────────────────────
+  List<AnimeStaff> _staff = [];
+  FetchState _staffState = FetchState.initial;
+  int _currentStaffMalId = 0;
+  String _staffError = '';
+
+  List<AnimeStaff> get staff => _staff;
+  FetchState get staffState => _staffState;
+  String get staffErrorMessage => _staffError;
+
   // ── Seasonal ─────────────────────────────────────────────────
   List<Anime> _seasonalAnime = [];
   FetchState _seasonalState = FetchState.initial;
@@ -113,7 +133,6 @@ class AnimeProvider extends ChangeNotifier {
 
   Future<void> fetchTopAnime({bool loadMore = false}) async {
     if (loadMore) {
-      // Do not load more if there are no more pages.
       if (!_hasMoreTopAnime) return;
       if (_topAnimeState == FetchState.loading) return;
       _topAnimeState = FetchState.loading;
@@ -139,12 +158,7 @@ class AnimeProvider extends ChangeNotifier {
         orderBy: _currentFilter.orderBy,
         sort: _currentFilter.sort,
       );
-
-      // If the API returns an empty page there are no more results.
-      if (results.isEmpty) {
-        _hasMoreTopAnime = false;
-      }
-
+      if (results.isEmpty) _hasMoreTopAnime = false;
       _topAnime = loadMore ? [..._topAnime, ...results] : results;
       _currentTopPage = pageToFetch;
       _topAnimeState = FetchState.loaded;
@@ -189,11 +203,7 @@ class AnimeProvider extends ChangeNotifier {
     try {
       final results =
           await _apiService.searchAnime(query, page: pageToFetch);
-
-      if (results.isEmpty) {
-        _hasMoreSearchResults = false;
-      }
-
+      if (results.isEmpty) _hasMoreSearchResults = false;
       _searchResults =
           loadMore ? [..._searchResults, ...results] : results;
       _currentSearchPage = pageToFetch;
@@ -237,6 +247,77 @@ class AnimeProvider extends ChangeNotifier {
     _recommendationsError = '';
   }
 
+  // ── Characters ───────────────────────────────────────────────
+  Future<void> fetchCharacters(int malId) async {
+    if (_currentCharactersMalId == malId &&
+        (_charactersState == FetchState.loaded ||
+            _charactersState == FetchState.loading)) {
+      return;
+    }
+
+    _currentCharactersMalId = malId;
+    _characters = [];
+    _charactersState = FetchState.loading;
+    _charactersError = '';
+    notifyListeners();
+
+    try {
+      _characters = await _apiService.getAnimeCharacters(malId);
+      _charactersState = FetchState.loaded;
+    } catch (e) {
+      _charactersState = FetchState.error;
+      _charactersError = _friendlyError(e);
+    }
+    notifyListeners();
+  }
+
+  void clearCharacters() {
+    _currentCharactersMalId = 0;
+    _characters = [];
+    _charactersState = FetchState.initial;
+    _charactersError = '';
+  }
+
+  // ── Staff ────────────────────────────────────────────────────
+  Future<void> fetchStaff(int malId) async {
+    if (_currentStaffMalId == malId &&
+        (_staffState == FetchState.loaded ||
+            _staffState == FetchState.loading)) {
+      return;
+    }
+
+    _currentStaffMalId = malId;
+    _staff = [];
+    _staffState = FetchState.loading;
+    _staffError = '';
+    notifyListeners();
+
+    try {
+      _staff = await _apiService.getAnimeStaff(malId);
+      _staffState = FetchState.loaded;
+    } catch (e) {
+      _staffState = FetchState.error;
+      _staffError = _friendlyError(e);
+    }
+    notifyListeners();
+  }
+
+  void clearStaff() {
+    _currentStaffMalId = 0;
+    _staff = [];
+    _staffState = FetchState.initial;
+    _staffError = '';
+  }
+
+  // ── Clear all detail screen data ─────────────────────────────
+  // Call this when leaving the detail screen so navigating back
+  // to a new anime always fetches fresh data.
+  void clearDetailData() {
+    clearRecommendations();
+    clearCharacters();
+    clearStaff();
+  }
+
   // ── Seasonal ─────────────────────────────────────────────────
   Future<void> fetchSeasonalAnime({
     int? year,
@@ -278,11 +359,7 @@ class AnimeProvider extends ChangeNotifier {
       } else {
         results = await _apiService.getSeasonNow(page: pageToFetch);
       }
-
-      if (results.isEmpty) {
-        _hasMoreSeasonalAnime = false;
-      }
-
+      if (results.isEmpty) _hasMoreSeasonalAnime = false;
       _seasonalAnime =
           loadMore ? [..._seasonalAnime, ...results] : results;
       _currentSeasonalPage = pageToFetch;
@@ -301,7 +378,6 @@ class AnimeProvider extends ChangeNotifier {
         _genresState == FetchState.loading) {
       return;
     }
-
     _genresState = FetchState.loading;
     notifyListeners();
 
@@ -348,11 +424,7 @@ class AnimeProvider extends ChangeNotifier {
         genreId,
         page: pageToFetch,
       );
-
-      if (results.isEmpty) {
-        _hasMoreGenreAnime = false;
-      }
-
+      if (results.isEmpty) _hasMoreGenreAnime = false;
       _genreAnime = loadMore ? [..._genreAnime, ...results] : results;
       _currentGenrePage = pageToFetch;
       _genreAnimeState = FetchState.loaded;
