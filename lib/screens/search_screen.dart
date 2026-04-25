@@ -10,6 +10,7 @@ import 'package:anime_discovery/widgets/anime_list_tile.dart';
 import 'package:anime_discovery/widgets/error_view.dart';
 import 'package:anime_discovery/widgets/page_transitions.dart';
 import 'package:anime_discovery/widgets/pagination_indicator.dart';
+import 'package:anime_discovery/widgets/empty_state.dart';
 import 'package:anime_discovery/screens/detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -42,7 +43,6 @@ class _SearchScreenState extends State<SearchScreen> {
   void _onTextChanged() {
     final text = _controller.text;
     _hasText.value = text.isNotEmpty;
-
     _typingDebounce?.cancel();
 
     if (text.isEmpty) {
@@ -59,7 +59,6 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-
     final position = _scrollController.position;
     if (position.maxScrollExtent <= 0) return;
 
@@ -98,7 +97,6 @@ class _SearchScreenState extends State<SearchScreen> {
   void _performSearch(String query) {
     FocusScope.of(context).unfocus();
     _typingDebounce?.cancel();
-
     if (query.isNotEmpty) {
       context.read<SearchHistoryProvider>().addQuery(query);
       context.read<AnimeProvider>().searchAnime(query);
@@ -157,15 +155,18 @@ class _SearchScreenState extends State<SearchScreen> {
           Expanded(
             child: Consumer<AnimeProvider>(
               builder: (context, provider, child) {
+                // ── Empty field → show history ─────────────────
                 if (provider.searchState == FetchState.initial) {
                   return _buildHistory(context);
                 }
 
+                // ── Loading first page ─────────────────────────
                 if (provider.searchState == FetchState.loading &&
                     provider.searchResults.isEmpty) {
                   return const AnimeListSkeleton();
                 }
 
+                // ── Full-screen error ──────────────────────────
                 if (provider.searchState == FetchState.error &&
                     provider.searchResults.isEmpty) {
                   return ErrorView(
@@ -176,11 +177,18 @@ class _SearchScreenState extends State<SearchScreen> {
                   );
                 }
 
+                // ── No results empty state ─────────────────────
                 if (provider.searchResults.isEmpty) {
-                  return _buildNoResults(context);
+                  return EmptyState(
+                    type: EmptyStateType.searchNoResults,
+                    subtitle:
+                        'No results for "${_controller.text}".\nTry a different term.',
+                    onAction: () => _controller.clear(),
+                    actionLabel: 'Clear Search',
+                  );
                 }
 
-                // ── Results with pagination indicator ──────────
+                // ── Results list ───────────────────────────────
                 return Column(
                   children: [
                     PaginationIndicator(
@@ -205,7 +213,6 @@ class _SearchScreenState extends State<SearchScreen> {
                             return const LoadMoreSkeleton();
                           }
 
-                          // Page counter footer
                           if (index >= provider.searchResults.length) {
                             return PageCounter(
                               currentPage: provider.currentSearchPage,
@@ -248,55 +255,15 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildNoResults(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.search_off_rounded,
-            size: 64,
-            color: theme.colorScheme.onSurface.withAlpha(60),
-          ),
-          const SizedBox(height: 16),
-          Text('No results found', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Text(
-            'Try a different search term.',
-            style: theme.textTheme.bodyMedium,
-          ),
-        ],
-      ),
-    );
-  }
-
+  // ── Search history ────────────────────────────────────────────
   Widget _buildHistory(BuildContext context) {
     final theme = Theme.of(context);
     return Consumer<SearchHistoryProvider>(
       builder: (context, historyProvider, child) {
+        // ── No history → empty state illustration ──────────────
         if (historyProvider.history.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.search_rounded,
-                  size: 64,
-                  color: theme.colorScheme.onSurface.withAlpha(60),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Search for anime',
-                  style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Your recent searches will appear here.',
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ],
-            ),
+          return EmptyState(
+            type: EmptyStateType.search,
           );
         }
 

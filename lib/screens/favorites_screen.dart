@@ -4,6 +4,7 @@ import '../providers/favorites_provider.dart';
 import '../models/anime_model.dart';
 import '../widgets/anime_list_tile.dart';
 import '../widgets/page_transitions.dart';
+import '../widgets/empty_state.dart';
 import 'detail_screen.dart';
 
 class FavoritesScreen extends StatelessWidget {
@@ -17,28 +18,10 @@ class FavoritesScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('SAVED')),
       body: Consumer<FavoritesProvider>(
         builder: (context, provider, child) {
+          // ── Empty state illustration ───────────────────────────
           if (provider.favorites.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.bookmark_outline_rounded,
-                    size: 64,
-                    color: theme.colorScheme.onSurface.withAlpha(60),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No saved anime yet.',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Bookmark anime from the detail screen.',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ],
-              ),
+            return const EmptyState(
+              type: EmptyStateType.favorites,
             );
           }
 

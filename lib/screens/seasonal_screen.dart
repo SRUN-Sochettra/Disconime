@@ -9,6 +9,7 @@ import '../widgets/anime_card_skeleton.dart';
 import '../widgets/error_view.dart';
 import '../widgets/page_transitions.dart';
 import '../widgets/pagination_indicator.dart';
+import '../widgets/empty_state.dart';
 import 'detail_screen.dart';
 
 class SeasonalScreen extends StatefulWidget {
@@ -37,7 +38,6 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-
     final position = _scrollController.position;
     if (position.maxScrollExtent <= 0) return;
 
@@ -296,17 +296,24 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
             );
           }
 
+          // ── Empty state ──────────────────────────────────────
+          if (provider.seasonalState == FetchState.loaded &&
+              provider.seasonalAnime.isEmpty) {
+            return EmptyState(
+              type: EmptyStateType.seasonal,
+              onAction: _showSeasonPicker,
+              actionLabel: 'Change Season',
+            );
+          }
+
           return Column(
             children: [
-              // ── Pagination indicator ──────────────────────
               PaginationIndicator(
                 loadedCount: provider.seasonalAnime.length,
                 isLoading:
                     provider.seasonalState == FetchState.loading,
                 hasMore: provider.hasMoreSeasonalAnime,
               ),
-
-              // ── List ──────────────────────────────────────
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () => provider.fetchSeasonalAnime(
@@ -343,7 +350,6 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                         );
                       }
 
-                      // Page counter footer
                       if (index >= provider.seasonalAnime.length) {
                         return PageCounter(
                           currentPage: provider.currentSeasonalPage,

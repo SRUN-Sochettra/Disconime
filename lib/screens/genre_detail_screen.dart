@@ -9,6 +9,7 @@ import '../widgets/anime_card_skeleton.dart';
 import '../widgets/error_view.dart';
 import '../widgets/page_transitions.dart';
 import '../widgets/pagination_indicator.dart';
+import '../widgets/empty_state.dart';
 import 'detail_screen.dart';
 
 class GenreDetailScreen extends StatefulWidget {
@@ -45,7 +46,6 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-
     final position = _scrollController.position;
     if (position.maxScrollExtent <= 0) return;
 
@@ -82,8 +82,6 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(title: Text(widget.genreName)),
       body: Consumer<AnimeProvider>(
@@ -105,27 +103,24 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
             );
           }
 
+          // ── Empty state illustration ─────────────────────────
           if (provider.genreAnimeState == FetchState.loaded &&
               provider.genreAnime.isEmpty) {
-            return Center(
-              child: Text(
-                'No anime found.',
-                style: theme.textTheme.bodyMedium,
-              ),
+            return EmptyState(
+              type: EmptyStateType.genreDetail,
+              onAction: () => Navigator.pop(context),
+              actionLabel: 'Go Back',
             );
           }
 
           return Column(
             children: [
-              // ── Pagination indicator ────────────────────────
               PaginationIndicator(
                 loadedCount: provider.genreAnime.length,
                 isLoading:
                     provider.genreAnimeState == FetchState.loading,
                 hasMore: provider.hasMoreGenreAnime,
               ),
-
-              // ── List ──────────────────────────────────────
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () => provider.fetchAnimeByGenre(
@@ -162,7 +157,6 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
                         );
                       }
 
-                      // Page counter footer
                       if (index >= provider.genreAnime.length) {
                         return PageCounter(
                           currentPage: provider.currentGenrePage,

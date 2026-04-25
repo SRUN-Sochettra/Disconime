@@ -4,6 +4,7 @@ import '../providers/anime_provider.dart';
 import '../widgets/error_view.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/page_transitions.dart';
+import '../widgets/empty_state.dart';
 import 'genre_detail_screen.dart';
 
 class GenresScreen extends StatefulWidget {
@@ -61,12 +62,12 @@ class _GenresScreenState extends State<GenresScreen> {
             );
           }
 
+          // ── Empty state illustration ─────────────────────────
           if (provider.genres.isEmpty) {
-            return Center(
-              child: Text(
-                'No genres found.',
-                style: theme.textTheme.bodyMedium,
-              ),
+            return EmptyState(
+              type: EmptyStateType.genres,
+              onAction: () => provider.fetchGenres(),
+              actionLabel: 'Retry',
             );
           }
 
