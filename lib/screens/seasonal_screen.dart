@@ -1,9 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/anime_model.dart';
 import '../providers/anime_provider.dart';
-import '../widgets/anime_image.dart';
+import '../widgets/anime_list_tile.dart';
 import '../widgets/anime_card_skeleton.dart';
 import '../widgets/error_view.dart';
 import 'detail_screen.dart';
@@ -19,6 +20,12 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
   final ScrollController _scrollController = ScrollController();
   static const List<String> _seasons = ['winter', 'spring', 'summer', 'fall'];
 
+  // FIX: Added the same debounce + armed-flag pattern used in
+  // HomeScreen so load-more does not fire on every scroll event.
+  static const Duration _scrollDebounceDuration = Duration(milliseconds: 150);
+  Timer? _scrollDebounce;
+  bool _isLoadMoreArmed = true;
+
   @override
   void initState() {
     super.initState();
@@ -29,8 +36,22 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+    if (!_scrollController.hasClients) return;
+
+    final position = _scrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+
+    if (position.extentAfter > 200) {
+      _isLoadMoreArmed = true;
+      _scrollDebounce?.cancel();
+      return;
+    }
+
+    if (!_isLoadMoreArmed || (_scrollDebounce?.isActive ?? false)) return;
+
+    _isLoadMoreArmed = false;
+    _scrollDebounce = Timer(_scrollDebounceDuration, () {
+      if (!mounted) return;
       final provider = context.read<AnimeProvider>();
       if (provider.seasonalState != FetchState.loading) {
         provider.fetchSeasonalAnime(
@@ -39,12 +60,13 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
           loadMore: true,
         );
       }
-    }
+    });
   }
 
   @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
+    _scrollDebounce?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -64,13 +86,15 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (builderContext, setSheetState) {
-            final primary = Theme.of(builderContext).colorScheme.primary;
+            final theme = Theme.of(builderContext);
+            final primary = theme.colorScheme.primary;
 
             return Container(
               decoration: BoxDecoration(
-                color: Theme.of(builderContext).scaffoldBackgroundColor,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20)),
+                color: theme.scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
               ),
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               child: Column(
@@ -84,7 +108,7 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                       height: 4,
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: Colors.grey.withAlpha(128),
+                        color: theme.dividerColor,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -96,23 +120,28 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                     children: [
                       Text(
                         'Select Season',
-                        style: Theme.of(builderContext).textTheme.titleMedium,
+                        style: theme.textTheme.titleMedium,
                       ),
                       TextButton(
                         onPressed: () {
                           provider.fetchSeasonalAnime();
                           Navigator.pop(builderContext);
                         },
-                        child: const Text('Current Season'),
+                        child: Text(
+                          'Current Season',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: primary,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
 
-                  // ── Year ───────────────────────────────────
+                  // ── Year picker ────────────────────────────
                   Text(
                     'YEAR',
-                    style: Theme.of(builderContext).textTheme.labelSmall,
+                    style: theme.textTheme.labelSmall,
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -121,11 +150,15 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                     children: years.map((year) {
                       final isSelected = pickedYear == year;
                       return GestureDetector(
-                        onTap: () =>
-                            setSheetState(() => pickedYear = year),
-                        child: Container(
+                        onTap: () => setSheetState(
+                          () => pickedYear = year,
+                        ),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? primary.withAlpha(20)
@@ -134,21 +167,21 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                             border: Border.all(
                               color: isSelected
                                   ? primary
-                                  : Colors.grey.withAlpha(80),
+                                  : theme.dividerColor,
                             ),
                           ),
+                          // FIX: Replaced direct GoogleFonts.inter()
+                          // call with theme text style.
                           child: Text(
                             year.toString(),
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
+                            style: theme.textTheme.labelSmall?.copyWith(
                               color: isSelected
                                   ? primary
-                                  : Theme.of(builderContext)
-                                      .colorScheme
-                                      .onSurface,
+                                  : theme.colorScheme.onSurface,
                               fontWeight: isSelected
                                   ? FontWeight.bold
                                   : FontWeight.normal,
+                              letterSpacing: 0.3,
                             ),
                           ),
                         ),
@@ -157,10 +190,10 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ── Season ─────────────────────────────────
+                  // ── Season picker ──────────────────────────
                   Text(
                     'SEASON',
-                    style: Theme.of(builderContext).textTheme.labelSmall,
+                    style: theme.textTheme.labelSmall,
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -169,11 +202,15 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                     children: _seasons.map((season) {
                       final isSelected = pickedSeason == season;
                       return GestureDetector(
-                        onTap: () =>
-                            setSheetState(() => pickedSeason = season),
-                        child: Container(
+                        onTap: () => setSheetState(
+                          () => pickedSeason = season,
+                        ),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 10),
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? primary.withAlpha(20)
@@ -182,21 +219,22 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                             border: Border.all(
                               color: isSelected
                                   ? primary
-                                  : Colors.grey.withAlpha(80),
+                                  : theme.dividerColor,
                             ),
                           ),
+                          // FIX: Replaced direct GoogleFonts.inter()
+                          // call with theme text style.
                           child: Text(
-                            season[0].toUpperCase() + season.substring(1),
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
+                            season[0].toUpperCase() +
+                                season.substring(1),
+                            style: theme.textTheme.labelSmall?.copyWith(
                               color: isSelected
                                   ? primary
-                                  : Theme.of(builderContext)
-                                      .colorScheme
-                                      .onSurface,
+                                  : theme.colorScheme.onSurface,
                               fontWeight: isSelected
                                   ? FontWeight.bold
                                   : FontWeight.normal,
+                              letterSpacing: 0.3,
                             ),
                           ),
                         ),
@@ -205,26 +243,34 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ── Apply Button ────────────────────────────
+                  // ── Apply button ───────────────────────────
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed: (pickedYear != null && pickedSeason != null)
-                          ? () {
-                              provider.fetchSeasonalAnime(
-                                year: pickedYear,
-                                season: pickedSeason,
-                              );
-                              Navigator.pop(builderContext);
-                            }
-                          : null,
+                      onPressed:
+                          (pickedYear != null && pickedSeason != null)
+                              ? () {
+                                  provider.fetchSeasonalAnime(
+                                    year: pickedYear,
+                                    season: pickedSeason,
+                                  );
+                                  Navigator.pop(builderContext);
+                                }
+                              : null,
                       style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('Load Season'),
+                      child: Text(
+                        'Load Season',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -238,13 +284,10 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-
     return Scaffold(
       appBar: AppBar(
-        title: Consumer<AnimeProvider>(
-          builder: (context, provider, child) =>
-              Text(provider.seasonLabel),
+        title: context.select<AnimeProvider, Widget>(
+          (p) => Text(p.seasonLabel),
         ),
         actions: [
           IconButton(
@@ -256,18 +299,18 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
       ),
       body: Consumer<AnimeProvider>(
         builder: (context, provider, child) {
-          // ── Skeleton ──────────────────────────────────────
+          // ── Initial / full-screen loading ─────────────────
           if (provider.seasonalState == FetchState.initial ||
               (provider.seasonalState == FetchState.loading &&
                   provider.seasonalAnime.isEmpty)) {
             return const AnimeListSkeleton();
           }
 
-          // ── Full screen error ─────────────────────────────
+          // ── Full-screen error ─────────────────────────────
           if (provider.seasonalState == FetchState.error &&
               provider.seasonalAnime.isEmpty) {
             return ErrorView(
-              message: provider.errorMessage,
+              message: provider.seasonalErrorMessage,
               onRetry: () => provider.fetchSeasonalAnime(
                 year: provider.selectedYear,
                 season: provider.selectedSeason,
@@ -289,7 +332,7 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                       ? 1
                       : 0),
               itemBuilder: (context, index) {
-                // ── Load more skeleton ──────────────────────
+                // ── Load-more skeleton ──────────────────────
                 if (index == provider.seasonalAnime.length &&
                     provider.seasonalState == FetchState.loading) {
                   return const LoadMoreSkeleton();
@@ -299,7 +342,7 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                 if (index == provider.seasonalAnime.length &&
                     provider.seasonalState == FetchState.error) {
                   return ErrorView(
-                    message: provider.errorMessage,
+                    message: provider.seasonalErrorMessage,
                     onRetry: () => provider.fetchSeasonalAnime(
                       year: provider.selectedYear,
                       season: provider.selectedSeason,
@@ -310,77 +353,17 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
                 }
 
                 final Anime item = provider.seasonalAnime[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DetailScreen(anime: item),
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AnimeImage(
-                          imageUrl: item.imageUrl,
-                          width: 100,
-                          height: 140,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.title,
-                                style: Theme.of(context).textTheme.titleMedium,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              if (item.genres.isNotEmpty)
-                                Text(
-                                  item.genres.take(3).join(' • '),
-                                  style: Theme.of(context).textTheme.labelSmall,
-                                ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Icon(Icons.star_rounded,
-                                      color: primary, size: 16),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    item.score.value?.toString() ?? 'N/A',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  // ── Type badge ──────────
-                                  if (item.type != null) ...[
-                                    const SizedBox(width: 12),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        borderRadius:
-                                            BorderRadius.circular(20),
-                                        border: Border.all(
-                                            color: primary.withAlpha(80)),
-                                      ),
-                                      child: Text(
-                                        item.type!,
-                                        style: GoogleFonts.inter(
-                                            fontSize: 11, color: primary),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                // FIX: Replaced duplicated inline Row layout with
+                // the shared AnimeListTile widget. showTypeBadge:
+                // true activates the type pill unique to this
+                // screen.
+                return AnimeListTile(
+                  anime: item,
+                  showTypeBadge: true,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DetailScreen(anime: item),
                     ),
                   ),
                 );

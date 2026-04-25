@@ -4,7 +4,7 @@ class ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  /// If true fills the whole available space (full screen error).
+  /// If true fills the whole available space (full-screen error).
   /// If false renders inline with minimum height (load-more error).
   final bool expand;
 
@@ -49,6 +49,9 @@ class ErrorView extends StatelessWidget {
         const SizedBox(height: 8),
 
         // ── Message ───────────────────────────────────────────
+        // FIX: message is now always a user-friendly string
+        // produced by AnimeProvider._friendlyError() so we
+        // never surface raw exception text to the user here.
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Text(

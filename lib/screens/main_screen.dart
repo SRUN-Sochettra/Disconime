@@ -27,7 +27,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: IndexedStack(
@@ -38,7 +38,12 @@ class _MainScreenState extends State<MainScreen> {
         decoration: BoxDecoration(
           border: Border(
             top: BorderSide(
-              color: Theme.of(context).dividerColor.withAlpha(20),
+              // FIX: Use dividerColor directly from theme instead of
+              // double-dimming it with withAlpha. The theme's
+              // dividerColor is already a subtle border color so
+              // applying withAlpha(20) on top was making it
+              // invisible on some devices.
+              color: theme.dividerColor,
               width: 1,
             ),
           ),
@@ -46,11 +51,10 @@ class _MainScreenState extends State<MainScreen> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
-          type: BottomNavigationBarType.fixed,
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
-          selectedItemColor: colorScheme.primary,
-          unselectedItemColor: colorScheme.onSurface.withAlpha(100),
+          // FIX: Removed redundant properties already set in
+          // AppTheme.bottomNavigationBarTheme. Keeping only what
+          // is genuinely screen-specific (currentIndex, onTap,
+          // and the items list).
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),

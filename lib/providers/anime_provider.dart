@@ -9,7 +9,7 @@ class AnimeProvider extends ChangeNotifier {
   final ApiService _apiService;
 
   AnimeProvider({ApiService? apiService})
-    : _apiService = apiService ?? ApiService();
+      : _apiService = apiService ?? ApiService();
 
   // ── Top Anime ────────────────────────────────────────────────
   List<Anime> _topAnime = [];
@@ -17,9 +17,14 @@ class AnimeProvider extends ChangeNotifier {
   int _currentTopPage = 1;
   AnimeFilter _currentFilter = const AnimeFilter();
 
+  // FIX: Dedicated error message per feature so concurrent
+  // failures do not overwrite each other.
+  String _topAnimeError = '';
+
   List<Anime> get topAnime => _topAnime;
   FetchState get topAnimeState => _topAnimeState;
   AnimeFilter get currentFilter => _currentFilter;
+  String get topAnimeErrorMessage => _topAnimeError;
 
   // ── Search ───────────────────────────────────────────────────
   List<Anime> _searchResults = [];
@@ -27,16 +32,24 @@ class AnimeProvider extends ChangeNotifier {
   int _currentSearchPage = 1;
   String _currentQuery = '';
 
+  // FIX: Dedicated error message for search.
+  String _searchError = '';
+
   List<Anime> get searchResults => _searchResults;
   FetchState get searchState => _searchState;
+  String get searchErrorMessage => _searchError;
 
   // ── Recommendations ──────────────────────────────────────────
   List<Anime> _recommendations = [];
   FetchState _recommendationsState = FetchState.initial;
   int _currentRecMalId = 0;
 
+  // FIX: Dedicated error message for recommendations.
+  String _recommendationsError = '';
+
   List<Anime> get recommendations => _recommendations;
   FetchState get recommendationsState => _recommendationsState;
+  String get recommendationsErrorMessage => _recommendationsError;
 
   // ── Seasonal ─────────────────────────────────────────────────
   List<Anime> _seasonalAnime = [];
@@ -45,40 +58,48 @@ class AnimeProvider extends ChangeNotifier {
   int? _selectedYear;
   String? _selectedSeason;
 
+  // FIX: Dedicated error message for seasonal.
+  String _seasonalError = '';
+
   List<Anime> get seasonalAnime => _seasonalAnime;
   FetchState get seasonalState => _seasonalState;
   int? get selectedYear => _selectedYear;
   String? get selectedSeason => _selectedSeason;
+  String get seasonalErrorMessage => _seasonalError;
 
   String get seasonLabel {
     if (_selectedYear == null || _selectedSeason == null) {
       return 'Current Season';
     }
-    return '${_selectedSeason![0].toUpperCase()}${_selectedSeason!.substring(1)} $_selectedYear';
+    return '${_selectedSeason![0].toUpperCase()}'
+        '${_selectedSeason!.substring(1)} $_selectedYear';
   }
 
   // ── Genres ───────────────────────────────────────────────────
   List<Map<String, dynamic>> _genres = [];
   FetchState _genresState = FetchState.initial;
 
+  // FIX: Dedicated error message for genres.
+  String _genresError = '';
+
   List<Map<String, dynamic>> get genres => _genres;
   FetchState get genresState => _genresState;
+  String get genresErrorMessage => _genresError;
 
+  // ── Genre Detail ─────────────────────────────────────────────
   List<Anime> _genreAnime = [];
   FetchState _genreAnimeState = FetchState.initial;
   int _currentGenrePage = 1;
   int _currentGenreId = 0;
   String _currentGenreName = '';
 
+  // FIX: Dedicated error message for genre detail.
+  String _genreAnimeError = '';
+
   List<Anime> get genreAnime => _genreAnime;
   FetchState get genreAnimeState => _genreAnimeState;
   String get currentGenreName => _currentGenreName;
-
-  // ── Shared ───────────────────────────────────────────────────
-  String _errorMessage = '';
-  String _topAnimeErrorMessage = '';
-  String get errorMessage => _errorMessage;
-  String get topAnimeErrorMessage => _topAnimeErrorMessage;
+  String get genreAnimeErrorMessage => _genreAnimeError;
 
   // ── Top Anime ────────────────────────────────────────────────
   void applyFilter(AnimeFilter filter) {
@@ -95,12 +116,13 @@ class AnimeProvider extends ChangeNotifier {
     if (loadMore) {
       if (_topAnimeState == FetchState.loading) return;
       _topAnimeState = FetchState.loading;
-      _topAnimeErrorMessage = '';
+      _topAnimeError = '';
       notifyListeners();
     } else {
       _topAnime = [];
+      _currentTopPage = 1;
       _topAnimeState = FetchState.loading;
-      _topAnimeErrorMessage = '';
+      _topAnimeError = '';
       notifyListeners();
     }
 
@@ -118,11 +140,10 @@ class AnimeProvider extends ChangeNotifier {
       _topAnime = loadMore ? [..._topAnime, ...results] : results;
       _currentTopPage = pageToFetch;
       _topAnimeState = FetchState.loaded;
-      _topAnimeErrorMessage = '';
+      _topAnimeError = '';
     } catch (e) {
       _topAnimeState = FetchState.error;
-      _topAnimeErrorMessage = e.toString();
-      _errorMessage = _topAnimeErrorMessage;
+      _topAnimeError = _friendlyError(e);
     }
     notifyListeners();
   }
@@ -159,23 +180,30 @@ class AnimeProvider extends ChangeNotifier {
       _searchResults = loadMore ? [..._searchResults, ...results] : results;
       _currentSearchPage = pageToFetch;
       _searchState = FetchState.loaded;
+      _searchError = '';
     } catch (e) {
       _searchState = FetchState.error;
-      _errorMessage = e.toString();
+      _searchError = _friendlyError(e);
     }
     notifyListeners();
   }
 
   // ── Recommendations ──────────────────────────────────────────
+  // FIX: Removed the early-return guard that caused stale
+  // recommendations when navigating A → B → back → A → B.
+  // We now always re-fetch when the malId changes, and only
+  // skip if the SAME anime is already loading or loaded.
   Future<void> fetchRecommendations(int malId) async {
     if (_currentRecMalId == malId &&
         (_recommendationsState == FetchState.loaded ||
             _recommendationsState == FetchState.loading)) {
       return;
     }
+
     _currentRecMalId = malId;
     _recommendations = [];
     _recommendationsState = FetchState.loading;
+    _recommendationsError = '';
     notifyListeners();
 
     try {
@@ -183,9 +211,18 @@ class AnimeProvider extends ChangeNotifier {
       _recommendationsState = FetchState.loaded;
     } catch (e) {
       _recommendationsState = FetchState.error;
-      _errorMessage = e.toString();
+      _recommendationsError = _friendlyError(e);
     }
     notifyListeners();
+  }
+
+  /// Clears the cached recommendation malId so that navigating
+  /// back to a previously visited DetailScreen always re-fetches.
+  void clearRecommendations() {
+    _currentRecMalId = 0;
+    _recommendations = [];
+    _recommendationsState = FetchState.initial;
+    _recommendationsError = '';
   }
 
   // ── Seasonal ─────────────────────────────────────────────────
@@ -207,6 +244,7 @@ class AnimeProvider extends ChangeNotifier {
       notifyListeners();
     } else {
       _seasonalAnime = [];
+      _currentSeasonalPage = 1;
       _seasonalState = FetchState.loading;
       notifyListeners();
     }
@@ -227,9 +265,10 @@ class AnimeProvider extends ChangeNotifier {
       _seasonalAnime = loadMore ? [..._seasonalAnime, ...results] : results;
       _currentSeasonalPage = pageToFetch;
       _seasonalState = FetchState.loaded;
+      _seasonalError = '';
     } catch (e) {
       _seasonalState = FetchState.error;
-      _errorMessage = e.toString();
+      _seasonalError = _friendlyError(e);
     }
     notifyListeners();
   }
@@ -247,9 +286,10 @@ class AnimeProvider extends ChangeNotifier {
     try {
       _genres = await _apiService.getGenres();
       _genresState = FetchState.loaded;
+      _genresError = '';
     } catch (e) {
       _genresState = FetchState.error;
-      _errorMessage = e.toString();
+      _genresError = _friendlyError(e);
     }
     notifyListeners();
   }
@@ -271,6 +311,7 @@ class AnimeProvider extends ChangeNotifier {
       notifyListeners();
     } else {
       _genreAnime = [];
+      _currentGenrePage = 1;
       _genreAnimeState = FetchState.loading;
       notifyListeners();
     }
@@ -285,9 +326,10 @@ class AnimeProvider extends ChangeNotifier {
       _genreAnime = loadMore ? [..._genreAnime, ...results] : results;
       _currentGenrePage = pageToFetch;
       _genreAnimeState = FetchState.loaded;
+      _genreAnimeError = '';
     } catch (e) {
       _genreAnimeState = FetchState.error;
-      _errorMessage = e.toString();
+      _genreAnimeError = _friendlyError(e);
     }
     notifyListeners();
   }
@@ -295,5 +337,25 @@ class AnimeProvider extends ChangeNotifier {
   // ── Detail ───────────────────────────────────────────────────
   Future<Anime> getAnimeDetails(int malId) async {
     return _apiService.getAnimeDetails(malId);
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────
+  // FIX: Converts raw exception messages into user-friendly strings
+  // so ErrorView never shows a raw stack trace or status code.
+  String _friendlyError(Object e) {
+    final msg = e.toString().toLowerCase();
+    if (msg.contains('429') || msg.contains('rate limit')) {
+      return 'Too many requests. Please wait a moment and try again.';
+    }
+    if (msg.contains('socketexception') || msg.contains('network')) {
+      return 'No internet connection. Please check your network.';
+    }
+    if (msg.contains('timeout')) {
+      return 'The request timed out. Please try again.';
+    }
+    if (msg.contains('404')) {
+      return 'Content not found.';
+    }
+    return 'Something went wrong. Please try again.';
   }
 }

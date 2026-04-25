@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -12,14 +11,17 @@ import 'providers/theme_provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables if available.
-  // If .env is missing, continue safely — ApiService already has
-  // a fallback base URL.
+  // Load .env safely — ApiService has a fallback base URL if missing.
   try {
-    await dotenv.load(fileName: ".env");
+    await dotenv.load(fileName: '.env');
   } catch (e) {
     debugPrint('[main] .env not found or failed to load: $e');
   }
+
+  // FIX: ThemeProvider now persists the user's choice. Load it
+  // before runApp so the correct theme is applied on first frame.
+  final themeProvider = ThemeProvider();
+  await themeProvider.loadTheme();
 
   final favoritesProvider = FavoritesProvider();
   await favoritesProvider.loadFavorites();
@@ -30,7 +32,7 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider(create: (_) => AnimeProvider()),
         ChangeNotifierProvider.value(value: favoritesProvider),
         ChangeNotifierProvider.value(value: searchHistoryProvider),

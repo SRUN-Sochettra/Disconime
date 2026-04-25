@@ -6,30 +6,29 @@ class AnimeCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 20),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SkeletonBox(width: 100, height: 140, borderRadius: 12),
-          const SizedBox(width: 16),
+          SkeletonBox(width: 100, height: 140, borderRadius: 12),
+          SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 4),
-                const SkeletonBox(
-                    height: 16, width: double.infinity, borderRadius: 6),
-                const SizedBox(height: 8),
+                SizedBox(height: 4),
                 SkeletonBox(
                   height: 16,
-                  width: MediaQuery.of(context).size.width * 0.45,
+                  width: double.infinity,
                   borderRadius: 6,
                 ),
-                const SizedBox(height: 16),
-                const SkeletonBox(height: 11, width: 160, borderRadius: 6),
-                const SizedBox(height: 12),
-                const SkeletonBox(height: 11, width: 80, borderRadius: 6),
+                SizedBox(height: 8),
+                SkeletonBox(height: 16, width: 160, borderRadius: 6),
+                SizedBox(height: 16),
+                SkeletonBox(height: 11, width: 160, borderRadius: 6),
+                SizedBox(height: 12),
+                SkeletonBox(height: 11, width: 80, borderRadius: 6),
               ],
             ),
           ),
@@ -70,8 +69,8 @@ class AnimeListSkeleton extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         physics: const NeverScrollableScrollPhysics(),
         itemCount: itemCount,
-        // Single underscore — context not used in itemBuilder
-        itemBuilder: (_, __) => const AnimeCardSkeleton(),
+        // FIX: __ → _ (unnecessary double underscore lint)
+        itemBuilder: (_, _) => const AnimeCardSkeleton(),
       ),
     );
   }
@@ -91,8 +90,8 @@ class RecommendationListSkeleton extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: itemCount,
-          // Single underscore — context not used in itemBuilder
-          itemBuilder: (_, __) => const RecommendationCardSkeleton(),
+          // FIX: __ → _ (unnecessary double underscore lint)
+          itemBuilder: (_, _) => const RecommendationCardSkeleton(),
         ),
       ),
     );
@@ -105,12 +104,7 @@ class LoadMoreSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SkeletonLoader(
-      child: Column(
-        children: [
-          AnimeCardSkeleton(),
-          AnimeCardSkeleton(),
-        ],
-      ),
+      child: AnimeCardSkeleton(),
     );
   }
 }

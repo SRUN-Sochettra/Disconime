@@ -12,7 +12,6 @@ class AppTheme {
   static ThemeData _build(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
 
-    // Resolve palette based on brightness.
     final primaryColor =
         isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
     final bgColor = isDark ? AppColors.darkBg : AppColors.lightBg;
@@ -28,8 +27,6 @@ class AppTheme {
       scaffoldBackgroundColor: bgColor,
 
       // ── Color Scheme ─────────────────────────────────────────
-      // Using explicit ColorScheme instead of fromSeed to maintain
-      // full control over every generated color in the palette.
       colorScheme: ColorScheme(
         brightness: brightness,
         primary: AppColors.accent,
@@ -38,6 +35,13 @@ class AppTheme {
         onSecondary: Colors.black,
         surface: surfaceColor,
         onSurface: primaryColor,
+        // FIX: Added surfaceContainerHighest and onSurfaceVariant
+        // so Material 3 widgets (Dialog, BottomSheet, etc.) do not
+        // fall back to unexpected generated colors.
+        surfaceContainerHighest: isDark
+            ? AppColors.darkBorder
+            : AppColors.lightBorder,
+        onSurfaceVariant: mutedColor,
         error: const Color(0xFFB00020),
         onError: Colors.white,
         outline: borderColor,
@@ -88,60 +92,44 @@ class AppTheme {
       ),
 
       // ── Typography ───────────────────────────────────────────
-      // Base: Inter for all body/UI text.
-      // Override display + title with Cormorant Garamond for
-      // the editorial premium feel.
       textTheme: GoogleFonts.interTextTheme(
         isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme,
       ).copyWith(
-        // ── Display — used for wordmark (DISCONIME)
         displayLarge: GoogleFonts.cormorantGaramond(
           color: primaryColor,
           fontWeight: FontWeight.bold,
           fontSize: 32,
           letterSpacing: 1.0,
         ),
-
-        // ── Title Large — section headers, anime titles
         titleLarge: GoogleFonts.cormorantGaramond(
           color: primaryColor,
           fontWeight: FontWeight.bold,
           fontSize: 26,
           height: 1.2,
         ),
-
-        // ── Title Medium — card titles, screen subtitles
         titleMedium: GoogleFonts.inter(
           color: primaryColor,
           fontWeight: FontWeight.w600,
           fontSize: 15,
           letterSpacing: 0.1,
         ),
-
-        // ── Body Medium — synopsis, descriptions
         bodyMedium: GoogleFonts.inter(
           color: primaryColor.withAlpha(200),
           fontSize: 14,
           height: 1.65,
           letterSpacing: 0.1,
         ),
-
-        // ── Body Small — secondary body text
         bodySmall: GoogleFonts.inter(
           color: mutedColor,
           fontSize: 12,
           height: 1.5,
         ),
-
-        // ── Label Small — genre tags, captions, metadata
         labelSmall: GoogleFonts.inter(
           color: mutedColor,
           fontSize: 11,
           letterSpacing: 1.1,
           fontWeight: FontWeight.w500,
         ),
-
-        // ── Label Medium — score values, badges
         labelMedium: GoogleFonts.inter(
           color: primaryColor,
           fontSize: 12,

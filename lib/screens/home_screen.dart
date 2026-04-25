@@ -5,11 +5,12 @@ import 'package:provider/provider.dart';
 import '../models/anime_model.dart';
 import '../providers/anime_provider.dart';
 import '../providers/theme_provider.dart';
-import '../widgets/anime_image.dart';
 import '../widgets/anime_card_skeleton.dart';
+import '../widgets/anime_list_tile.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/error_view.dart';
 import '../widgets/filter_sheet.dart';
+import '../widgets/anime_image.dart';
 import 'detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -54,10 +55,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _isLoadMoreArmed = false;
     _scrollDebounce = Timer(_scrollDebounceDuration, () {
       if (!mounted) return;
-
       final provider = context.read<AnimeProvider>();
       if (provider.topAnimeState != FetchState.loaded) return;
-
       provider.fetchTopAnime(loadMore: true);
     });
   }
@@ -117,7 +116,9 @@ class _HomeScreenState extends State<HomeScreen> {
           // ── View toggle ───────────────────────────────────────
           IconButton(
             icon: Icon(
-              _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+              _isGridView
+                  ? Icons.view_list_rounded
+                  : Icons.grid_view_rounded,
             ),
             onPressed: () => setState(() => _isGridView = !_isGridView),
           ),
@@ -131,6 +132,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// ── Filter action button ──────────────────────────────────────────
+// Uses context.select so only this widget rebuilds when the filter
+// active state changes — not the entire AppBar.
 class _FilterActionButton extends StatelessWidget {
   final VoidCallback onPressed;
 
@@ -139,10 +143,10 @@ class _FilterActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasActiveFilter = context.select<AnimeProvider, bool>(
-      (provider) => provider.currentFilter.isActive,
+      (p) => p.currentFilter.isActive,
     );
     final activeFilterCount = context.select<AnimeProvider, int>(
-      (provider) => provider.currentFilter.activeCount,
+      (p) => p.currentFilter.activeCount,
     );
     final theme = Theme.of(context);
 
@@ -151,7 +155,9 @@ class _FilterActionButton extends StatelessWidget {
       children: [
         IconButton(
           icon: Icon(
-            hasActiveFilter ? Icons.tune_rounded : Icons.tune_outlined,
+            hasActiveFilter
+                ? Icons.tune_rounded
+                : Icons.tune_outlined,
           ),
           tooltip: 'Filter',
           onPressed: onPressed,
@@ -184,6 +190,7 @@ class _FilterActionButton extends StatelessWidget {
   }
 }
 
+// ── Body ─────────────────────────────────────────────────────────
 class _TopAnimeBody extends StatelessWidget {
   final bool isGridView;
   final ScrollController scrollController;
@@ -196,13 +203,13 @@ class _TopAnimeBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topAnime = context.select<AnimeProvider, List<Anime>>(
-      (provider) => provider.topAnime,
+      (p) => p.topAnime,
     );
     final topAnimeState = context.select<AnimeProvider, FetchState>(
-      (provider) => provider.topAnimeState,
+      (p) => p.topAnimeState,
     );
     final errorMessage = context.select<AnimeProvider, String>(
-      (provider) => provider.topAnimeErrorMessage,
+      (p) => p.topAnimeErrorMessage,
     );
 
     if (topAnimeState == FetchState.initial ||
@@ -235,6 +242,7 @@ class _TopAnimeBody extends StatelessWidget {
   }
 }
 
+// ── List view ─────────────────────────────────────────────────────
 class _TopAnimeListView extends StatelessWidget {
   final List<Anime> topAnime;
   final FetchState topAnimeState;
@@ -250,23 +258,22 @@ class _TopAnimeListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-
     return ListView.builder(
       controller: scrollController,
       padding: const EdgeInsets.all(16),
-      itemCount:
-          topAnime.length +
+      itemCount: topAnime.length +
           (topAnimeState == FetchState.loading ||
                   topAnimeState == FetchState.error
               ? 1
               : 0),
       itemBuilder: (context, index) {
-        if (index == topAnime.length && topAnimeState == FetchState.loading) {
+        if (index == topAnime.length &&
+            topAnimeState == FetchState.loading) {
           return const LoadMoreSkeleton();
         }
 
-        if (index == topAnime.length && topAnimeState == FetchState.error) {
+        if (index == topAnime.length &&
+            topAnimeState == FetchState.error) {
           return ErrorView(
             message: errorMessage,
             onRetry: () =>
@@ -276,59 +283,16 @@ class _TopAnimeListView extends StatelessWidget {
         }
 
         final anime = topAnime[index];
-        return InkWell(
-          borderRadius: BorderRadius.circular(12),
+        // FIX: Replaced duplicated inline Row layout with the
+        // shared AnimeListTile widget. showRank: true activates
+        // the rank badge that is unique to this screen.
+        return AnimeListTile(
+          anime: anime,
+          showRank: true,
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => DetailScreen(anime: anime)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 20),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AnimeImage(imageUrl: anime.imageUrl, width: 100, height: 140),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(
-                        anime.title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      if (anime.genres.isNotEmpty)
-                        Text(
-                          anime.genres.take(3).join(' • '),
-                          style: Theme.of(context).textTheme.labelSmall,
-                        ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Icon(Icons.star_rounded, color: primary, size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            anime.score.value?.toString() ?? 'N/A',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            '#${anime.score.rank ?? '?'} Rank',
-                            style: Theme.of(context).textTheme.labelSmall,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            MaterialPageRoute(
+              builder: (_) => DetailScreen(anime: anime),
             ),
           ),
         );
@@ -337,6 +301,7 @@ class _TopAnimeListView extends StatelessWidget {
   }
 }
 
+// ── Grid view ─────────────────────────────────────────────────────
 class _TopAnimeGridView extends StatelessWidget {
   final List<Anime> topAnime;
   final FetchState topAnimeState;
@@ -359,11 +324,35 @@ class _TopAnimeGridView extends StatelessWidget {
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
-      itemCount:
-          topAnime.length + (topAnimeState == FetchState.loading ? 2 : 0),
+      itemCount: topAnime.length +
+          // FIX: Show error state in grid view load-more too.
+          // Previously the grid silently stopped with no feedback.
+          (topAnimeState == FetchState.loading ||
+                  topAnimeState == FetchState.error
+              ? 2
+              : 0),
       itemBuilder: (context, index) {
-        if (index >= topAnime.length) {
+        if (index >= topAnime.length &&
+            topAnimeState == FetchState.loading) {
           return const SkeletonLoader(child: AnimeCardSkeleton());
+        }
+
+        if (index >= topAnime.length &&
+            topAnimeState == FetchState.error) {
+          // Span the error across both columns by returning it
+          // only on the first overflow index.
+          if (index == topAnime.length) {
+            return ErrorView(
+              message: context.read<AnimeProvider>().topAnimeErrorMessage,
+              onRetry: () => context
+                  .read<AnimeProvider>()
+                  .fetchTopAnime(loadMore: true),
+              expand: false,
+            );
+          }
+          // Second overflow slot — empty box to avoid
+          // a dangling grid cell beside the error view.
+          return const SizedBox.shrink();
         }
 
         final anime = topAnime[index];
@@ -371,7 +360,9 @@ class _TopAnimeGridView extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => DetailScreen(anime: anime)),
+            MaterialPageRoute(
+              builder: (_) => DetailScreen(anime: anime),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,9 +376,10 @@ class _TopAnimeGridView extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 anime.title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontSize: 13),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontSize: 13),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

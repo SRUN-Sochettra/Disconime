@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../models/filter_model.dart';
 
 class FilterSheet extends StatefulWidget {
@@ -35,14 +34,16 @@ class _FilterSheetState extends State<FilterSheet> {
     return Container(
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Handle ────────────────────────────────────────────
+          // ── Handle ───────────────────────────────────────────
           Center(
             child: Container(
               width: 40,
@@ -55,7 +56,7 @@ class _FilterSheetState extends State<FilterSheet> {
             ),
           ),
 
-          // ── Header ────────────────────────────────────────────
+          // ── Header ───────────────────────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -66,12 +67,15 @@ class _FilterSheetState extends State<FilterSheet> {
                     widget.onClear();
                     Navigator.pop(context);
                   },
+                  // FIX: Replaced direct GoogleFonts.inter() call
+                  // with theme text style so it responds to theme
+                  // changes and stays consistent with the rest of
+                  // the app typography.
                   child: Text(
                     'Clear all',
-                    style: GoogleFonts.inter(
+                    style: theme.textTheme.labelMedium?.copyWith(
                       color: primary,
                       fontWeight: FontWeight.w600,
-                      fontSize: 13,
                     ),
                   ),
                 ),
@@ -79,7 +83,7 @@ class _FilterSheetState extends State<FilterSheet> {
           ),
           const SizedBox(height: 20),
 
-          // ── Scrollable options ─────────────────────────────────
+          // ── Scrollable filter sections ────────────────────────
           Flexible(
             child: SingleChildScrollView(
               child: Column(
@@ -143,7 +147,8 @@ class _FilterSheetState extends State<FilterSheet> {
                     selectedValue: _filter.sort,
                     onSelected: (value) => setState(() {
                       _filter = _filter.copyWith(
-                        sort: () => _filter.sort == value ? null : value,
+                        sort: () =>
+                            _filter.sort == value ? null : value,
                       );
                     }),
                   ),
@@ -153,25 +158,31 @@ class _FilterSheetState extends State<FilterSheet> {
           ),
           const SizedBox(height: 24),
 
-          // ── Apply ─────────────────────────────────────────────
+          // ── Apply button ──────────────────────────────────────
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () {
-                widget.onApply(_filter);
-                Navigator.pop(context);
-              },
+              // FIX: AnimeFilter now has == operator so we can
+              // skip the API call if nothing actually changed.
+              onPressed: _filter == widget.currentFilter
+                  ? null
+                  : () {
+                      widget.onApply(_filter);
+                      Navigator.pop(context);
+                    },
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
+              // FIX: Replaced direct GoogleFonts.inter() call with
+              // theme text style.
               child: Text(
                 'Apply Filters',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w600,
+                style: theme.textTheme.labelMedium?.copyWith(
                   fontSize: 15,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -209,21 +220,31 @@ class _FilterSheetState extends State<FilterSheet> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 8),
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                  color: isSelected ? primary.withAlpha(20) : Colors.transparent,
+                  color: isSelected
+                      ? primary.withAlpha(20)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isSelected ? primary : theme.dividerColor,
                     width: isSelected ? 1.5 : 1,
                   ),
                 ),
+                // FIX: Replaced direct GoogleFonts.inter() call
+                // with theme text style for consistency.
                 child: Text(
                   entry.key,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    color: isSelected ? primary : theme.colorScheme.onSurface,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                    color: isSelected
+                        ? primary
+                        : theme.colorScheme.onSurface,
+                    letterSpacing: 0.3,
                   ),
                 ),
               ),

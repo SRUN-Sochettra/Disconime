@@ -11,6 +11,7 @@ class ApiService {
   static const Duration _minRequestInterval = Duration(milliseconds: 400);
   static const Duration _baseRetryDelay = Duration(seconds: 1);
   static const int _maxRetries = 3;
+
   DateTime _lastRequestTime = DateTime.fromMillisecondsSinceEpoch(0);
   Future<void> _requestQueue = Future.value();
 
@@ -36,14 +37,11 @@ class ApiService {
           if (elapsed < _minRequestInterval) {
             await Future.delayed(_minRequestInterval - elapsed);
           }
-
           _lastRequestTime = DateTime.now();
           return action();
         })
         .whenComplete(() {
-          if (!releaseQueue.isCompleted) {
-            releaseQueue.complete();
-          }
+          if (!releaseQueue.isCompleted) releaseQueue.complete();
         });
   }
 
@@ -57,9 +55,7 @@ class ApiService {
     final retryAfterHeader = response.headers['retry-after'];
     final retryAfterSeconds = int.tryParse(retryAfterHeader ?? '');
 
-    if (retryAfterSeconds == null) {
-      return exponentialDelay;
-    }
+    if (retryAfterSeconds == null) return exponentialDelay;
 
     final retryAfterDelay = Duration(seconds: retryAfterSeconds);
     return retryAfterDelay > exponentialDelay
@@ -94,9 +90,10 @@ class ApiService {
             );
           }
 
-          throw Exception('Request failed with status ${response.statusCode}.');
+          throw Exception(
+            'Request failed with status ${response.statusCode}.',
+          );
         }
-
         throw Exception('Request failed after retries.');
       });
     } catch (e) {
@@ -114,16 +111,14 @@ class ApiService {
     String? sort,
   }) async {
     final params = <String, String>{'page': page.toString()};
-
     if (type != null && type.isNotEmpty) params['type'] = type;
     if (filter != null && filter.isNotEmpty) params['filter'] = filter;
     if (rating != null && rating.isNotEmpty) params['rating'] = rating;
     if (orderBy != null && orderBy.isNotEmpty) params['order_by'] = orderBy;
     if (sort != null && sort.isNotEmpty) params['sort'] = sort;
 
-    final uri = Uri.parse(
-      '$baseUrl/top/anime',
-    ).replace(queryParameters: params);
+    final uri =
+        Uri.parse('$baseUrl/top/anime').replace(queryParameters: params);
     final data = await _getJson(uri);
     final List<dynamic> animeList = data['data'] ?? [];
     return animeList
@@ -131,11 +126,17 @@ class ApiService {
         .toList();
   }
 
+  // FIX: Replaced manual string interpolation with Uri.replace
+  // queryParameters so special characters in queries are always
+  // correctly percent-encoded by the Uri class itself.
   Future<List<Anime>> searchAnime(String query, {int page = 1}) async {
-    final encoded = Uri.encodeComponent(query);
-    final data = await _getJson(
-      Uri.parse('$baseUrl/anime?q=$encoded&page=$page'),
+    final uri = Uri.parse('$baseUrl/anime').replace(
+      queryParameters: {
+        'q': query,
+        'page': page.toString(),
+      },
     );
+    final data = await _getJson(uri);
     final List<dynamic> animeList = data['data'] ?? [];
     return animeList
         .map((item) => Anime.fromJson(item as Map<String, dynamic>))
@@ -172,8 +173,7 @@ class ApiService {
           Anime(
             malId: entry['mal_id'] as int? ?? 0,
             title: entry['title'] as String? ?? '',
-            imageUrl:
-                jpg?['large_image_url'] as String? ??
+            imageUrl: jpg?['large_image_url'] as String? ??
                 jpg?['image_url'] as String? ??
                 '',
             score: const Score(),
@@ -190,40 +190,45 @@ class ApiService {
     return results;
   }
 
-  /// Fetches currently airing seasonal anime.
   Future<List<Anime>> getSeasonNow({int page = 1}) async {
-    final data = await _getJson(Uri.parse('$baseUrl/seasons/now?page=$page'));
-    final List<dynamic> animeList = data['data'] ?? [];
-    return animeList
-        .map((item) => Anime.fromJson(item as Map<String, dynamic>))
-        .toList();
-  }
-
-  /// Fetches anime for a specific season and year.
-  Future<List<Anime>> getSeason(int year, String season, {int page = 1}) async {
-    final data = await _getJson(
-      Uri.parse('$baseUrl/seasons/$year/$season?page=$page'),
+    final uri = Uri.parse('$baseUrl/seasons/now').replace(
+      queryParameters: {'page': page.toString()},
     );
+    final data = await _getJson(uri);
     final List<dynamic> animeList = data['data'] ?? [];
     return animeList
         .map((item) => Anime.fromJson(item as Map<String, dynamic>))
         .toList();
   }
 
-  /// Fetches all anime genres.
+  Future<List<Anime>> getSeason(int year, String season,
+      {int page = 1}) async {
+    final uri = Uri.parse('$baseUrl/seasons/$year/$season').replace(
+      queryParameters: {'page': page.toString()},
+    );
+    final data = await _getJson(uri);
+    final List<dynamic> animeList = data['data'] ?? [];
+    return animeList
+        .map((item) => Anime.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<List<Map<String, dynamic>>> getGenres() async {
     final data = await _getJson(Uri.parse('$baseUrl/genres/anime'));
     final List<dynamic> genres = data['data'] ?? [];
     return genres.cast<Map<String, dynamic>>();
   }
 
-  /// Fetches anime filtered by genre ID.
   Future<List<Anime>> getAnimeByGenre(int genreId, {int page = 1}) async {
-    final data = await _getJson(
-      Uri.parse(
-        '$baseUrl/anime?genres=$genreId&order_by=score&sort=desc&page=$page',
-      ),
+    final uri = Uri.parse('$baseUrl/anime').replace(
+      queryParameters: {
+        'genres': genreId.toString(),
+        'order_by': 'score',
+        'sort': 'desc',
+        'page': page.toString(),
+      },
     );
+    final data = await _getJson(uri);
     final List<dynamic> animeList = data['data'] ?? [];
     return animeList
         .map((item) => Anime.fromJson(item as Map<String, dynamic>))

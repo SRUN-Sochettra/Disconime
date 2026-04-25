@@ -61,16 +61,12 @@ class Anime {
     );
   }
 
-  /// Serializes the anime to a flat JSON map for local storage.
-  /// We store only what we need to display in the favorites screen
-  /// without needing to re-fetch from the API.
   Map<String, dynamic> toJson() {
     return {
       'mal_id': malId,
       'title': title,
       'title_english': titleEnglish,
       'title_japanese': titleJapanese,
-      // Store image URL directly — no nested images map needed for local storage
       'image_url': imageUrl,
       'type': type,
       'episodes': episodes,
@@ -88,14 +84,12 @@ class Anime {
     };
   }
 
-  /// Deserializes from the flat local storage format produced by [toJson].
   factory Anime.fromLocalJson(Map<String, dynamic> json) {
     return Anime(
       malId: json['mal_id'] as int? ?? 0,
       title: json['title'] as String? ?? '',
       titleEnglish: json['title_english'] as String?,
       titleJapanese: json['title_japanese'] as String?,
-      // Local storage uses a flat image_url field
       imageUrl: json['image_url'] as String? ?? '',
       type: json['type'] as String?,
       episodes: json['episodes'] as int?,

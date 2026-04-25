@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/anime_model.dart';
 import '../providers/anime_provider.dart';
-import '../widgets/anime_image.dart';
+import '../widgets/anime_list_tile.dart';
 import '../widgets/anime_card_skeleton.dart';
 import '../widgets/error_view.dart';
 import 'detail_screen.dart';
@@ -24,6 +26,13 @@ class GenreDetailScreen extends StatefulWidget {
 class _GenreDetailScreenState extends State<GenreDetailScreen> {
   final ScrollController _scrollController = ScrollController();
 
+  // FIX: Added the same debounce + armed-flag pattern used in
+  // HomeScreen so load-more does not fire on every scroll event
+  // that passes the threshold.
+  static const Duration _scrollDebounceDuration = Duration(milliseconds: 150);
+  Timer? _scrollDebounce;
+  bool _isLoadMoreArmed = true;
+
   @override
   void initState() {
     super.initState();
@@ -36,8 +45,22 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+    if (!_scrollController.hasClients) return;
+
+    final position = _scrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+
+    if (position.extentAfter > 200) {
+      _isLoadMoreArmed = true;
+      _scrollDebounce?.cancel();
+      return;
+    }
+
+    if (!_isLoadMoreArmed || (_scrollDebounce?.isActive ?? false)) return;
+
+    _isLoadMoreArmed = false;
+    _scrollDebounce = Timer(_scrollDebounceDuration, () {
+      if (!mounted) return;
       final provider = context.read<AnimeProvider>();
       if (provider.genreAnimeState != FetchState.loading) {
         provider.fetchAnimeByGenre(
@@ -46,52 +69,64 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
           loadMore: true,
         );
       }
-    }
+    });
   }
 
   @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
+    _scrollDebounce?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.genreName)),
+      appBar: AppBar(
+        title: Text(widget.genreName),
+      ),
       body: Consumer<AnimeProvider>(
         builder: (context, provider, child) {
+          // ── Initial / full-screen loading ─────────────────────
           if (provider.genreAnimeState == FetchState.initial ||
               (provider.genreAnimeState == FetchState.loading &&
                   provider.genreAnime.isEmpty)) {
             return const AnimeListSkeleton();
           }
 
+          // ── Full-screen error ─────────────────────────────────
           if (provider.genreAnimeState == FetchState.error &&
               provider.genreAnime.isEmpty) {
             return ErrorView(
-              message: provider.errorMessage,
+              // FIX: Use dedicated genreAnimeErrorMessage instead
+              // of the shared errorMessage field.
+              message: provider.genreAnimeErrorMessage,
               onRetry: () => provider.fetchAnimeByGenre(
-                  widget.genreId, widget.genreName),
+                widget.genreId,
+                widget.genreName,
+              ),
             );
           }
 
+          // ── Empty state ───────────────────────────────────────
           if (provider.genreAnimeState == FetchState.loaded &&
               provider.genreAnime.isEmpty) {
             return Center(
               child: Text(
                 'No anime found.',
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: theme.textTheme.bodyMedium,
               ),
             );
           }
 
           return RefreshIndicator(
             onRefresh: () => provider.fetchAnimeByGenre(
-                widget.genreId, widget.genreName),
+              widget.genreId,
+              widget.genreName,
+            ),
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
@@ -101,15 +136,17 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
                       ? 1
                       : 0),
               itemBuilder: (context, index) {
+                // ── Load-more skeleton ────────────────────────
                 if (index == provider.genreAnime.length &&
                     provider.genreAnimeState == FetchState.loading) {
                   return const LoadMoreSkeleton();
                 }
 
+                // ── Inline error ──────────────────────────────
                 if (index == provider.genreAnime.length &&
                     provider.genreAnimeState == FetchState.error) {
                   return ErrorView(
-                    message: provider.errorMessage,
+                    message: provider.genreAnimeErrorMessage,
                     onRetry: () => provider.fetchAnimeByGenre(
                       widget.genreId,
                       widget.genreName,
@@ -120,58 +157,14 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
                 }
 
                 final Anime item = provider.genreAnime[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DetailScreen(anime: item),
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AnimeImage(
-                          imageUrl: item.imageUrl,
-                          width: 100,
-                          height: 140,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.title,
-                                style: Theme.of(context).textTheme.titleMedium,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              if (item.genres.isNotEmpty)
-                                Text(
-                                  item.genres.take(3).join(' • '),
-                                  style: Theme.of(context).textTheme.labelSmall,
-                                ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Icon(Icons.star_rounded,
-                                      color: primary, size: 16),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    item.score.value?.toString() ?? 'N/A',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                // FIX: Replaced duplicated inline Row layout with
+                // the shared AnimeListTile widget.
+                return AnimeListTile(
+                  anime: item,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DetailScreen(anime: item),
                     ),
                   ),
                 );

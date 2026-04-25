@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/anime_model.dart';
 import '../providers/anime_provider.dart';
@@ -20,13 +19,20 @@ class _DetailScreenState extends State<DetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AnimeProvider>().fetchRecommendations(widget.anime.malId);
+      // FIX: clearRecommendations() is called before fetching so
+      // that navigating A → B → back → A → B always re-fetches
+      // fresh recommendations for the current anime rather than
+      // showing stale results from the previous detail screen.
+      final provider = context.read<AnimeProvider>();
+      provider.clearRecommendations();
+      provider.fetchRecommendations(widget.anime.malId);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final anime = widget.anime;
+    final theme = Theme.of(context);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -36,7 +42,10 @@ class _DetailScreenState extends State<DetailScreen> {
         leading: CircleAvatar(
           backgroundColor: Colors.black.withAlpha(100),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+            icon: const Icon(
+              Icons.arrow_back_rounded,
+              color: Colors.white,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -52,7 +61,7 @@ class _DetailScreenState extends State<DetailScreen> {
                         ? Icons.bookmark_rounded
                         : Icons.bookmark_outline_rounded,
                     color: isFav
-                        ? Theme.of(context).colorScheme.primary
+                        ? theme.colorScheme.primary
                         : Colors.white,
                   ),
                   onPressed: () => favProvider.toggleFavorite(anime),
@@ -67,22 +76,23 @@ class _DetailScreenState extends State<DetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Hero Image ─────────────────────────────────────
+            // ── Hero image ────────────────────────────────────
             AnimeImage(
               imageUrl: anime.imageUrl,
               width: double.infinity,
               height: 450,
               borderRadius: 0,
             ),
+
             Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Title ─────────────────────────────────────
+                  // ── Titles ───────────────────────────────────
                   Text(
                     anime.title,
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: theme.textTheme.titleLarge,
                   ),
                   if (anime.titleEnglish != null &&
                       anime.titleEnglish!.isNotEmpty &&
@@ -90,7 +100,7 @@ class _DetailScreenState extends State<DetailScreen> {
                     const SizedBox(height: 4),
                     Text(
                       anime.titleEnglish!,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: theme.textTheme.bodyMedium,
                     ),
                   ],
                   if (anime.titleJapanese != null &&
@@ -98,23 +108,23 @@ class _DetailScreenState extends State<DetailScreen> {
                     const SizedBox(height: 2),
                     Text(
                       anime.titleJapanese!,
-                      style: Theme.of(context).textTheme.labelSmall,
+                      style: theme.textTheme.labelSmall,
                     ),
                   ],
                   const SizedBox(height: 24),
 
-                  // ── Stats ─────────────────────────────────────
+                  // ── Stats row ────────────────────────────────
                   Row(
                     children: [
-                      _buildStatBadge(
-                        context,
+                      _StatBadge(
                         icon: Icons.star_rounded,
-                        value: anime.score.value?.toStringAsFixed(1) ?? 'N/A',
+                        value: anime.score.value
+                                ?.toStringAsFixed(1) ??
+                            'N/A',
                         label: 'Score',
                       ),
                       const SizedBox(width: 12),
-                      _buildStatBadge(
-                        context,
+                      _StatBadge(
                         icon: Icons.leaderboard_rounded,
                         value: anime.score.rank != null
                             ? '#${anime.score.rank}'
@@ -122,8 +132,7 @@ class _DetailScreenState extends State<DetailScreen> {
                         label: 'Rank',
                       ),
                       const SizedBox(width: 12),
-                      _buildStatBadge(
-                        context,
+                      _StatBadge(
                         icon: Icons.trending_up_rounded,
                         value: anime.score.popularity != null
                             ? '#${anime.score.popularity}'
@@ -134,36 +143,36 @@ class _DetailScreenState extends State<DetailScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ── Genres ────────────────────────────────────
+                  // ── Genre chips ──────────────────────────────
                   if (anime.genres.isNotEmpty) ...[
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: anime.genres
-                          .map((g) => _buildGenreChip(context, g))
+                          .map((g) => _GenreChip(label: g))
                           .toList(),
                     ),
                     const SizedBox(height: 24),
                   ],
 
-                  // ── Synopsis ──────────────────────────────────
+                  // ── Synopsis ─────────────────────────────────
                   Text(
                     'Synopsis',
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     anime.synopsis.text,
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    style: theme.textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 32),
 
-                  // ── Info ──────────────────────────────────────
-                  _buildInfoSection(context, anime),
+                  // ── Info table ───────────────────────────────
+                  _InfoSection(anime: anime),
                   const SizedBox(height: 32),
 
-                  // ── Recommendations ───────────────────────────
-                  _buildRecommendations(context, anime),
+                  // ── Recommendations ──────────────────────────
+                  _RecommendationsSection(currentAnime: anime),
                 ],
               ),
             ),
@@ -172,13 +181,22 @@ class _DetailScreenState extends State<DetailScreen> {
       ),
     );
   }
+}
 
-  Widget _buildStatBadge(
-    BuildContext context, {
-    required IconData icon,
-    required String value,
-    required String label,
-  }) {
+// ── Stat badge ────────────────────────────────────────────────────
+class _StatBadge extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+
+  const _StatBadge({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Expanded(
       child: Container(
@@ -186,7 +204,9 @@ class _DetailScreenState extends State<DetailScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: theme.colorScheme.surface,
-          border: Border.all(color: theme.dividerColor.withAlpha(30)),
+          border: Border.all(
+            color: theme.dividerColor,
+          ),
         ),
         child: Column(
           children: [
@@ -194,7 +214,9 @@ class _DetailScreenState extends State<DetailScreen> {
             const SizedBox(height: 4),
             Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             Text(label, style: theme.textTheme.labelSmall),
           ],
@@ -202,24 +224,47 @@ class _DetailScreenState extends State<DetailScreen> {
       ),
     );
   }
+}
 
-  Widget _buildGenreChip(BuildContext context, String label) {
+// ── Genre chip ────────────────────────────────────────────────────
+class _GenreChip extends StatelessWidget {
+  final String label;
+
+  const _GenreChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withAlpha(100),
+          // FIX: Replaced direct GoogleFonts.inter() with theme
+          // text style. Genre chip now responds to theme changes.
+          color: theme.colorScheme.primary.withAlpha(100),
         ),
       ),
       child: Text(
         label,
-        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500),
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.3,
+        ),
       ),
     );
   }
+}
 
-  Widget _buildInfoSection(BuildContext context, Anime anime) {
+// ── Info section ──────────────────────────────────────────────────
+class _InfoSection extends StatelessWidget {
+  final Anime anime;
+
+  const _InfoSection({required this.anime});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final rows = <Widget>[];
 
     void addRow(String label, String? value) {
@@ -234,13 +279,13 @@ class _DetailScreenState extends State<DetailScreen> {
                 width: 90,
                 child: Text(
                   label,
-                  style: Theme.of(context).textTheme.labelSmall,
+                  style: theme.textTheme.labelSmall,
                 ),
               ),
               Expanded(
                 child: Text(
                   value,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: theme.textTheme.bodyMedium,
                 ),
               ),
             ],
@@ -256,7 +301,10 @@ class _DetailScreenState extends State<DetailScreen> {
     addRow('Rating', anime.rating);
     addRow('Year', anime.year);
     if (anime.score.scoredBy != null) {
-      addRow('Scored By', '${_formatNumber(anime.score.scoredBy!)} users');
+      addRow(
+        'Scored By',
+        '${_formatNumber(anime.score.scoredBy!)} users',
+      );
     }
 
     if (rows.isEmpty) return const SizedBox.shrink();
@@ -264,92 +312,13 @@ class _DetailScreenState extends State<DetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Information', style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          'Information',
+          style: theme.textTheme.titleMedium,
+        ),
         const SizedBox(height: 12),
         ...rows,
       ],
-    );
-  }
-
-  Widget _buildRecommendations(BuildContext context, Anime anime) {
-    return Consumer<AnimeProvider>(
-      builder: (context, provider, child) {
-        if (provider.recommendationsState == FetchState.loading) {
-          return const RecommendationListSkeleton();
-        }
-        if (provider.recommendations.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'You Might Also Like',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 220,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: provider.recommendations.length,
-                itemBuilder: (context, index) {
-                  final rec = provider.recommendations[index];
-                  return GestureDetector(
-                    onTap: () async {
-                      final animeProvider = context.read<AnimeProvider>();
-                      try {
-                        final fullAnime =
-                            await animeProvider.getAnimeDetails(rec.malId);
-                        // Guard context across async gap using
-                        // State.mounted check.
-                        if (!mounted) return;
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => DetailScreen(anime: fullAnime),
-                          ),
-                        );
-                      } catch (_) {
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Failed to load anime details.'),
-                          ),
-                        );
-                      }
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AnimeImage(
-                            imageUrl: rec.imageUrl,
-                            width: 130,
-                            height: 180,
-                          ),
-                          const SizedBox(height: 6),
-                          SizedBox(
-                            width: 130,
-                            child: Text(
-                              rec.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.labelSmall,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 
@@ -358,5 +327,104 @@ class _DetailScreenState extends State<DetailScreen> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (match) => '${match[1]},',
         );
+  }
+}
+
+// ── Recommendations section ───────────────────────────────────────
+class _RecommendationsSection extends StatelessWidget {
+  final Anime currentAnime;
+
+  const _RecommendationsSection({required this.currentAnime});
+
+  @override
+  Widget build(BuildContext context) {
+    // FIX: Replaced Consumer<AnimeProvider> with context.select
+    // so this widget only rebuilds when recommendations state
+    // or data changes — not on every AnimeProvider notification
+    // (e.g. background top-anime load-more triggering a rebuild).
+    final state = context.select<AnimeProvider, FetchState>(
+      (p) => p.recommendationsState,
+    );
+    final recommendations = context.select<AnimeProvider, List<Anime>>(
+      (p) => p.recommendations,
+    );
+
+    if (state == FetchState.loading) {
+      return const RecommendationListSkeleton();
+    }
+
+    if (state == FetchState.error || recommendations.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'You Might Also Like',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 220,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: recommendations.length,
+            itemBuilder: (context, index) {
+              final rec = recommendations[index];
+              return GestureDetector(
+                onTap: () async {
+                  final animeProvider = context.read<AnimeProvider>();
+                  try {
+                    final fullAnime =
+                        await animeProvider.getAnimeDetails(rec.malId);
+                    // Guard against async gap — widget may have
+                    // been disposed while the request was in flight.
+                    if (!context.mounted) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DetailScreen(anime: fullAnime),
+                      ),
+                    );
+                  } catch (_) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Failed to load anime details.'),
+                      ),
+                    );
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AnimeImage(
+                        imageUrl: rec.imageUrl,
+                        width: 130,
+                        height: 180,
+                      ),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        width: 130,
+                        child: Text(
+                          rec.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.labelSmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 }

@@ -13,7 +13,6 @@ class AnimeFilter {
     this.sort,
   });
 
-  /// Returns a new [AnimeFilter] with the given fields replaced.
   AnimeFilter copyWith({
     String? Function()? type,
     String? Function()? filter,
@@ -30,11 +29,28 @@ class AnimeFilter {
     );
   }
 
+  // FIX: Added == operator and hashCode so FilterSheet can detect
+  // whether the filter actually changed before firing an API call.
+  @override
+  bool operator ==(Object other) =>
+      other is AnimeFilter &&
+      type == other.type &&
+      filter == other.filter &&
+      rating == other.rating &&
+      orderBy == other.orderBy &&
+      sort == other.sort;
+
+  @override
+  int get hashCode => Object.hash(type, filter, rating, orderBy, sort);
+
   /// Whether any filter is active.
   bool get isActive =>
       type != null || filter != null || rating != null || orderBy != null;
 
   /// Count of active filters for badge display.
+  // NOTE: sort is intentionally excluded from isActive and activeCount
+  // because it is a display preference, not a content filter.
+  // Change this if your UX requires sort to count as an active filter.
   int get activeCount {
     int count = 0;
     if (type != null) count++;
@@ -44,7 +60,6 @@ class AnimeFilter {
     return count;
   }
 
-  /// Available options — labels map to Jikan API values.
   static const Map<String, String> typeOptions = {
     'TV': 'tv',
     'Movie': 'movie',

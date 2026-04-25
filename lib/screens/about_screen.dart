@@ -19,6 +19,8 @@ class AboutScreen extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
+
+            // ── App icon ──────────────────────────────────────
             Center(
               child: Container(
                 width: 80,
@@ -35,37 +37,81 @@ class AboutScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            Text('Disconime', style: theme.textTheme.titleLarge),
-            Text('Version 1.0.0', style: theme.textTheme.labelSmall),
-            const SizedBox(height: 40),
-            _buildSection(
-              context,
-              'The Project',
-              'A high-end anime discovery platform built with Flutter '
-                  'and the Jikan API. Designed for enthusiasts who appreciate '
-                  'minimalist aesthetics and a premium content-first experience.',
+
+            // ── App name + version ────────────────────────────
+            Text(
+              'Disconime',
+              style: theme.textTheme.titleLarge,
             ),
-            const SizedBox(height: 24),
-            _buildSection(context, 'Developer', 'SRUN-Sochettra'),
-            const SizedBox(height: 24),
-            _buildSection(
-              context,
-              'Architecture',
-              'Enterprise Layered Clean Architecture with Provider '
-                  'State Management.',
+            const SizedBox(height: 4),
+            // NOTE: Version is currently hardcoded to keep the
+            // dependency list minimal. To read it dynamically,
+            // add package_info_plus to pubspec.yaml and replace
+            // this Text with a FutureBuilder over
+            // PackageInfo.fromPlatform().
+            Text(
+              'Version 1.0.0',
+              style: theme.textTheme.labelSmall,
             ),
             const SizedBox(height: 40),
-            Divider(color: theme.dividerColor.withAlpha(40)),
+
+            // ── Sections ──────────────────────────────────────
+            _buildSection(
+              context,
+              title: 'The Project',
+              body: 'A high-end anime discovery platform built with '
+                  'Flutter and the Jikan API. Designed for enthusiasts '
+                  'who appreciate minimalist aesthetics and a premium '
+                  'content-first experience.',
+            ),
+            const SizedBox(height: 24),
+            _buildSection(
+              context,
+              title: 'Developer',
+              body: 'SRUN-Sochettra',
+            ),
+            const SizedBox(height: 24),
+            _buildSection(
+              context,
+              title: 'Architecture',
+              body: 'Layered architecture with Provider state management. '
+                  'Separation of models, services, providers, screens, '
+                  'and widgets.',
+            ),
+            const SizedBox(height: 24),
+            _buildSection(
+              context,
+              title: 'Data Source',
+              body: 'Powered by the Jikan REST API v4 — an unofficial '
+                  'MyAnimeList API. Rate limiting and retry logic are '
+                  'handled automatically.',
+            ),
+            const SizedBox(height: 40),
+
+            Divider(color: theme.dividerColor),
             const SizedBox(height: 20),
-            Text('Powered by Jikan API v4',
-                style: theme.textTheme.labelSmall),
+
+            Text(
+              'Powered by Jikan API v4',
+              style: theme.textTheme.labelSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '© 2024 SRUN-Sochettra',
+              style: theme.textTheme.labelSmall,
+            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSection(BuildContext context, String title, String body) {
+  Widget _buildSection(
+    BuildContext context, {
+    required String title,
+    required String body,
+  }) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,10 +121,14 @@ class AboutScreen extends StatelessWidget {
           style: theme.textTheme.labelSmall?.copyWith(
             fontWeight: FontWeight.bold,
             color: theme.colorScheme.primary,
+            letterSpacing: 1.2,
           ),
         ),
         const SizedBox(height: 8),
-        Text(body, style: theme.textTheme.bodyMedium),
+        Text(
+          body,
+          style: theme.textTheme.bodyMedium,
+        ),
       ],
     );
   }

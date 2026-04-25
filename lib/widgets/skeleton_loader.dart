@@ -35,15 +35,18 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
   Widget build(BuildContext context) {
     return ValueListenableBuilder<double>(
       valueListenable: _controller,
-      builder: (context, value, _) {
-        final opacity = 0.3 + (value * 0.4); // maps 0..1 to 0.3..0.7
+      builder: (context, value, child) {
+        // Maps 0..1 to 0.3..0.7 for a subtle pulse range.
+        final opacity = 0.3 + (value * 0.4);
         return SkeletonScope(opacity: opacity, child: widget.child);
       },
     );
   }
 }
 
-/// Passes the current skeleton pulse opacity down the widget tree.
+/// Passes the current skeleton pulse opacity down the widget tree
+/// via InheritedWidget so all SkeletonBox children stay in sync
+/// without needing explicit controller references.
 class SkeletonScope extends InheritedWidget {
   final double opacity;
 
@@ -61,12 +64,12 @@ class SkeletonScope extends InheritedWidget {
   }
 
   @override
-  bool updateShouldNotify(SkeletonScope oldWidget) {
-    return oldWidget.opacity != opacity;
-  }
+  bool updateShouldNotify(SkeletonScope oldWidget) =>
+      oldWidget.opacity != opacity;
 }
 
-/// A single rectangular skeleton placeholder that pulses.
+/// A single rectangular skeleton placeholder that pulses
+/// in sync with the nearest [SkeletonLoader] ancestor.
 class SkeletonBox extends StatelessWidget {
   final double? width;
   final double? height;

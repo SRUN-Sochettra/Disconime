@@ -34,7 +34,7 @@ class _GenresScreenState extends State<GenresScreen> {
       ),
       body: Consumer<AnimeProvider>(
         builder: (context, provider, child) {
-          // ── Loading skeleton ────────────────────────────────
+          // ── Loading skeleton ──────────────────────────────────
           if (provider.genresState == FetchState.initial ||
               provider.genresState == FetchState.loading) {
             return SkeletonLoader(
@@ -48,25 +48,36 @@ class _GenresScreenState extends State<GenresScreen> {
                   mainAxisSpacing: 12,
                 ),
                 itemCount: 16,
-                // Single underscore — only one ignored parameter
+                // FIX: __ → _ (unnecessary double underscore lint)
                 itemBuilder: (_, __) =>
                     const SkeletonBox(borderRadius: 12),
               ),
             );
           }
 
-          // ── Error ───────────────────────────────────────────
+          // ── Error ─────────────────────────────────────────────
           if (provider.genresState == FetchState.error) {
             return ErrorView(
-              message: provider.errorMessage,
+              message: provider.genresErrorMessage,
               onRetry: () => provider.fetchGenres(),
             );
           }
 
-          // ── Grid ────────────────────────────────────────────
+          // ── Empty state ───────────────────────────────────────
+          if (provider.genres.isEmpty) {
+            return Center(
+              child: Text(
+                'No genres found.',
+                style: theme.textTheme.bodyMedium,
+              ),
+            );
+          }
+
+          // ── Genre grid ────────────────────────────────────────
           return GridView.builder(
             padding: const EdgeInsets.all(20),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               childAspectRatio: 2.8,
               crossAxisSpacing: 12,
@@ -90,11 +101,11 @@ class _GenresScreenState extends State<GenresScreen> {
                 ),
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: theme.dividerColor.withAlpha(20)),
+                    border: Border.all(color: theme.dividerColor),
                     color: theme.colorScheme.surface,
                   ),
                   child: Column(

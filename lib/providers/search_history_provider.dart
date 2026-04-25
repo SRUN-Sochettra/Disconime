@@ -7,13 +7,17 @@ class SearchHistoryProvider extends ChangeNotifier {
 
   List<String> _history = [];
 
+  // FIX: Cache the SharedPreferences instance after first load
+  // so every _persist() call does not pay the getInstance() cost.
+  SharedPreferences? _prefs;
+
   List<String> get history => _history;
 
-  /// Loads history from shared_preferences on app start.
+  /// Loads history from SharedPreferences on app start.
   Future<void> loadHistory() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      _history = prefs.getStringList(_storageKey) ?? [];
+      _prefs = await SharedPreferences.getInstance();
+      _history = _prefs!.getStringList(_storageKey) ?? [];
       notifyListeners();
     } catch (e) {
       debugPrint('[SearchHistoryProvider] failed to load history: $e');
@@ -55,7 +59,9 @@ class SearchHistoryProvider extends ChangeNotifier {
 
   Future<void> _persist() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      // FIX: Use cached prefs instance — falls back to getInstance()
+      // only if loadHistory() was somehow never called.
+      final prefs = _prefs ?? await SharedPreferences.getInstance();
       await prefs.setStringList(_storageKey, _history);
     } catch (e) {
       debugPrint('[SearchHistoryProvider] failed to persist history: $e');
