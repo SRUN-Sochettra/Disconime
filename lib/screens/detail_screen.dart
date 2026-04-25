@@ -8,6 +8,7 @@ import '../widgets/anime_image.dart';
 import '../widgets/anime_card_skeleton.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/page_transitions.dart';
+import '../widgets/share_sheet.dart';
 
 class DetailScreen extends StatefulWidget {
   final Anime anime;
@@ -26,21 +27,15 @@ class DetailScreen extends StatefulWidget {
 class _DetailScreenState extends State<DetailScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-
-  // Tabs: Overview | Characters | Staff
   static const int _tabCount = 3;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabCount, vsync: this);
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<AnimeProvider>();
-      // Clear stale data from a previous detail screen visit.
       provider.clearDetailData();
-      // Fire all three fetches concurrently — throttle in ApiService
-      // will queue them so we stay within rate limits.
       provider.fetchRecommendations(widget.anime.malId);
       provider.fetchCharacters(widget.anime.malId);
       provider.fetchStaff(widget.anime.malId);
@@ -74,6 +69,20 @@ class _DetailScreenState extends State<DetailScreen>
           ),
         ),
         actions: [
+          // ── Share button ──────────────────────────────────────
+          CircleAvatar(
+            backgroundColor: Colors.black.withAlpha(100),
+            child: IconButton(
+              icon: const Icon(
+                Icons.share_rounded,
+                color: Colors.white,
+              ),
+              onPressed: () => ShareSheet.show(context, anime: anime),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // ── Bookmark button ───────────────────────────────────
           CircleAvatar(
             backgroundColor: Colors.black.withAlpha(100),
             child: Consumer<FavoritesProvider>(
@@ -102,7 +111,7 @@ class _DetailScreenState extends State<DetailScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Hero image ──────────────────────────────
+                // ── Hero image ──────────────────────────────────
                 AnimeImage(
                   imageUrl: anime.imageUrl,
                   width: double.infinity,
@@ -116,7 +125,7 @@ class _DetailScreenState extends State<DetailScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── Titles ────────────────────────────
+                      // ── Titles ────────────────────────────────
                       Text(
                         anime.title,
                         style: theme.textTheme.titleLarge,
@@ -140,7 +149,7 @@ class _DetailScreenState extends State<DetailScreen>
                       ],
                       const SizedBox(height: 20),
 
-                      // ── Stats row ─────────────────────────
+                      // ── Stats row ─────────────────────────────
                       Row(
                         children: [
                           _StatBadge(
@@ -170,13 +179,13 @@ class _DetailScreenState extends State<DetailScreen>
                       ),
                       const SizedBox(height: 20),
 
-                      // ── Trailer button ────────────────────
+                      // ── Trailer button ─────────────────────────
                       if (anime.trailer?.isValid == true)
                         _TrailerButton(trailer: anime.trailer!),
 
                       const SizedBox(height: 4),
 
-                      // ── Genre chips ───────────────────────
+                      // ── Genre chips ───────────────────────────
                       if (anime.genres.isNotEmpty) ...[
                         Wrap(
                           spacing: 8,
@@ -191,21 +200,17 @@ class _DetailScreenState extends State<DetailScreen>
                   ),
                 ),
 
-                // ── Tab bar ──────────────────────────────────
+                // ── Tab bar ──────────────────────────────────────
                 _DetailTabBar(controller: _tabController),
               ],
             ),
           ),
         ],
-        // ── Tab views ──────────────────────────────────────────
         body: TabBarView(
           controller: _tabController,
           children: [
-            // Tab 0: Overview
             _OverviewTab(anime: anime),
-            // Tab 1: Characters
             _CharactersTab(malId: anime.malId),
-            // Tab 2: Staff
             _StaffTab(malId: anime.malId),
           ],
         ),
@@ -262,13 +267,11 @@ class _OverviewTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        // ── Synopsis ───────────────────────────────────────────
         Text('Synopsis', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         _ExpandableSynopsis(text: anime.synopsis.text),
         const SizedBox(height: 24),
 
-        // ── Background ─────────────────────────────────────────
         if (anime.synopsis.background != null &&
             anime.synopsis.background!.isNotEmpty) ...[
           Text('Background', style: theme.textTheme.titleMedium),
@@ -280,11 +283,9 @@ class _OverviewTab extends StatelessWidget {
           const SizedBox(height: 24),
         ],
 
-        // ── Information table ──────────────────────────────────
         _InfoSection(anime: anime),
         const SizedBox(height: 32),
 
-        // ── Recommendations ────────────────────────────────────
         _RecommendationsSection(currentAnime: anime),
         const SizedBox(height: 24),
       ],
@@ -372,7 +373,6 @@ class _TrailerButton extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // ── Thumbnail ──────────────────────────────────────
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: AspectRatio(
@@ -391,19 +391,13 @@ class _TrailerButton extends StatelessWidget {
                 ),
               ),
             ),
-
-            // ── Dark overlay ───────────────────────────────────
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: Container(
-                  color: Colors.black.withAlpha(80),
-                ),
+                child: Container(color: Colors.black.withAlpha(80)),
               ),
             ),
-
-            // ── Play button ────────────────────────────────────
             Container(
               width: 64,
               height: 64,
@@ -424,8 +418,6 @@ class _TrailerButton extends StatelessWidget {
                 size: 36,
               ),
             ),
-
-            // ── Label ──────────────────────────────────────────
             Positioned(
               bottom: 12,
               left: 16,
@@ -536,8 +528,7 @@ class _CharactersTab extends StatelessWidget {
       ),
       itemCount: characters.length,
       itemBuilder: (context, index) {
-        final character = characters[index];
-        return _CharacterCard(character: character);
+        return _CharacterCard(character: characters[index]);
       },
     );
   }
@@ -556,7 +547,6 @@ class _CharacterCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Portrait ─────────────────────────────────────────
         Expanded(
           child: Stack(
             children: [
@@ -565,7 +555,6 @@ class _CharacterCard extends StatelessWidget {
                 width: double.infinity,
                 borderRadius: 10,
               ),
-              // Role badge
               Positioned(
                 bottom: 6,
                 left: 6,
@@ -596,8 +585,6 @@ class _CharacterCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-
-        // ── Name ─────────────────────────────────────────────
         Text(
           character.name,
           style: theme.textTheme.labelSmall?.copyWith(
@@ -606,8 +593,6 @@ class _CharacterCard extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-
-        // ── Favorites ────────────────────────────────────────
         if (character.favorites != null && character.favorites! > 0)
           Row(
             children: [
@@ -742,13 +727,10 @@ class _StaffTab extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: staff.length,
-      separatorBuilder: (_, __) => Divider(
-        color: theme.dividerColor,
-        height: 1,
-      ),
+      separatorBuilder: (_, __) =>
+          Divider(color: theme.dividerColor, height: 1),
       itemBuilder: (context, index) {
-        final member = staff[index];
-        return _StaffTile(member: member);
+        return _StaffTile(member: staff[index]);
       },
     );
   }
@@ -768,7 +750,6 @@ class _StaffTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
-          // ── Avatar ────────────────────────────────────────
           AnimeImage(
             imageUrl: member.imageUrl,
             width: 52,
@@ -776,8 +757,6 @@ class _StaffTile extends StatelessWidget {
             borderRadius: 26,
           ),
           const SizedBox(width: 14),
-
-          // ── Info ──────────────────────────────────────────
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -837,10 +816,8 @@ class _StaffListSkeleton extends StatelessWidget {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: 10,
-        separatorBuilder: (_, __) => Divider(
-          color: Theme.of(context).dividerColor,
-          height: 1,
-        ),
+        separatorBuilder: (_, __) =>
+            Divider(color: Theme.of(context).dividerColor, height: 1),
         itemBuilder: (_, _) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
@@ -851,9 +828,11 @@ class _StaffListSkeleton extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SkeletonBox(height: 14, width: 140, borderRadius: 4),
+                    SkeletonBox(
+                        height: 14, width: 140, borderRadius: 4),
                     SizedBox(height: 8),
-                    SkeletonBox(height: 10, width: 100, borderRadius: 4),
+                    SkeletonBox(
+                        height: 10, width: 100, borderRadius: 4),
                   ],
                 ),
               ),
@@ -1085,7 +1064,8 @@ class _RecommendationsSection extends StatelessWidget {
                           rec.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelSmall,
+                          style:
+                              Theme.of(context).textTheme.labelSmall,
                         ),
                       ),
                     ],
