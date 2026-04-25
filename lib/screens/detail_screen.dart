@@ -5,10 +5,19 @@ import '../providers/anime_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../widgets/anime_image.dart';
 import '../widgets/anime_card_skeleton.dart';
+import '../widgets/page_transitions.dart';
 
 class DetailScreen extends StatefulWidget {
   final Anime anime;
-  const DetailScreen({super.key, required this.anime});
+  // Hero tag passed from the list screen — must match the tag
+  // used on the AnimeImage in the list tile / grid card.
+  final String? heroTag;
+
+  const DetailScreen({
+    super.key,
+    required this.anime,
+    this.heroTag,
+  });
 
   @override
   State<DetailScreen> createState() => _DetailScreenState();
@@ -19,10 +28,6 @@ class _DetailScreenState extends State<DetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // FIX: clearRecommendations() is called before fetching so
-      // that navigating A → B → back → A → B always re-fetches
-      // fresh recommendations for the current anime rather than
-      // showing stale results from the previous detail screen.
       final provider = context.read<AnimeProvider>();
       provider.clearRecommendations();
       provider.fetchRecommendations(widget.anime.malId);
@@ -77,11 +82,15 @@ class _DetailScreenState extends State<DetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Hero image ────────────────────────────────────
+            // heroTag matches the tag used in the list tile so
+            // Flutter animates the poster into the full-width
+            // detail image seamlessly.
             AnimeImage(
               imageUrl: anime.imageUrl,
               width: double.infinity,
               height: 450,
               borderRadius: 0,
+              heroTag: widget.heroTag,
             ),
 
             Padding(
@@ -118,8 +127,7 @@ class _DetailScreenState extends State<DetailScreen> {
                     children: [
                       _StatBadge(
                         icon: Icons.star_rounded,
-                        value: anime.score.value
-                                ?.toStringAsFixed(1) ??
+                        value: anime.score.value?.toStringAsFixed(1) ??
                             'N/A',
                         label: 'Score',
                       ),
@@ -204,9 +212,7 @@ class _StatBadge extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: theme.colorScheme.surface,
-          border: Border.all(
-            color: theme.dividerColor,
-          ),
+          border: Border.all(color: theme.dividerColor),
         ),
         child: Column(
           children: [
@@ -229,7 +235,6 @@ class _StatBadge extends StatelessWidget {
 // ── Genre chip ────────────────────────────────────────────────────
 class _GenreChip extends StatelessWidget {
   final String label;
-
   const _GenreChip({required this.label});
 
   @override
@@ -240,8 +245,6 @@ class _GenreChip extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          // FIX: Replaced direct GoogleFonts.inter() with theme
-          // text style. Genre chip now responds to theme changes.
           color: theme.colorScheme.primary.withAlpha(100),
         ),
       ),
@@ -259,7 +262,6 @@ class _GenreChip extends StatelessWidget {
 // ── Info section ──────────────────────────────────────────────────
 class _InfoSection extends StatelessWidget {
   final Anime anime;
-
   const _InfoSection({required this.anime});
 
   @override
@@ -277,16 +279,10 @@ class _InfoSection extends StatelessWidget {
             children: [
               SizedBox(
                 width: 90,
-                child: Text(
-                  label,
-                  style: theme.textTheme.labelSmall,
-                ),
+                child: Text(label, style: theme.textTheme.labelSmall),
               ),
               Expanded(
-                child: Text(
-                  value,
-                  style: theme.textTheme.bodyMedium,
-                ),
+                child: Text(value, style: theme.textTheme.bodyMedium),
               ),
             ],
           ),
@@ -312,10 +308,7 @@ class _InfoSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Information',
-          style: theme.textTheme.titleMedium,
-        ),
+        Text('Information', style: theme.textTheme.titleMedium),
         const SizedBox(height: 12),
         ...rows,
       ],
@@ -333,15 +326,10 @@ class _InfoSection extends StatelessWidget {
 // ── Recommendations section ───────────────────────────────────────
 class _RecommendationsSection extends StatelessWidget {
   final Anime currentAnime;
-
   const _RecommendationsSection({required this.currentAnime});
 
   @override
   Widget build(BuildContext context) {
-    // FIX: Replaced Consumer<AnimeProvider> with context.select
-    // so this widget only rebuilds when recommendations state
-    // or data changes — not on every AnimeProvider notification
-    // (e.g. background top-anime load-more triggering a rebuild).
     final state = context.select<AnimeProvider, FetchState>(
       (p) => p.recommendationsState,
     );
@@ -372,19 +360,25 @@ class _RecommendationsSection extends StatelessWidget {
             itemCount: recommendations.length,
             itemBuilder: (context, index) {
               final rec = recommendations[index];
+              // Each recommendation card gets a unique Hero tag
+              // so tapping it animates the poster into the next
+              // detail screen.
+              final recHeroTag = 'rec_hero_${rec.malId}';
+
               return GestureDetector(
                 onTap: () async {
                   final animeProvider = context.read<AnimeProvider>();
                   try {
                     final fullAnime =
                         await animeProvider.getAnimeDetails(rec.malId);
-                    // Guard against async gap — widget may have
-                    // been disposed while the request was in flight.
                     if (!context.mounted) return;
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => DetailScreen(anime: fullAnime),
+                      ScaleFadePageRoute(
+                        page: DetailScreen(
+                          anime: fullAnime,
+                          heroTag: recHeroTag,
+                        ),
                       ),
                     );
                   } catch (_) {
@@ -405,6 +399,7 @@ class _RecommendationsSection extends StatelessWidget {
                         imageUrl: rec.imageUrl,
                         width: 130,
                         height: 180,
+                        heroTag: recHeroTag,
                       ),
                       const SizedBox(height: 6),
                       SizedBox(
@@ -413,8 +408,7 @@ class _RecommendationsSection extends StatelessWidget {
                           rec.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style:
-                              Theme.of(context).textTheme.labelSmall,
+                          style: Theme.of(context).textTheme.labelSmall,
                         ),
                       ),
                     ],

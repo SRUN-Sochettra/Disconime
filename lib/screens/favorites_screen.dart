@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/favorites_provider.dart';
 import '../models/anime_model.dart';
 import '../widgets/anime_list_tile.dart';
+import '../widgets/page_transitions.dart';
 import 'detail_screen.dart';
 
 class FavoritesScreen extends StatelessWidget {
@@ -41,10 +42,6 @@ class FavoritesScreen extends StatelessWidget {
             );
           }
 
-          // FIX: Compute the reversed list ONCE before the builder
-          // so we do not allocate a new reversed List on every
-          // itemBuilder invocation. Previously this was O(n²) —
-          // one new list per item per build pass.
           final favorites = provider.favorites.reversed.toList();
 
           return ListView.builder(
@@ -52,16 +49,17 @@ class FavoritesScreen extends StatelessWidget {
             itemCount: favorites.length,
             itemBuilder: (context, index) {
               final Anime item = favorites[index];
-              // FIX: Replaced duplicated inline Row layout with
-              // the shared AnimeListTile widget. The remove button
-              // is passed as the optional trailing parameter so
-              // the tile layout stays consistent with other screens.
+              final heroTag = 'favorites_hero_${item.malId}';
               return AnimeListTile(
                 anime: item,
+                heroTag: heroTag,
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => DetailScreen(anime: item),
+                  ScaleFadePageRoute(
+                    page: DetailScreen(
+                      anime: item,
+                      heroTag: heroTag,
+                    ),
                   ),
                 ),
                 trailing: IconButton(

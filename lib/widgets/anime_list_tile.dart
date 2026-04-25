@@ -8,6 +8,9 @@ class AnimeListTile extends StatelessWidget {
   final Widget? trailing;
   final bool showRank;
   final bool showTypeBadge;
+  // Optional Hero tag — passed down to AnimeImage so the poster
+  // animates into the detail screen hero image.
+  final String? heroTag;
 
   const AnimeListTile({
     super.key,
@@ -16,6 +19,7 @@ class AnimeListTile extends StatelessWidget {
     this.trailing,
     this.showRank = false,
     this.showTypeBadge = false,
+    this.heroTag,
   });
 
   @override
@@ -36,6 +40,7 @@ class AnimeListTile extends StatelessWidget {
               imageUrl: anime.imageUrl,
               width: 100,
               height: 140,
+              heroTag: heroTag,
             ),
             const SizedBox(width: 16),
 
@@ -77,7 +82,7 @@ class AnimeListTile extends StatelessWidget {
                         style: theme.textTheme.labelMedium,
                       ),
 
-                      // Optional rank badge (HomeScreen)
+                      // Optional rank badge
                       if (showRank && anime.score.rank != null) ...[
                         const SizedBox(width: 12),
                         Text(
@@ -86,7 +91,7 @@ class AnimeListTile extends StatelessWidget {
                         ),
                       ],
 
-                      // Optional type badge (SeasonalScreen)
+                      // Optional type badge
                       if (showTypeBadge && anime.type != null) ...[
                         const SizedBox(width: 12),
                         Container(
@@ -115,9 +120,6 @@ class AnimeListTile extends StatelessWidget {
               ),
             ),
 
-            // FIX: Replaced `if (trailing != null) trailing!` with
-            // the null-aware element syntax `?trailing` introduced
-            // in Dart 3.4. Cleaner and lint-compliant.
             ?trailing,
           ],
         ),

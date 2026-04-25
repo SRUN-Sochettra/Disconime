@@ -8,6 +8,8 @@ import 'package:anime_discovery/providers/search_history_provider.dart';
 import 'package:anime_discovery/widgets/anime_card_skeleton.dart';
 import 'package:anime_discovery/widgets/anime_list_tile.dart';
 import 'package:anime_discovery/widgets/error_view.dart';
+import 'package:anime_discovery/widgets/page_transitions.dart';
+import 'package:anime_discovery/widgets/pagination_indicator.dart';
 import 'package:anime_discovery/screens/detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -25,14 +27,33 @@ class _SearchScreenState extends State<SearchScreen> {
   Timer? _scrollDebounce;
   bool _isLoadMoreArmed = true;
 
+  static const Duration _typingDebounceDuration = Duration(milliseconds: 500);
+  Timer? _typingDebounce;
+
   final ValueNotifier<bool> _hasText = ValueNotifier(false);
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _controller.addListener(() {
-      _hasText.value = _controller.text.isNotEmpty;
+    _controller.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    final text = _controller.text;
+    _hasText.value = text.isNotEmpty;
+
+    _typingDebounce?.cancel();
+
+    if (text.isEmpty) {
+      context.read<AnimeProvider>().searchAnime('');
+      return;
+    }
+
+    _typingDebounce = Timer(_typingDebounceDuration, () {
+      if (!mounted) return;
+      context.read<AnimeProvider>().searchAnime(text);
+      _isLoadMoreArmed = true;
     });
   }
 
@@ -55,7 +76,8 @@ class _SearchScreenState extends State<SearchScreen> {
       if (!mounted) return;
       final provider = context.read<AnimeProvider>();
       if (provider.searchState != FetchState.loading &&
-          _controller.text.isNotEmpty) {
+          _controller.text.isNotEmpty &&
+          provider.hasMoreSearchResults) {
         provider.searchAnime(_controller.text, loadMore: true);
       }
     });
@@ -64,6 +86,8 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
+    _controller.removeListener(_onTextChanged);
+    _typingDebounce?.cancel();
     _scrollDebounce?.cancel();
     _controller.dispose();
     _scrollController.dispose();
@@ -73,6 +97,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _performSearch(String query) {
     FocusScope.of(context).unfocus();
+    _typingDebounce?.cancel();
+
     if (query.isNotEmpty) {
       context.read<SearchHistoryProvider>().addQuery(query);
       context.read<AnimeProvider>().searchAnime(query);
@@ -96,6 +122,7 @@ class _SearchScreenState extends State<SearchScreen> {
               controller: _controller,
               style: theme.textTheme.bodyMedium,
               onSubmitted: _performSearch,
+              textInputAction: TextInputAction.search,
               decoration: InputDecoration(
                 hintText: 'Search anime...',
                 prefixIcon: Icon(Icons.search_rounded, color: primary),
@@ -104,10 +131,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   builder: (_, hasText, _) => hasText
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded),
-                          onPressed: () {
-                            _controller.clear();
-                            context.read<AnimeProvider>().searchAnime('');
-                          },
+                          onPressed: () => _controller.clear(),
                         )
                       : const SizedBox.shrink(),
                 ),
@@ -119,9 +143,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: theme.dividerColor,
-                  ),
+                  borderSide: BorderSide(color: theme.dividerColor),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -155,36 +177,68 @@ class _SearchScreenState extends State<SearchScreen> {
                 }
 
                 if (provider.searchResults.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No results found.',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  );
+                  return _buildNoResults(context);
                 }
 
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: provider.searchResults.length +
-                      (provider.searchState == FetchState.loading ? 1 : 0),
-                  // FIX: __ → _ (unnecessary double underscore lint)
-                  itemBuilder: (context, index) {
-                    if (index == provider.searchResults.length) {
-                      return const LoadMoreSkeleton();
-                    }
+                // ── Results with pagination indicator ──────────
+                return Column(
+                  children: [
+                    PaginationIndicator(
+                      loadedCount: provider.searchResults.length,
+                      isLoading:
+                          provider.searchState == FetchState.loading,
+                      hasMore: provider.hasMoreSearchResults,
+                    ),
+                    Expanded(
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: provider.searchResults.length +
+                            (provider.searchState == FetchState.loading
+                                ? 1
+                                : 0) +
+                            (provider.searchResults.isNotEmpty ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (index == provider.searchResults.length &&
+                              provider.searchState ==
+                                  FetchState.loading) {
+                            return const LoadMoreSkeleton();
+                          }
 
-                    final Anime anime = provider.searchResults[index];
-                    return AnimeListTile(
-                      anime: anime,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => DetailScreen(anime: anime),
-                        ),
+                          // Page counter footer
+                          if (index >= provider.searchResults.length) {
+                            return PageCounter(
+                              currentPage: provider.currentSearchPage,
+                              isLoading: provider.searchState ==
+                                  FetchState.loading,
+                            );
+                          }
+
+                          final Anime anime =
+                              provider.searchResults[index];
+                          final heroTag = 'search_hero_${anime.malId}';
+                          return AnimeListTile(
+                            anime: anime,
+                            heroTag: heroTag,
+                            onTap: () {
+                              context
+                                  .read<SearchHistoryProvider>()
+                                  .addQuery(_controller.text);
+                              Navigator.push(
+                                context,
+                                ScaleFadePageRoute(
+                                  page: DetailScreen(
+                                    anime: anime,
+                                    heroTag: heroTag,
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 );
               },
             ),
@@ -194,7 +248,29 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // ── Search history ────────────────────────────────────────────
+  Widget _buildNoResults(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off_rounded,
+            size: 64,
+            color: theme.colorScheme.onSurface.withAlpha(60),
+          ),
+          const SizedBox(height: 16),
+          Text('No results found', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(
+            'Try a different search term.',
+            style: theme.textTheme.bodyMedium,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHistory(BuildContext context) {
     final theme = Theme.of(context);
     return Consumer<SearchHistoryProvider>(
@@ -257,7 +333,8 @@ class _SearchScreenState extends State<SearchScreen> {
                   return ListTile(
                     leading: Icon(
                       Icons.history_rounded,
-                      color: theme.colorScheme.onSurface.withAlpha(100),
+                      color:
+                          theme.colorScheme.onSurface.withAlpha(100),
                     ),
                     title: Text(
                       query,
@@ -267,9 +344,11 @@ class _SearchScreenState extends State<SearchScreen> {
                       icon: Icon(
                         Icons.close_rounded,
                         size: 16,
-                        color: theme.colorScheme.onSurface.withAlpha(100),
+                        color:
+                            theme.colorScheme.onSurface.withAlpha(100),
                       ),
-                      onPressed: () => historyProvider.removeQuery(query),
+                      onPressed: () =>
+                          historyProvider.removeQuery(query),
                     ),
                     onTap: () {
                       _controller.text = query;

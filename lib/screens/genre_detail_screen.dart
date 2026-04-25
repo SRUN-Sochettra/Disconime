@@ -7,6 +7,8 @@ import '../providers/anime_provider.dart';
 import '../widgets/anime_list_tile.dart';
 import '../widgets/anime_card_skeleton.dart';
 import '../widgets/error_view.dart';
+import '../widgets/page_transitions.dart';
+import '../widgets/pagination_indicator.dart';
 import 'detail_screen.dart';
 
 class GenreDetailScreen extends StatefulWidget {
@@ -26,9 +28,6 @@ class GenreDetailScreen extends StatefulWidget {
 class _GenreDetailScreenState extends State<GenreDetailScreen> {
   final ScrollController _scrollController = ScrollController();
 
-  // FIX: Added the same debounce + armed-flag pattern used in
-  // HomeScreen so load-more does not fire on every scroll event
-  // that passes the threshold.
   static const Duration _scrollDebounceDuration = Duration(milliseconds: 150);
   Timer? _scrollDebounce;
   bool _isLoadMoreArmed = true;
@@ -62,7 +61,8 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
     _scrollDebounce = Timer(_scrollDebounceDuration, () {
       if (!mounted) return;
       final provider = context.read<AnimeProvider>();
-      if (provider.genreAnimeState != FetchState.loading) {
+      if (provider.genreAnimeState != FetchState.loading &&
+          provider.hasMoreGenreAnime) {
         provider.fetchAnimeByGenre(
           widget.genreId,
           widget.genreName,
@@ -85,24 +85,18 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.genreName),
-      ),
+      appBar: AppBar(title: Text(widget.genreName)),
       body: Consumer<AnimeProvider>(
         builder: (context, provider, child) {
-          // ── Initial / full-screen loading ─────────────────────
           if (provider.genreAnimeState == FetchState.initial ||
               (provider.genreAnimeState == FetchState.loading &&
                   provider.genreAnime.isEmpty)) {
             return const AnimeListSkeleton();
           }
 
-          // ── Full-screen error ─────────────────────────────────
           if (provider.genreAnimeState == FetchState.error &&
               provider.genreAnime.isEmpty) {
             return ErrorView(
-              // FIX: Use dedicated genreAnimeErrorMessage instead
-              // of the shared errorMessage field.
               message: provider.genreAnimeErrorMessage,
               onRetry: () => provider.fetchAnimeByGenre(
                 widget.genreId,
@@ -111,7 +105,6 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
             );
           }
 
-          // ── Empty state ───────────────────────────────────────
           if (provider.genreAnimeState == FetchState.loaded &&
               provider.genreAnime.isEmpty) {
             return Center(
@@ -122,54 +115,82 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
             );
           }
 
-          return RefreshIndicator(
-            onRefresh: () => provider.fetchAnimeByGenre(
-              widget.genreId,
-              widget.genreName,
-            ),
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: provider.genreAnime.length +
-                  (provider.genreAnimeState == FetchState.loading ||
-                          provider.genreAnimeState == FetchState.error
-                      ? 1
-                      : 0),
-              itemBuilder: (context, index) {
-                // ── Load-more skeleton ────────────────────────
-                if (index == provider.genreAnime.length &&
-                    provider.genreAnimeState == FetchState.loading) {
-                  return const LoadMoreSkeleton();
-                }
+          return Column(
+            children: [
+              // ── Pagination indicator ────────────────────────
+              PaginationIndicator(
+                loadedCount: provider.genreAnime.length,
+                isLoading:
+                    provider.genreAnimeState == FetchState.loading,
+                hasMore: provider.hasMoreGenreAnime,
+              ),
 
-                // ── Inline error ──────────────────────────────
-                if (index == provider.genreAnime.length &&
-                    provider.genreAnimeState == FetchState.error) {
-                  return ErrorView(
-                    message: provider.genreAnimeErrorMessage,
-                    onRetry: () => provider.fetchAnimeByGenre(
-                      widget.genreId,
-                      widget.genreName,
-                      loadMore: true,
-                    ),
-                    expand: false,
-                  );
-                }
-
-                final Anime item = provider.genreAnime[index];
-                // FIX: Replaced duplicated inline Row layout with
-                // the shared AnimeListTile widget.
-                return AnimeListTile(
-                  anime: item,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => DetailScreen(anime: item),
-                    ),
+              // ── List ──────────────────────────────────────
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () => provider.fetchAnimeByGenre(
+                    widget.genreId,
+                    widget.genreName,
                   ),
-                );
-              },
-            ),
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: provider.genreAnime.length +
+                        (provider.genreAnimeState == FetchState.loading ||
+                                provider.genreAnimeState ==
+                                    FetchState.error
+                            ? 1
+                            : 0) +
+                        (provider.genreAnime.isNotEmpty ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == provider.genreAnime.length &&
+                          provider.genreAnimeState ==
+                              FetchState.loading) {
+                        return const LoadMoreSkeleton();
+                      }
+
+                      if (index == provider.genreAnime.length &&
+                          provider.genreAnimeState == FetchState.error) {
+                        return ErrorView(
+                          message: provider.genreAnimeErrorMessage,
+                          onRetry: () => provider.fetchAnimeByGenre(
+                            widget.genreId,
+                            widget.genreName,
+                            loadMore: true,
+                          ),
+                          expand: false,
+                        );
+                      }
+
+                      // Page counter footer
+                      if (index >= provider.genreAnime.length) {
+                        return PageCounter(
+                          currentPage: provider.currentGenrePage,
+                          isLoading: provider.genreAnimeState ==
+                              FetchState.loading,
+                        );
+                      }
+
+                      final Anime item = provider.genreAnime[index];
+                      final heroTag = 'genre_hero_${item.malId}';
+                      return AnimeListTile(
+                        anime: item,
+                        heroTag: heroTag,
+                        onTap: () => Navigator.push(
+                          context,
+                          ScaleFadePageRoute(
+                            page: DetailScreen(
+                              anime: item,
+                              heroTag: heroTag,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),

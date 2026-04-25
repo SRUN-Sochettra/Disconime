@@ -7,6 +7,7 @@ import 'package:anime_discovery/providers/anime_provider.dart';
 import 'package:anime_discovery/providers/favorites_provider.dart';
 import 'package:anime_discovery/providers/search_history_provider.dart';
 import 'package:anime_discovery/providers/theme_provider.dart';
+import 'package:anime_discovery/widgets/global_error_handler.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,8 +19,8 @@ Future<void> main() async {
     debugPrint('[main] .env not found or failed to load: $e');
   }
 
-  // FIX: ThemeProvider now persists the user's choice. Load it
-  // before runApp so the correct theme is applied on first frame.
+  // Load persisted user preferences before runApp so the correct
+  // values are applied on the very first frame with no flash.
   final themeProvider = ThemeProvider();
   await themeProvider.loadTheme();
 
@@ -29,8 +30,13 @@ Future<void> main() async {
   final searchHistoryProvider = SearchHistoryProvider();
   await searchHistoryProvider.loadHistory();
 
-  runApp(
-    MultiProvider(
+  // GlobalErrorHandler.run replaces runApp and installs:
+  // - FlutterError.onError  → framework / widget tree errors
+  // - ErrorWidget.builder   → replaces red screen with clean UI
+  // The optional onError callback is where you would plug in
+  // Sentry, Firebase Crashlytics, etc.
+  GlobalErrorHandler.run(
+    app: MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider(create: (_) => AnimeProvider()),
@@ -39,6 +45,11 @@ Future<void> main() async {
       ],
       child: const ApiReaderApp(),
     ),
+    // Uncomment and replace with your crash reporter:
+    // onError: (error, stack) => Sentry.captureException(
+    //   error,
+    //   stackTrace: stack,
+    // ),
   );
 }
 
@@ -62,6 +73,14 @@ class ApiReaderApp extends StatelessWidget {
       themeMode: themeProvider.themeMode,
       theme: theme ?? AppTheme.light,
       darkTheme: darkTheme ?? AppTheme.dark,
+      // ── Builder wraps every route in an AsyncErrorBoundary ──
+      // This means any unhandled async error inside any screen
+      // shows the clean fallback UI instead of crashing the app.
+      builder: (context, child) {
+        return AsyncErrorBoundary(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: const MainScreen(),
     );
   }

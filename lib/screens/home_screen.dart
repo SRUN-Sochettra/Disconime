@@ -11,6 +11,8 @@ import 'package:anime_discovery/widgets/skeleton_loader.dart';
 import 'package:anime_discovery/widgets/error_view.dart';
 import 'package:anime_discovery/widgets/filter_sheet.dart';
 import 'package:anime_discovery/widgets/anime_image.dart';
+import 'package:anime_discovery/widgets/page_transitions.dart';
+import 'package:anime_discovery/widgets/pagination_indicator.dart';
 import 'package:anime_discovery/screens/detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -57,6 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       final provider = context.read<AnimeProvider>();
       if (provider.topAnimeState != FetchState.loaded) return;
+      if (!provider.hasMoreTopAnime) return;
       provider.fetchTopAnime(loadMore: true);
     });
   }
@@ -110,10 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
         actions: [
-          // ── Filter button with active badge ──────────────────
           _FilterActionButton(onPressed: _showFilterSheet),
-
-          // ── View toggle ───────────────────────────────────────
           IconButton(
             icon: Icon(
               _isGridView
@@ -133,11 +133,8 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // ── Filter action button ──────────────────────────────────────────
-// Uses context.select so only this widget rebuilds when the filter
-// active state changes — not the entire AppBar.
 class _FilterActionButton extends StatelessWidget {
   final VoidCallback onPressed;
-
   const _FilterActionButton({required this.onPressed});
 
   @override
@@ -155,9 +152,7 @@ class _FilterActionButton extends StatelessWidget {
       children: [
         IconButton(
           icon: Icon(
-            hasActiveFilter
-                ? Icons.tune_rounded
-                : Icons.tune_outlined,
+            hasActiveFilter ? Icons.tune_rounded : Icons.tune_outlined,
           ),
           tooltip: 'Filter',
           onPressed: onPressed,
@@ -211,6 +206,12 @@ class _TopAnimeBody extends StatelessWidget {
     final errorMessage = context.select<AnimeProvider, String>(
       (p) => p.topAnimeErrorMessage,
     );
+    final hasMore = context.select<AnimeProvider, bool>(
+      (p) => p.hasMoreTopAnime,
+    );
+    final currentPage = context.select<AnimeProvider, int>(
+      (p) => p.currentTopPage,
+    );
 
     if (topAnimeState == FetchState.initial ||
         (topAnimeState == FetchState.loading && topAnime.isEmpty)) {
@@ -224,20 +225,39 @@ class _TopAnimeBody extends StatelessWidget {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: () => context.read<AnimeProvider>().fetchTopAnime(),
-      child: isGridView
-          ? _TopAnimeGridView(
-              topAnime: topAnime,
-              topAnimeState: topAnimeState,
-              scrollController: scrollController,
-            )
-          : _TopAnimeListView(
-              topAnime: topAnime,
-              topAnimeState: topAnimeState,
-              errorMessage: errorMessage,
-              scrollController: scrollController,
-            ),
+    return Column(
+      children: [
+        // ── Pagination indicator bar ────────────────────────
+        PaginationIndicator(
+          loadedCount: topAnime.length,
+          isLoading: topAnimeState == FetchState.loading,
+          hasMore: hasMore,
+        ),
+
+        // ── List / Grid ─────────────────────────────────────
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () =>
+                context.read<AnimeProvider>().fetchTopAnime(),
+            child: isGridView
+                ? _TopAnimeGridView(
+                    topAnime: topAnime,
+                    topAnimeState: topAnimeState,
+                    scrollController: scrollController,
+                    currentPage: currentPage,
+                    hasMore: hasMore,
+                  )
+                : _TopAnimeListView(
+                    topAnime: topAnime,
+                    topAnimeState: topAnimeState,
+                    errorMessage: errorMessage,
+                    scrollController: scrollController,
+                    currentPage: currentPage,
+                    hasMore: hasMore,
+                  ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -248,12 +268,16 @@ class _TopAnimeListView extends StatelessWidget {
   final FetchState topAnimeState;
   final String errorMessage;
   final ScrollController scrollController;
+  final int currentPage;
+  final bool hasMore;
 
   const _TopAnimeListView({
     required this.topAnime,
     required this.topAnimeState,
     required this.errorMessage,
     required this.scrollController,
+    required this.currentPage,
+    required this.hasMore,
   });
 
   @override
@@ -265,13 +289,17 @@ class _TopAnimeListView extends StatelessWidget {
           (topAnimeState == FetchState.loading ||
                   topAnimeState == FetchState.error
               ? 1
-              : 0),
+              : 0) +
+          // Page counter footer
+          (topAnime.isNotEmpty ? 1 : 0),
       itemBuilder: (context, index) {
+        // ── Load-more skeleton ───────────────────────────────
         if (index == topAnime.length &&
             topAnimeState == FetchState.loading) {
           return const LoadMoreSkeleton();
         }
 
+        // ── Inline error ─────────────────────────────────────
         if (index == topAnime.length &&
             topAnimeState == FetchState.error) {
           return ErrorView(
@@ -282,17 +310,28 @@ class _TopAnimeListView extends StatelessWidget {
           );
         }
 
+        // ── Page counter footer ──────────────────────────────
+        if (index == topAnime.length ||
+            index == topAnime.length + 1) {
+          if (topAnimeState == FetchState.loaded ||
+              (!hasMore && topAnimeState != FetchState.loading)) {
+            return PageCounter(
+              currentPage: currentPage,
+              isLoading: false,
+            );
+          }
+        }
+
         final anime = topAnime[index];
-        // FIX: Replaced duplicated inline Row layout with the
-        // shared AnimeListTile widget. showRank: true activates
-        // the rank badge that is unique to this screen.
+        final heroTag = 'anime_hero_${anime.malId}';
         return AnimeListTile(
           anime: anime,
           showRank: true,
+          heroTag: heroTag,
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => DetailScreen(anime: anime),
+            ScaleFadePageRoute(
+              page: DetailScreen(anime: anime, heroTag: heroTag),
             ),
           ),
         );
@@ -306,11 +345,15 @@ class _TopAnimeGridView extends StatelessWidget {
   final List<Anime> topAnime;
   final FetchState topAnimeState;
   final ScrollController scrollController;
+  final int currentPage;
+  final bool hasMore;
 
   const _TopAnimeGridView({
     required this.topAnime,
     required this.topAnimeState,
     required this.scrollController,
+    required this.currentPage,
+    required this.hasMore,
   });
 
   @override
@@ -325,8 +368,6 @@ class _TopAnimeGridView extends StatelessWidget {
         mainAxisSpacing: 16,
       ),
       itemCount: topAnime.length +
-          // FIX: Show error state in grid view load-more too.
-          // Previously the grid silently stopped with no feedback.
           (topAnimeState == FetchState.loading ||
                   topAnimeState == FetchState.error
               ? 2
@@ -339,29 +380,27 @@ class _TopAnimeGridView extends StatelessWidget {
 
         if (index >= topAnime.length &&
             topAnimeState == FetchState.error) {
-          // Span the error across both columns by returning it
-          // only on the first overflow index.
           if (index == topAnime.length) {
             return ErrorView(
-              message: context.read<AnimeProvider>().topAnimeErrorMessage,
+              message:
+                  context.read<AnimeProvider>().topAnimeErrorMessage,
               onRetry: () => context
                   .read<AnimeProvider>()
                   .fetchTopAnime(loadMore: true),
               expand: false,
             );
           }
-          // Second overflow slot — empty box to avoid
-          // a dangling grid cell beside the error view.
           return const SizedBox.shrink();
         }
 
         final anime = topAnime[index];
+        final heroTag = 'anime_hero_${anime.malId}';
         return InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => DetailScreen(anime: anime),
+            ScaleFadePageRoute(
+              page: DetailScreen(anime: anime, heroTag: heroTag),
             ),
           ),
           child: Column(
@@ -371,6 +410,7 @@ class _TopAnimeGridView extends StatelessWidget {
                 child: AnimeImage(
                   imageUrl: anime.imageUrl,
                   width: double.infinity,
+                  heroTag: heroTag,
                 ),
               ),
               const SizedBox(height: 8),

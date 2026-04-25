@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/anime_provider.dart';
 import '../widgets/error_view.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/page_transitions.dart';
 import 'genre_detail_screen.dart';
 
 class GenresScreen extends StatefulWidget {
@@ -34,7 +35,6 @@ class _GenresScreenState extends State<GenresScreen> {
       ),
       body: Consumer<AnimeProvider>(
         builder: (context, provider, child) {
-          // ── Loading skeleton ──────────────────────────────────
           if (provider.genresState == FetchState.initial ||
               provider.genresState == FetchState.loading) {
             return SkeletonLoader(
@@ -48,14 +48,12 @@ class _GenresScreenState extends State<GenresScreen> {
                   mainAxisSpacing: 12,
                 ),
                 itemCount: 16,
-                // FIX: __ → _ (unnecessary double underscore lint)
                 itemBuilder: (_, _) =>
                     const SkeletonBox(borderRadius: 12),
               ),
             );
           }
 
-          // ── Error ─────────────────────────────────────────────
           if (provider.genresState == FetchState.error) {
             return ErrorView(
               message: provider.genresErrorMessage,
@@ -63,7 +61,6 @@ class _GenresScreenState extends State<GenresScreen> {
             );
           }
 
-          // ── Empty state ───────────────────────────────────────
           if (provider.genres.isEmpty) {
             return Center(
               child: Text(
@@ -73,7 +70,6 @@ class _GenresScreenState extends State<GenresScreen> {
             );
           }
 
-          // ── Genre grid ────────────────────────────────────────
           return GridView.builder(
             padding: const EdgeInsets.all(20),
             gridDelegate:
@@ -92,8 +88,8 @@ class _GenresScreenState extends State<GenresScreen> {
               return InkWell(
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => GenreDetailScreen(
+                  SlidePageRoute(
+                    page: GenreDetailScreen(
                       genreId: genre['mal_id'] as int,
                       genreName: name,
                     ),

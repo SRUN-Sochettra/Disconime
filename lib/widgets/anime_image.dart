@@ -7,6 +7,9 @@ class AnimeImage extends StatelessWidget {
   final double? height;
   final double borderRadius;
   final BoxFit fit;
+  // Hero tag — when provided the image is wrapped in a Hero widget
+  // so it animates smoothly between list and detail screen.
+  final String? heroTag;
 
   const AnimeImage({
     super.key,
@@ -15,28 +18,30 @@ class AnimeImage extends StatelessWidget {
     this.height,
     this.borderRadius = 12,
     this.fit = BoxFit.cover,
+    this.heroTag,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Resolve pixel dimensions to prevent storing full-resolution
-    // images in memory when displaying smaller thumbnails.
     final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
 
-    final memWidth = width != null
-        ? (width! * devicePixelRatio).round().clamp(1, 5000)
-        : null;
+    int? cacheWidth;
+    int? cacheHeight;
 
-    final memHeight = height != null
-        ? (height! * devicePixelRatio).round().clamp(1, 5000)
-        : null;
+    if (width != null && width!.isFinite && width! > 0) {
+      cacheWidth = (width! * devicePixelRatio).round().clamp(1, 3000);
+    }
 
-    return Container(
+    if (height != null && height!.isFinite && height! > 0) {
+      cacheHeight = (height! * devicePixelRatio).round().clamp(1, 3000);
+    }
+
+    final image = Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
+        color: isDark ? Colors.grey[900] : Colors.grey[200],
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           BoxShadow(
@@ -52,23 +57,70 @@ class AnimeImage extends StatelessWidget {
             ? _Placeholder(isDark: isDark)
             : CachedNetworkImage(
                 imageUrl: imageUrl,
+                width: width,
+                height: height,
                 fit: fit,
-                memCacheWidth: memWidth,
-                memCacheHeight: memHeight,
-                placeholder: (context, url) =>
-                    _Placeholder(isDark: isDark),
+                memCacheWidth: cacheWidth,
+                memCacheHeight: cacheHeight,
+                placeholder: (context, url) => _Placeholder(isDark: isDark),
                 errorWidget: (context, url, error) =>
                     _ErrorPlaceholder(isDark: isDark),
               ),
       ),
     );
+
+    // Wrap with Hero only when a tag is provided.
+    if (heroTag != null) {
+      return Hero(
+        tag: heroTag!,
+        // Keep the clipping behaviour during the flight animation.
+        flightShuttleBuilder: (
+          flightContext,
+          animation,
+          direction,
+          fromContext,
+          toContext,
+        ) {
+          return AnimatedBuilder(
+            animation: animation,
+            builder: (context, child) {
+              // Interpolate border radius from list (12) to detail (0).
+              final radius = Tween<double>(
+                begin: direction == HeroFlightDirection.push
+                    ? borderRadius
+                    : 0,
+                end: direction == HeroFlightDirection.push
+                    ? 0
+                    : borderRadius,
+              ).evaluate(animation);
+
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(radius),
+                child: child,
+              );
+            },
+            child: CachedNetworkImage(
+              imageUrl: imageUrl,
+              fit: BoxFit.cover,
+              memCacheWidth: cacheWidth,
+              memCacheHeight: cacheHeight,
+            ),
+          );
+        },
+        child: image,
+      );
+    }
+
+    return image;
   }
 }
 
-/// Shown while the image is loading or if the URL is empty.
+// ─────────────────────────────────────────────────────────────────────────────
+// Private helper widgets
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _Placeholder extends StatelessWidget {
   final bool isDark;
-
   const _Placeholder({required this.isDark});
 
   @override
@@ -88,10 +140,8 @@ class _Placeholder extends StatelessWidget {
   }
 }
 
-/// Shown when the image fails to load.
 class _ErrorPlaceholder extends StatelessWidget {
   final bool isDark;
-
   const _ErrorPlaceholder({required this.isDark});
 
   @override
