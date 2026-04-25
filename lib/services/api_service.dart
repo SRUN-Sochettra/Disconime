@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
 import '../models/anime_model.dart';
+import '../models/schedule_model.dart';
 
 class ApiService {
   final http.Client client;
@@ -54,9 +55,7 @@ class ApiService {
     );
     final retryAfterHeader = response.headers['retry-after'];
     final retryAfterSeconds = int.tryParse(retryAfterHeader ?? '');
-
     if (retryAfterSeconds == null) return exponentialDelay;
-
     final retryAfterDelay = Duration(seconds: retryAfterSeconds);
     return retryAfterDelay > exponentialDelay
         ? retryAfterDelay
@@ -155,18 +154,13 @@ class ApiService {
     );
     final List<dynamic> characters = data['data'] ?? [];
     final List<AnimeCharacter> results = [];
-
     for (final item in characters) {
       try {
-        results.add(
-          AnimeCharacter.fromJson(item as Map<String, dynamic>),
-        );
+        results.add(AnimeCharacter.fromJson(item as Map<String, dynamic>));
       } catch (e) {
         debugPrint('[ApiService] failed to parse character: $e');
       }
     }
-
-    // Sort by favorites descending so main characters appear first.
     results.sort((a, b) => (b.favorites ?? 0).compareTo(a.favorites ?? 0));
     return results;
   }
@@ -178,17 +172,13 @@ class ApiService {
     );
     final List<dynamic> staff = data['data'] ?? [];
     final List<AnimeStaff> results = [];
-
     for (final item in staff) {
       try {
-        results.add(
-          AnimeStaff.fromJson(item as Map<String, dynamic>),
-        );
+        results.add(AnimeStaff.fromJson(item as Map<String, dynamic>));
       } catch (e) {
         debugPrint('[ApiService] failed to parse staff: $e');
       }
     }
-
     return results;
   }
 
@@ -197,20 +187,15 @@ class ApiService {
     final data = await _getJson(
       Uri.parse('$baseUrl/anime/$malId/recommendations'),
     );
-
     final List<dynamic> recData = data['data'] ?? [];
     final List<Anime> results = [];
-
     for (final item in recData) {
       try {
         final map = item as Map<String, dynamic>;
         final entry = map['entry'] as Map<String, dynamic>?;
-
         if (entry == null) continue;
-
         final images = entry['images'] as Map<String, dynamic>?;
         final jpg = images?['jpg'] as Map<String, dynamic>?;
-
         results.add(
           Anime(
             malId: entry['mal_id'] as int? ?? 0,
@@ -227,7 +212,6 @@ class ApiService {
         debugPrint('[ApiService] failed to parse rec entry: $e\n$stack');
       }
     }
-
     return results;
   }
 
@@ -279,5 +263,48 @@ class ApiService {
     return animeList
         .map((item) => Anime.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  // ── Schedule ──────────────────────────────────────────────────
+  /// Fetches the broadcast schedule for a specific [day].
+  /// The Jikan endpoint is GET /schedules?filter={day}&page={page}.
+  Future<List<ScheduleEntry>> getSchedule(
+    BroadcastDay day, {
+    int page = 1,
+  }) async {
+    final uri = Uri.parse('$baseUrl/schedules').replace(
+      queryParameters: {
+        'filter': day.apiValue,
+        'page': page.toString(),
+        'kids': 'false',
+      },
+    );
+    final data = await _getJson(uri);
+    final List<dynamic> animeList = data['data'] ?? [];
+    final List<ScheduleEntry> results = [];
+
+    for (final item in animeList) {
+      try {
+        results.add(
+          ScheduleEntry.fromJson(item as Map<String, dynamic>),
+        );
+      } catch (e) {
+        debugPrint('[ApiService] failed to parse schedule entry: $e');
+      }
+    }
+
+    // Sort by broadcast time ascending — TBA entries go to the end.
+    results.sort((a, b) {
+      final at = a.timeOfDay;
+      final bt = b.timeOfDay;
+      if (at == null && bt == null) return 0;
+      if (at == null) return 1;
+      if (bt == null) return -1;
+      final aMinutes = at.hour * 60 + at.minute;
+      final bMinutes = bt.hour * 60 + bt.minute;
+      return aMinutes.compareTo(bMinutes);
+    });
+
+    return results;
   }
 }
