@@ -92,12 +92,10 @@ class _ShareSheetContent extends StatelessWidget {
   // ── Actions ───────────────────────────────────────────────────
   Future<void> _shareViaSystem(BuildContext context) async {
     Navigator.pop(context);
-    await SharePlus.instance.share(
-      ShareParams(
-        text: _buildShareText(),
-        subject: anime.title,
-      ),
-    );
+    await Share.share(
+  _buildShareText(),
+  subject: anime.title,
+);
   }
 
   Future<void> _copyCard(BuildContext context) async {
@@ -240,7 +238,7 @@ class _PreviewCard extends StatelessWidget {
                     width: 56,
                     height: 80,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (context, error, stackTrace) => Container(
                       width: 56,
                       height: 80,
                       color: theme.colorScheme.surface,

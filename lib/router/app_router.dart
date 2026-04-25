@@ -15,7 +15,6 @@ import 'package:anime_discovery/screens/character_detail_screen.dart';
 import 'package:anime_discovery/screens/main_screen.dart';
 import 'package:anime_discovery/models/anime_model.dart';
 import 'package:anime_discovery/models/character_model.dart';
-import 'package:anime_discovery/widgets/page_transitions.dart';
 import 'route_names.dart';
 
 /// The single [GoRouter] instance for the entire app.

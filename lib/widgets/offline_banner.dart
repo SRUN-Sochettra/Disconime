@@ -20,8 +20,6 @@ class OfflineBanner extends StatelessWidget {
       (p) => p.justReconnected,
     );
 
-    final theme = Theme.of(context);
-
     // Show when offline OR briefly after reconnecting.
     final visible = !isOnline || justReconnected;
 
@@ -53,7 +51,6 @@ class _BannerContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
 
     final isBackOnline = isOnline && justReconnected;
     final bgColor = isBackOnline

@@ -129,7 +129,9 @@ class CacheService {
     String? orderBy,
     String? sort,
   }) =>
+      // ignore: unnecessary_brace_in_string_interps
       'top_anime_p${page}_t${type}_f${filter}_r${rating}'
+      // ignore: unnecessary_brace_in_string_interps
       '_o${orderBy}_s${sort}';
 
   static String searchKey(String query, int page) =>

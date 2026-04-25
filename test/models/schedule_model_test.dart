@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:anime_discovery/models/schedule_model.dart';
 import '../helpers/test_data.dart';

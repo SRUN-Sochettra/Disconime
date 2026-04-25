@@ -9,6 +9,7 @@ import '../widgets/anime_image.dart';
 import '../widgets/anime_card_skeleton.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/share_sheet.dart';
+import '../router/route_names.dart'; // ADD
 
 class DetailScreen extends StatefulWidget {
   final Anime anime;
@@ -380,7 +381,7 @@ class _TrailerButton extends StatelessWidget {
                 child: Image.network(
                   trailer.thumbnailUrl!,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (context, error, stackTrace) => Container(
                     color: theme.colorScheme.surface,
                     child: Icon(
                       Icons.movie_outlined,
@@ -642,7 +643,7 @@ class _CharacterGridSkeleton extends StatelessWidget {
           mainAxisSpacing: 16,
         ),
         itemCount: 12,
-        itemBuilder: (_, _) => Column(
+        itemBuilder: (context, index) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
             Expanded(
@@ -727,7 +728,7 @@ class _StaffTab extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: staff.length,
-      separatorBuilder: (_, __) =>
+      separatorBuilder: (context, index) =>
           Divider(color: theme.dividerColor, height: 1),
       itemBuilder: (context, index) {
         return _StaffTile(member: staff[index]);
@@ -816,9 +817,9 @@ class _StaffListSkeleton extends StatelessWidget {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: 10,
-        separatorBuilder: (_, __) =>
+        separatorBuilder: (context, index) =>
             Divider(color: Theme.of(context).dividerColor, height: 1),
-        itemBuilder: (_, _) => Padding(
+        itemBuilder: (context, index) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
             children: const [

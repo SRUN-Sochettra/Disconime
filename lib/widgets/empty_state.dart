@@ -708,8 +708,8 @@ class _IllustrationPainter extends CustomPainter {
 
   double _taylorCos(double x) {
     // Normalize to [-π, π]
-    while (x > 3.14159265) x -= 2 * 3.14159265;
-    while (x < -3.14159265) x += 2 * 3.14159265;
+    while (x > 3.14159265) { x -= 2 * 3.14159265; }
+while (x < -3.14159265) { x += 2 * 3.14159265; }
     // cos(x) ≈ 1 - x²/2 + x⁴/24 - x⁶/720
     final x2 = x * x;
     return 1 - x2 / 2 + x2 * x2 / 24 - x2 * x2 * x2 / 720;

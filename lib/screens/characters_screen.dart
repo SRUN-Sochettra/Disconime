@@ -1,16 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../models/character_model.dart';
 import '../providers/characters_provider.dart';
+import '../router/route_names.dart';
 import '../widgets/anime_image.dart';
-import '../widgets/error_view.dart';
-import '../widgets/skeleton_loader.dart';
-import '../widgets/pagination_indicator.dart';
 import '../widgets/empty_state.dart';
-import '../widgets/page_transitions.dart';
-import 'character_detail_screen.dart';
+import '../widgets/error_view.dart';
+import '../widgets/pagination_indicator.dart';
+import '../widgets/skeleton_loader.dart';
 
 class CharactersScreen extends StatefulWidget {
   const CharactersScreen({super.key});
@@ -24,23 +25,27 @@ class _CharactersScreenState extends State<CharactersScreen> {
 
   static const Duration _scrollDebounceDuration =
       Duration(milliseconds: 150);
+
   Timer? _scrollDebounce;
   bool _isLoadMoreArmed = true;
 
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<CharactersProvider>();
       if (provider.topCharactersState == FetchState.initial) {
         provider.fetchTopCharacters();
       }
     });
+
     _scrollController.addListener(_onScroll);
   }
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
+
     final position = _scrollController.position;
     if (position.maxScrollExtent <= 0) return;
 
@@ -50,11 +55,14 @@ class _CharactersScreenState extends State<CharactersScreen> {
       return;
     }
 
-    if (!_isLoadMoreArmed || (_scrollDebounce?.isActive ?? false)) return;
+    if (!_isLoadMoreArmed || (_scrollDebounce?.isActive ?? false)) {
+      return;
+    }
 
     _isLoadMoreArmed = false;
     _scrollDebounce = Timer(_scrollDebounceDuration, () {
       if (!mounted) return;
+
       final provider = context.read<CharactersProvider>();
       if (provider.topCharactersState != FetchState.loading &&
           provider.hasMore) {
@@ -84,14 +92,12 @@ class _CharactersScreenState extends State<CharactersScreen> {
       ),
       body: Consumer<CharactersProvider>(
         builder: (context, provider, child) {
-          // ── Initial / loading ─────────────────────────────────
           if (provider.topCharactersState == FetchState.initial ||
               (provider.topCharactersState == FetchState.loading &&
                   provider.topCharacters.isEmpty)) {
             return const _CharactersGridSkeleton();
           }
 
-          // ── Full-screen error ──────────────────────────────────
           if (provider.topCharactersState == FetchState.error &&
               provider.topCharacters.isEmpty) {
             return ErrorView(
@@ -100,7 +106,6 @@ class _CharactersScreenState extends State<CharactersScreen> {
             );
           }
 
-          // ── Empty ──────────────────────────────────────────────
           if (provider.topCharacters.isEmpty) {
             return const EmptyState(
               type: EmptyStateType.recommendations,
@@ -110,16 +115,12 @@ class _CharactersScreenState extends State<CharactersScreen> {
 
           return Column(
             children: [
-              // ── Pagination indicator ──────────────────────────
               PaginationIndicator(
                 loadedCount: provider.topCharacters.length,
-                isLoading: provider.topCharactersState ==
-                    FetchState.loading,
+                isLoading: provider.topCharactersState == FetchState.loading,
                 hasMore: provider.hasMore,
                 itemLabel: 'characters',
               ),
-
-              // ── Grid ──────────────────────────────────────────
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () => provider.fetchTopCharacters(),
@@ -134,33 +135,17 @@ class _CharactersScreenState extends State<CharactersScreen> {
                       mainAxisSpacing: 16,
                     ),
                     itemCount: provider.topCharacters.length +
-                        (provider.topCharactersState ==
-                                FetchState.loading
+                        (provider.topCharactersState == FetchState.loading
                             ? 3
-                            : 0) +
-                        (provider.topCharacters.isNotEmpty ? 1 : 0),
+                            : 0),
                     itemBuilder: (context, index) {
-                      // ── Load-more skeletons ──────────────────
-                      if (index >= provider.topCharacters.length &&
-                          provider.topCharactersState ==
-                              FetchState.loading) {
-                        return const _CharacterCardSkeleton();
-                      }
-
-                      // ── Page counter footer ──────────────────
-                      // Spans all 3 columns by being the last item.
                       if (index >= provider.topCharacters.length) {
-                        return PageCounter(
-                          currentPage: provider.currentPage,
-                          isLoading: provider.topCharactersState ==
-                              FetchState.loading,
-                        );
+                        return const _CharacterCardSkeleton();
                       }
 
                       final character = provider.topCharacters[index];
                       final rank = index + 1;
-                      final heroTag =
-                          'character_hero_${character.malId}';
+                      final heroTag = 'character_hero_${character.malId}';
 
                       return _CharacterCard(
                         character: character,
@@ -179,7 +164,6 @@ class _CharactersScreenState extends State<CharactersScreen> {
   }
 }
 
-// ── Character card ────────────────────────────────────────────────
 class _CharacterCard extends StatelessWidget {
   final TopCharacter character;
   final int rank;
@@ -198,13 +182,13 @@ class _CharacterCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => context.push(
-  RouteNames.characterDetailPath(character.malId),
-  extra: character,
-);
+        '${RouteNames.characterDetailPath(character.malId)}'
+        '?heroTag=${Uri.encodeComponent(heroTag)}',
+        extra: character,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Portrait ─────────────────────────────────────────
           Expanded(
             child: Stack(
               children: [
@@ -214,8 +198,6 @@ class _CharacterCard extends StatelessWidget {
                   borderRadius: 12,
                   heroTag: heroTag,
                 ),
-
-                // ── Rank badge ──────────────────────────────────
                 Positioned(
                   top: 6,
                   left: 6,
@@ -240,8 +222,6 @@ class _CharacterCard extends StatelessWidget {
                     ),
                   ),
                 ),
-
-                // ── Favorites overlay ───────────────────────────
                 Positioned(
                   bottom: 6,
                   right: 6,
@@ -265,8 +245,7 @@ class _CharacterCard extends StatelessWidget {
                         const SizedBox(width: 2),
                         Text(
                           character.formattedFavorites,
-                          style:
-                              theme.textTheme.labelSmall?.copyWith(
+                          style: theme.textTheme.labelSmall?.copyWith(
                             color: Colors.white,
                             fontSize: 8,
                           ),
@@ -279,8 +258,6 @@ class _CharacterCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-
-          // ── Name ─────────────────────────────────────────────
           Text(
             character.name,
             style: theme.textTheme.labelSmall?.copyWith(
@@ -289,8 +266,6 @@ class _CharacterCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-
-          // ── Anime name ────────────────────────────────────────
           if (character.animeNames.isNotEmpty)
             Text(
               character.animeNames.first,
@@ -307,7 +282,6 @@ class _CharacterCard extends StatelessWidget {
   }
 }
 
-// ── Skeletons ─────────────────────────────────────────────────────
 class _CharactersGridSkeleton extends StatelessWidget {
   const _CharactersGridSkeleton();
 
@@ -323,7 +297,7 @@ class _CharactersGridSkeleton extends StatelessWidget {
           mainAxisSpacing: 16,
         ),
         itemCount: 18,
-        itemBuilder: (_, _) => const _CharacterCardSkeleton(),
+        itemBuilder: (context, index) => const _CharacterCardSkeleton(),
       ),
     );
   }

@@ -329,7 +329,6 @@ class _ScoreSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final distribution = stats.scoreDistribution;
     final hasScores =
         distribution.values.any((v) => v > 0);
@@ -357,7 +356,6 @@ class _GenreSection extends StatelessWidget {
 
     // Take top 8 genres for readability.
     final topGenres = genreCounts.entries.take(8).toList();
-    final total = topGenres.fold<int>(0, (s, e) => s + e.value);
 
     return _SectionCard(
       child: DonutChart(
@@ -442,6 +440,7 @@ class _StatusSection extends StatelessWidget {
   }
 }
 
+
 // ── Top genres ranked list section ────────────────────────────────
 class _TopGenresSection extends StatelessWidget {
   final _StatsCalculator stats;
@@ -453,7 +452,7 @@ class _TopGenresSection extends StatelessWidget {
     if (genreCounts.isEmpty) return const SizedBox.shrink();
 
     return _SectionCard(
-      child: RankedList(
+      child: _RankedList(
         title: 'Top Genres',
         items: genreCounts.entries
             .map((e) => _RankedItem(label: e.key, count: e.value))
@@ -598,3 +597,91 @@ class _SectionCard extends StatelessWidget {
     );
   }
 }
+
+// ── Ranked list ───────────────────────────────────────────────────
+
+/// A simple ranked list widget — used for top genres, top types etc.
+class _RankedList extends StatelessWidget {
+  final String title;
+  final List<_RankedItem> items;
+  final int maxItems;
+
+  const _RankedList({
+    required this.title,
+    required this.items,
+    this.maxItems = 5,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final displayItems = items.take(maxItems).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: theme.textTheme.titleMedium),
+        const SizedBox(height: 12),
+        ...displayItems.asMap().entries.map((entry) {
+          final rank = entry.key + 1;
+          final item = entry.value;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                // Rank number
+                SizedBox(
+                  width: 28,
+                  child: Text(
+                    '#$rank',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: rank == 1 ? primary : null,
+                      fontWeight: rank == 1 ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
+                // Label
+                Expanded(
+                  child: Text(
+                    item.label,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: rank == 1 ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                ),
+                // Count badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: rank == 1 ? primary.withAlpha(20) : theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: rank == 1 ? primary.withAlpha(60) : theme.dividerColor,
+                    ),
+                  ),
+                  child: Text(
+                    '${item.count}',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: rank == 1 ? primary : null,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class _RankedItem {
+  final String label;
+  final int count;
+  const _RankedItem({required this.label, required this.count});
+}

@@ -238,11 +238,6 @@ class _ErrorBoundaryScope extends InheritedWidget {
     required super.child,
   });
 
-  static _ErrorBoundaryScope? of(BuildContext context) {
-    return context
-        .dependOnInheritedWidgetOfExactType<_ErrorBoundaryScope>();
-  }
-
   @override
   bool updateShouldNotify(_ErrorBoundaryScope oldWidget) =>
       oldWidget.onError != onError;

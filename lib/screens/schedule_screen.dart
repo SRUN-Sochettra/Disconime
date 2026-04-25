@@ -1,16 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../models/schedule_model.dart';
+
 import '../models/anime_model.dart';
+import '../models/schedule_model.dart';
 import '../providers/schedule_provider.dart';
+import '../router/route_names.dart';
 import '../widgets/anime_image.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 import '../widgets/skeleton_loader.dart';
-import '../widgets/page_transitions.dart';
-import '../widgets/empty_state.dart';
-import 'detail_screen.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
@@ -22,6 +23,7 @@ class ScheduleScreen extends StatefulWidget {
 class _ScheduleScreenState extends State<ScheduleScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+
   final Map<BroadcastDay, ScrollController> _scrollControllers = {};
   final Map<BroadcastDay, Timer?> _scrollDebounces = {};
   final Map<BroadcastDay, bool> _loadMoreArmed = {};
@@ -33,29 +35,26 @@ class _ScheduleScreenState extends State<ScheduleScreen>
   void initState() {
     super.initState();
 
-    // Initialise a tab controller aligned to today's day index.
     final provider = context.read<ScheduleProvider>();
+
     _tabController = TabController(
       length: BroadcastDay.values.length,
       vsync: this,
       initialIndex: provider.selectedDay.index,
     );
 
-    // Create scroll controllers for each day.
     for (final day in BroadcastDay.values) {
       _scrollControllers[day] = ScrollController()
         ..addListener(() => _onScroll(day));
       _loadMoreArmed[day] = true;
     }
 
-    // Listen to tab changes so the provider stays in sync.
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       final day = BroadcastDay.values[_tabController.index];
       provider.selectDay(day);
     });
 
-    // Fetch the initial day.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       provider.fetchSchedule(provider.selectedDay);
     });
@@ -75,11 +74,14 @@ class _ScheduleScreenState extends State<ScheduleScreen>
     }
 
     if (!(_loadMoreArmed[day] ?? true) ||
-        (_scrollDebounces[day]?.isActive ?? false)) return;
+        (_scrollDebounces[day]?.isActive ?? false)) {
+      return;
+    }
 
     _loadMoreArmed[day] = false;
     _scrollDebounces[day] = Timer(_scrollDebounceDuration, () {
       if (!mounted) return;
+
       final provider = context.read<ScheduleProvider>();
       if (provider.stateFor(day) != FetchState.loading &&
           provider.hasMoreFor(day)) {
@@ -131,7 +133,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
   }
 }
 
-// ── Tab bar ───────────────────────────────────────────────────────
 class _ScheduleTabBar extends StatelessWidget {
   final TabController controller;
   final Color primary;
@@ -169,7 +170,6 @@ class _ScheduleTabBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(day.label),
-                // "Today" dot indicator
                 if (day.isToday) ...[
                   const SizedBox(width: 4),
                   Container(
@@ -190,7 +190,6 @@ class _ScheduleTabBar extends StatelessWidget {
   }
 }
 
-// ── Day view ──────────────────────────────────────────────────────
 class _ScheduleDayView extends StatelessWidget {
   final BroadcastDay day;
   final ScrollController scrollController;
@@ -208,13 +207,11 @@ class _ScheduleDayView extends StatelessWidget {
     final errorMessage = provider.errorFor(day);
     final hasMore = provider.hasMoreFor(day);
 
-    // ── Initial / loading ───────────────────────────────────────
     if (state == FetchState.initial ||
         (state == FetchState.loading && entries.isEmpty)) {
       return const _ScheduleSkeleton();
     }
 
-    // ── Full-screen error ───────────────────────────────────────
     if (state == FetchState.error && entries.isEmpty) {
       return ErrorView(
         message: errorMessage,
@@ -222,7 +219,6 @@ class _ScheduleDayView extends StatelessWidget {
       );
     }
 
-    // ── Empty state ─────────────────────────────────────────────
     if (state == FetchState.loaded && entries.isEmpty) {
       return EmptyState(
         type: EmptyStateType.seasonal,
@@ -230,77 +226,63 @@ class _ScheduleDayView extends StatelessWidget {
       );
     }
 
-    // ── Today header ────────────────────────────────────────────
     return RefreshIndicator(
       onRefresh: () => provider.refreshDay(day),
       child: ListView.builder(
         controller: scrollController,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         itemCount: entries.length +
-            // Today banner
             1 +
-            // Load-more / error footer
-            (state == FetchState.loading || state == FetchState.error
-                ? 1
-                : 0) +
-            // End of list footer
+            (state == FetchState.loading || state == FetchState.error ? 1 : 0) +
             (!hasMore && entries.isNotEmpty ? 1 : 0),
         itemBuilder: (context, index) {
-          // ── Today banner ─────────────────────────────────────
           if (index == 0) {
             return _DayBanner(day: day, count: entries.length);
           }
 
           final itemIndex = index - 1;
 
-          // ── Load-more skeleton ────────────────────────────────
-          if (itemIndex == entries.length &&
-              state == FetchState.loading) {
+          if (itemIndex == entries.length && state == FetchState.loading) {
             return const _ScheduleEntrySkeletonTile();
           }
 
-          // ── Inline error ──────────────────────────────────────
-          if (itemIndex == entries.length &&
-              state == FetchState.error) {
+          if (itemIndex == entries.length && state == FetchState.error) {
             return ErrorView(
               message: errorMessage,
-              onRetry: () =>
-                  provider.fetchSchedule(day, loadMore: true),
+              onRetry: () => provider.fetchSchedule(day, loadMore: true),
               expand: false,
             );
           }
 
-          // ── End of list ───────────────────────────────────────
           if (itemIndex >= entries.length) {
             return _EndOfSchedule(day: day);
           }
 
-          final entry = entries[itemIndex];
-          return _ScheduleEntryTile(entry: entry);
+          return _ScheduleEntryTile(entry: entries[itemIndex]);
         },
       ),
     );
   }
 }
 
-// ── Day banner ────────────────────────────────────────────────────
 class _DayBanner extends StatelessWidget {
   final BroadcastDay day;
   final int count;
 
-  const _DayBanner({required this.day, required this.count});
+  const _DayBanner({
+    required this.day,
+    required this.count,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
-    final isToday = day.isToday;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16, top: 8),
       child: Row(
         children: [
-          // Day label
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,7 +295,7 @@ class _DayBanner extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (isToday) ...[
+                    if (day.isToday) ...[
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -350,7 +332,6 @@ class _DayBanner extends StatelessWidget {
   }
 }
 
-// ── Schedule entry tile ───────────────────────────────────────────
 class _ScheduleEntryTile extends StatelessWidget {
   final ScheduleEntry entry;
 
@@ -367,7 +348,11 @@ class _ScheduleEntryTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => _openDetail(context, anime, heroTag),
+        onTap: () => context.push(
+          '${RouteNames.animeDetailPath(anime.malId)}'
+          '?heroTag=${Uri.encodeComponent(heroTag)}',
+          extra: anime,
+        ),
         child: Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
@@ -377,7 +362,6 @@ class _ScheduleEntryTile extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Poster ───────────────────────────────────────
               AnimeImage(
                 imageUrl: anime.imageUrl,
                 width: 90,
@@ -385,23 +369,18 @@ class _ScheduleEntryTile extends StatelessWidget {
                 borderRadius: 16,
                 heroTag: heroTag,
               ),
-
-              // ── Info ─────────────────────────────────────────
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Time badge
                       _TimeBadge(
                         time: entry.formattedTime,
                         primary: primary,
                         theme: theme,
                       ),
                       const SizedBox(height: 8),
-
-                      // Title
                       Text(
                         anime.title,
                         style: theme.textTheme.titleMedium,
@@ -409,16 +388,12 @@ class _ScheduleEntryTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
-
-                      // Genres
                       if (anime.genres.isNotEmpty)
                         Text(
                           anime.genres.take(2).join(' • '),
                           style: theme.textTheme.labelSmall,
                         ),
                       const SizedBox(height: 8),
-
-                      // Score + episodes row
                       Row(
                         children: [
                           Icon(
@@ -428,8 +403,7 @@ class _ScheduleEntryTile extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            anime.score.value?.toStringAsFixed(1) ??
-                                'N/A',
+                            anime.score.value?.toStringAsFixed(1) ?? 'N/A',
                             style: theme.textTheme.labelMedium,
                           ),
                           if (anime.episodes != null) ...[
@@ -460,8 +434,7 @@ class _ScheduleEntryTile extends StatelessWidget {
                               ),
                               child: Text(
                                 anime.type!,
-                                style: theme.textTheme.labelSmall
-                                    ?.copyWith(
+                                style: theme.textTheme.labelSmall?.copyWith(
                                   color: primary,
                                   fontSize: 10,
                                 ),
@@ -480,20 +453,8 @@ class _ScheduleEntryTile extends StatelessWidget {
       ),
     );
   }
-
-  Future<void> _openDetail(
-  BuildContext context,
-  Anime anime,
-  String heroTag,
-) async {
-  context.push(
-    RouteNames.animeDetailPath(anime.malId),
-    extra: anime,
-  );
-}
 }
 
-// ── Time badge ────────────────────────────────────────────────────
 class _TimeBadge extends StatelessWidget {
   final String time;
   final Color primary;
@@ -508,23 +469,20 @@ class _TimeBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTba = time == 'TBA';
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           Icons.access_time_rounded,
           size: 12,
-          color: isTba
-              ? theme.colorScheme.onSurfaceVariant
-              : primary,
+          color: isTba ? theme.colorScheme.onSurfaceVariant : primary,
         ),
         const SizedBox(width: 4),
         Text(
           time,
           style: theme.textTheme.labelSmall?.copyWith(
-            color: isTba
-                ? theme.colorScheme.onSurfaceVariant
-                : primary,
+            color: isTba ? theme.colorScheme.onSurfaceVariant : primary,
             fontWeight: isTba ? FontWeight.normal : FontWeight.bold,
           ),
         ),
@@ -533,9 +491,9 @@ class _TimeBadge extends StatelessWidget {
   }
 }
 
-// ── End of schedule ───────────────────────────────────────────────
 class _EndOfSchedule extends StatelessWidget {
   final BroadcastDay day;
+
   const _EndOfSchedule({required this.day});
 
   @override
@@ -567,7 +525,6 @@ class _EndOfSchedule extends StatelessWidget {
   }
 }
 
-// ── Schedule skeleton ─────────────────────────────────────────────
 class _ScheduleSkeleton extends StatelessWidget {
   const _ScheduleSkeleton();
 
@@ -577,7 +534,7 @@ class _ScheduleSkeleton extends StatelessWidget {
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         itemCount: 8,
-        itemBuilder: (_, _) => const _ScheduleEntrySkeletonTile(),
+        itemBuilder: (context, index) => const _ScheduleEntrySkeletonTile(),
       ),
     );
   }

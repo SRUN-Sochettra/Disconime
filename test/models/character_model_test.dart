@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:anime_discovery/models/character_model.dart';
+import 'package:anime_discovery/models/anime_model.dart';
 import '../helpers/test_data.dart';
 
 void main() {

@@ -1,13 +1,14 @@
+// REPLACE the imports section with:
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/character_model.dart';
 import '../providers/characters_provider.dart';
+import '../providers/anime_provider.dart' show AnimeProvider;  // ADD show
 import '../widgets/anime_image.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/error_view.dart';
-import '../widgets/page_transitions.dart';
-import '../providers/anime_provider.dart';
-import 'detail_screen.dart';
+import '../router/route_names.dart';
 
 class CharacterDetailScreen extends StatefulWidget {
   final TopCharacter character;

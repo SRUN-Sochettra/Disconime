@@ -1,6 +1,4 @@
 import 'package:anime_discovery/models/anime_model.dart';
-import 'package:anime_discovery/models/character_model.dart';
-import 'package:anime_discovery/models/schedule_model.dart';
 
 /// Centralised test fixtures — used across all test files.
 /// All data is hardcoded so tests never depend on network.

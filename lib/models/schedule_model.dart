@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'anime_model.dart';
 
 /// The seven broadcast days returned by the Jikan schedule endpoint.
