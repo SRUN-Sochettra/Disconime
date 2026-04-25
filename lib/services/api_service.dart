@@ -6,9 +6,12 @@ import 'package:flutter/foundation.dart';
 import '../models/anime_model.dart';
 import '../models/schedule_model.dart';
 import '../models/character_model.dart';
+import 'cache_service.dart';
+import 'connectivity_service.dart';
 
 class ApiService {
   final http.Client client;
+  final CacheService _cache = CacheService.instance;
 
   static const Duration _minRequestInterval = Duration(milliseconds: 400);
   static const Duration _baseRetryDelay = Duration(seconds: 1);
@@ -27,6 +30,9 @@ class ApiService {
     }
   }
 
+  bool get _isOnline => ConnectivityService.instance.isOnline;
+
+  // ── Throttle ──────────────────────────────────────────────────
   Future<T> _throttle<T>(Future<T> Function() action) {
     final previousRequest = _requestQueue;
     final releaseQueue = Completer<void>();
@@ -86,7 +92,8 @@ class ApiService {
 
           if (response.statusCode == 429) {
             throw Exception(
-              'Rate limit exceeded after retries. Please try again shortly.',
+              'Rate limit exceeded after retries. '
+              'Please try again shortly.',
             );
           }
 
@@ -100,6 +107,43 @@ class ApiService {
       debugPrint('[ApiService] Error fetching $uri: $e');
       rethrow;
     }
+  }
+
+  // ── Cached fetch helper ───────────────────────────────────────
+  /// Tries to serve from cache first.
+  /// Falls back to network if cache is empty/expired and online.
+  /// Falls back to stale cache if offline.
+  Future<Map<String, dynamic>> _getCached(
+    Uri uri,
+    String cacheKey, {
+    required Duration ttl,
+  }) async {
+    // 1. Try fresh cache.
+    final cached = await _cache.get(cacheKey, ttl: ttl);
+    if (cached != null) {
+      debugPrint('[ApiService] Cache hit: $cacheKey');
+      return cached as Map<String, dynamic>;
+    }
+
+    // 2. Offline — try stale cache (any age).
+    if (!_isOnline) {
+      final stale = await _cache.get(
+        cacheKey,
+        ttl: const Duration(days: 365),
+      );
+      if (stale != null) {
+        debugPrint('[ApiService] Serving stale cache (offline): $cacheKey');
+        return stale as Map<String, dynamic>;
+      }
+      throw Exception(
+        'No internet connection and no cached data available.',
+      );
+    }
+
+    // 3. Fetch from network and store in cache.
+    final data = await _getJson(uri);
+    await _cache.set(cacheKey, data);
+    return data;
   }
 
   // ── Top Anime ─────────────────────────────────────────────────
@@ -120,7 +164,20 @@ class ApiService {
 
     final uri =
         Uri.parse('$baseUrl/top/anime').replace(queryParameters: params);
-    final data = await _getJson(uri);
+    final cacheKey = CacheService.topAnimeKey(
+      page: page,
+      type: type,
+      filter: filter,
+      rating: rating,
+      orderBy: orderBy,
+      sort: sort,
+    );
+
+    final data = await _getCached(
+      uri,
+      cacheKey,
+      ttl: CacheService.topAnimeTtl,
+    );
     final List<dynamic> animeList = data['data'] ?? [];
     return animeList
         .map((item) => Anime.fromJson(item as Map<String, dynamic>))
@@ -130,12 +187,14 @@ class ApiService {
   // ── Search ────────────────────────────────────────────────────
   Future<List<Anime>> searchAnime(String query, {int page = 1}) async {
     final uri = Uri.parse('$baseUrl/anime').replace(
-      queryParameters: {
-        'q': query,
-        'page': page.toString(),
-      },
+      queryParameters: {'q': query, 'page': page.toString()},
     );
-    final data = await _getJson(uri);
+    final cacheKey = CacheService.searchKey(query, page);
+    final data = await _getCached(
+      uri,
+      cacheKey,
+      ttl: CacheService.searchTtl,
+    );
     final List<dynamic> animeList = data['data'] ?? [];
     return animeList
         .map((item) => Anime.fromJson(item as Map<String, dynamic>))
@@ -144,14 +203,24 @@ class ApiService {
 
   // ── Anime Detail ──────────────────────────────────────────────
   Future<Anime> getAnimeDetails(int id) async {
-    final data = await _getJson(Uri.parse('$baseUrl/anime/$id/full'));
+    final uri = Uri.parse('$baseUrl/anime/$id/full');
+    final cacheKey = CacheService.detailKey(id);
+    final data = await _getCached(
+      uri,
+      cacheKey,
+      ttl: CacheService.detailTtl,
+    );
     return Anime.fromJson(data['data'] as Map<String, dynamic>);
   }
 
   // ── Anime Characters ──────────────────────────────────────────
   Future<List<AnimeCharacter>> getAnimeCharacters(int malId) async {
-    final data = await _getJson(
-      Uri.parse('$baseUrl/anime/$malId/characters'),
+    final uri = Uri.parse('$baseUrl/anime/$malId/characters');
+    final cacheKey = CacheService.charactersKey(malId);
+    final data = await _getCached(
+      uri,
+      cacheKey,
+      ttl: CacheService.charactersTtl,
     );
     final List<dynamic> characters = data['data'] ?? [];
     final List<AnimeCharacter> results = [];
@@ -168,8 +237,12 @@ class ApiService {
 
   // ── Anime Staff ───────────────────────────────────────────────
   Future<List<AnimeStaff>> getAnimeStaff(int malId) async {
-    final data = await _getJson(
-      Uri.parse('$baseUrl/anime/$malId/staff'),
+    final uri = Uri.parse('$baseUrl/anime/$malId/staff');
+    final cacheKey = CacheService.staffKey(malId);
+    final data = await _getCached(
+      uri,
+      cacheKey,
+      ttl: CacheService.staffTtl,
     );
     final List<dynamic> staff = data['data'] ?? [];
     final List<AnimeStaff> results = [];
@@ -185,8 +258,12 @@ class ApiService {
 
   // ── Recommendations ───────────────────────────────────────────
   Future<List<Anime>> getAnimeRecommendations(int malId) async {
-    final data = await _getJson(
-      Uri.parse('$baseUrl/anime/$malId/recommendations'),
+    final uri = Uri.parse('$baseUrl/anime/$malId/recommendations');
+    final cacheKey = CacheService.recommendationsKey(malId);
+    final data = await _getCached(
+      uri,
+      cacheKey,
+      ttl: CacheService.recommendationsTtl,
     );
     final List<dynamic> recData = data['data'] ?? [];
     final List<Anime> results = [];
@@ -221,7 +298,12 @@ class ApiService {
     final uri = Uri.parse('$baseUrl/seasons/now').replace(
       queryParameters: {'page': page.toString()},
     );
-    final data = await _getJson(uri);
+    final cacheKey = CacheService.seasonalKey(page: page);
+    final data = await _getCached(
+      uri,
+      cacheKey,
+      ttl: CacheService.seasonalTtl,
+    );
     final List<dynamic> animeList = data['data'] ?? [];
     return animeList
         .map((item) => Anime.fromJson(item as Map<String, dynamic>))
@@ -236,7 +318,16 @@ class ApiService {
     final uri = Uri.parse('$baseUrl/seasons/$year/$season').replace(
       queryParameters: {'page': page.toString()},
     );
-    final data = await _getJson(uri);
+    final cacheKey = CacheService.seasonalKey(
+      year: year,
+      season: season,
+      page: page,
+    );
+    final data = await _getCached(
+      uri,
+      cacheKey,
+      ttl: CacheService.seasonalTtl,
+    );
     final List<dynamic> animeList = data['data'] ?? [];
     return animeList
         .map((item) => Anime.fromJson(item as Map<String, dynamic>))
@@ -245,7 +336,13 @@ class ApiService {
 
   // ── Genres ────────────────────────────────────────────────────
   Future<List<Map<String, dynamic>>> getGenres() async {
-    final data = await _getJson(Uri.parse('$baseUrl/genres/anime'));
+    final uri = Uri.parse('$baseUrl/genres/anime');
+    final cacheKey = CacheService.genresKey();
+    final data = await _getCached(
+      uri,
+      cacheKey,
+      ttl: CacheService.genresTtl,
+    );
     final List<dynamic> genres = data['data'] ?? [];
     return genres.cast<Map<String, dynamic>>();
   }
@@ -259,7 +356,12 @@ class ApiService {
         'page': page.toString(),
       },
     );
-    final data = await _getJson(uri);
+    final cacheKey = CacheService.genreAnimeKey(genreId, page);
+    final data = await _getCached(
+      uri,
+      cacheKey,
+      ttl: CacheService.genreAnimeTtl,
+    );
     final List<dynamic> animeList = data['data'] ?? [];
     return animeList
         .map((item) => Anime.fromJson(item as Map<String, dynamic>))
@@ -278,7 +380,12 @@ class ApiService {
         'kids': 'false',
       },
     );
-    final data = await _getJson(uri);
+    final cacheKey = CacheService.scheduleKey(day.apiValue, page);
+    final data = await _getCached(
+      uri,
+      cacheKey,
+      ttl: CacheService.scheduleTtl,
+    );
     final List<dynamic> animeList = data['data'] ?? [];
     final List<ScheduleEntry> results = [];
     for (final item in animeList) {
@@ -294,27 +401,28 @@ class ApiService {
       if (at == null && bt == null) return 0;
       if (at == null) return 1;
       if (bt == null) return -1;
-      final aMinutes = at.hour * 60 + at.minute;
-      final bMinutes = bt.hour * 60 + bt.minute;
-      return aMinutes.compareTo(bMinutes);
+      return (at.hour * 60 + at.minute)
+          .compareTo(bt.hour * 60 + bt.minute);
     });
     return results;
   }
 
   // ── Top Characters ────────────────────────────────────────────
-  /// Fetches the top characters ranked by favorites.
   Future<List<TopCharacter>> getTopCharacters({int page = 1}) async {
     final uri = Uri.parse('$baseUrl/top/characters').replace(
       queryParameters: {'page': page.toString()},
     );
-    final data = await _getJson(uri);
+    final cacheKey = CacheService.topCharactersKey(page);
+    final data = await _getCached(
+      uri,
+      cacheKey,
+      ttl: CacheService.topCharactersTtl,
+    );
     final List<dynamic> characters = data['data'] ?? [];
     final List<TopCharacter> results = [];
     for (final item in characters) {
       try {
-        results.add(
-          TopCharacter.fromJson(item as Map<String, dynamic>),
-        );
+        results.add(TopCharacter.fromJson(item as Map<String, dynamic>));
       } catch (e) {
         debugPrint('[ApiService] failed to parse top character: $e');
       }
@@ -323,11 +431,13 @@ class ApiService {
   }
 
   // ── Character Detail ──────────────────────────────────────────
-  /// Fetches full character data including animeography
-  /// and voice actors.
   Future<Character> getCharacterDetail(int malId) async {
-    final data = await _getJson(
-      Uri.parse('$baseUrl/characters/$malId/full'),
+    final uri = Uri.parse('$baseUrl/characters/$malId/full');
+    final cacheKey = CacheService.characterDetailKey(malId);
+    final data = await _getCached(
+      uri,
+      cacheKey,
+      ttl: CacheService.characterDetailTtl,
     );
     return Character.fromJson(data['data'] as Map<String, dynamic>);
   }

@@ -8,6 +8,7 @@ import 'package:anime_discovery/screens/schedule_screen.dart';
 import 'package:anime_discovery/screens/characters_screen.dart';
 import 'package:anime_discovery/screens/statistics_screen.dart';
 import 'package:anime_discovery/screens/about_screen.dart';
+import 'package:anime_discovery/widgets/offline_banner.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -36,17 +37,24 @@ class _MainScreenState extends State<MainScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      body: Column(
+        children: [
+          // ── Offline banner ──────────────────────────────────
+          const OfflineBanner(),
+
+          // ── Screen content ──────────────────────────────────
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: _screens,
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(
-            top: BorderSide(
-              color: theme.dividerColor,
-              width: 1,
-            ),
+            top: BorderSide(color: theme.dividerColor, width: 1),
           ),
         ),
         child: BottomNavigationBar(

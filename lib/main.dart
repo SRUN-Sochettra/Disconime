@@ -9,6 +9,8 @@ import 'package:anime_discovery/providers/search_history_provider.dart';
 import 'package:anime_discovery/providers/theme_provider.dart';
 import 'package:anime_discovery/providers/schedule_provider.dart';
 import 'package:anime_discovery/providers/characters_provider.dart';
+import 'package:anime_discovery/providers/connectivity_provider.dart';
+import 'package:anime_discovery/services/connectivity_service.dart';
 import 'package:anime_discovery/widgets/global_error_handler.dart';
 
 Future<void> main() async {
@@ -20,6 +22,12 @@ Future<void> main() async {
     debugPrint('[main] .env not found or failed to load: $e');
   }
 
+  // ── Connectivity ───────────────────────────────────────────────
+  // Initialised before runApp so the initial status is known
+  // before the first frame renders.
+  await ConnectivityService.instance.init();
+
+  // ── Persisted preferences ──────────────────────────────────────
   final themeProvider = ThemeProvider();
   await themeProvider.loadTheme();
 
@@ -38,6 +46,13 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: searchHistoryProvider),
         ChangeNotifierProvider(create: (_) => ScheduleProvider()),
         ChangeNotifierProvider(create: (_) => CharactersProvider()),
+        // ConnectivityProvider reads initial status from
+        // ConnectivityService which is already initialised above.
+        ChangeNotifierProvider(
+          create: (_) => ConnectivityProvider(
+            initialStatus: ConnectivityService.instance.isOnline,
+          ),
+        ),
       ],
       child: const ApiReaderApp(),
     ),
