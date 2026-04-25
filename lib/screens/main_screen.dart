@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'search_screen.dart';
-import 'seasonal_screen.dart';
-import 'genres_screen.dart';
-import 'favorites_screen.dart';
-import 'about_screen.dart';
+import 'package:anime_discovery/screens/home_screen.dart';
+import 'package:anime_discovery/screens/search_screen.dart';
+import 'package:anime_discovery/screens/seasonal_screen.dart';
+import 'package:anime_discovery/screens/genres_screen.dart';
+import 'package:anime_discovery/screens/favorites_screen.dart';
+import 'package:anime_discovery/screens/about_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

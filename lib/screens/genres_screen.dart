@@ -49,7 +49,7 @@ class _GenresScreenState extends State<GenresScreen> {
                 ),
                 itemCount: 16,
                 // FIX: __ → _ (unnecessary double underscore lint)
-                itemBuilder: (_, __) =>
+                itemBuilder: (_, _) =>
                     const SkeletonBox(borderRadius: 12),
               ),
             );

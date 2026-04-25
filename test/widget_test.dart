@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:anime_discovery/main.dart';
 import 'package:anime_discovery/providers/theme_provider.dart';
 import 'package:anime_discovery/providers/anime_provider.dart';
@@ -10,9 +11,9 @@ import 'package:anime_discovery/providers/search_history_provider.dart';
 
 void main() {
   setUpAll(() async {
-    // Initialize with optional load to avoid NotInitializedError
-    await dotenv.load(fileName: '.env.example', isOptional: true);
-    dotenv.env['JIKAN_API_URL'] = 'https://api.jikan.moe/v4';
+    // Initializing dotenv with mergeWith for testing
+    await dotenv.load(mergeWith: {'JIKAN_API_URL': 'https://api.jikan.moe/v4'});
+    GoogleFonts.config.allowRuntimeFetching = false;
   });
 
   testWidgets('App renders without crashing', (WidgetTester tester) async {

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'theme/app_theme.dart';
-import 'screens/main_screen.dart';
-import 'providers/anime_provider.dart';
-import 'providers/favorites_provider.dart';
-import 'providers/search_history_provider.dart';
-import 'providers/theme_provider.dart';
+import 'package:anime_discovery/theme/app_theme.dart';
+import 'package:anime_discovery/screens/main_screen.dart';
+import 'package:anime_discovery/providers/anime_provider.dart';
+import 'package:anime_discovery/providers/favorites_provider.dart';
+import 'package:anime_discovery/providers/search_history_provider.dart';
+import 'package:anime_discovery/providers/theme_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

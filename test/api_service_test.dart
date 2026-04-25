@@ -9,9 +9,8 @@ import 'package:anime_discovery/models/anime_model.dart';
 
 void main() {
   setUpAll(() async {
-    // Initialize with optional load to avoid NotInitializedError
-    await dotenv.load(fileName: '.env.example', isOptional: true);
-    dotenv.env['JIKAN_API_URL'] = 'https://api.jikan.moe/v4';
+    // Initializing dotenv with mergeWith for testing
+    await dotenv.load(mergeWith: {'JIKAN_API_URL': 'https://api.jikan.moe/v4'});
   });
 
   group('ApiService Tests', () {
