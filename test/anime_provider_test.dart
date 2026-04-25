@@ -18,7 +18,7 @@ class FakeApiService extends ApiService {
         malId: 1,
         title: 'Test Anime',
         imageUrl: '',
-        score: Score(),
+        score: Score(value: 0.0),
         synopsis: Synopsis(text: ''),
         genres: [],
       ),

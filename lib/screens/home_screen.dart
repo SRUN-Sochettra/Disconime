@@ -2,16 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/anime_model.dart';
-import '../providers/anime_provider.dart';
-import '../providers/theme_provider.dart';
-import '../widgets/anime_card_skeleton.dart';
-import '../widgets/anime_list_tile.dart';
-import '../widgets/skeleton_loader.dart';
-import '../widgets/error_view.dart';
-import '../widgets/filter_sheet.dart';
-import '../widgets/anime_image.dart';
-import 'detail_screen.dart';
+import 'package:anime_discovery/models/anime_model.dart';
+import 'package:anime_discovery/providers/anime_provider.dart';
+import 'package:anime_discovery/providers/theme_provider.dart';
+import 'package:anime_discovery/widgets/anime_card_skeleton.dart';
+import 'package:anime_discovery/widgets/anime_list_tile.dart';
+import 'package:anime_discovery/widgets/skeleton_loader.dart';
+import 'package:anime_discovery/widgets/error_view.dart';
+import 'package:anime_discovery/widgets/filter_sheet.dart';
+import 'package:anime_discovery/widgets/anime_image.dart';
+import 'package:anime_discovery/screens/detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

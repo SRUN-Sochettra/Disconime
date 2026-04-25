@@ -2,11 +2,18 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:anime_discovery/services/api_service.dart';
 import 'package:anime_discovery/models/anime_model.dart';
 
 void main() {
+  setUpAll(() async {
+    // Initialize with optional load to avoid NotInitializedError
+    await dotenv.load(fileName: '.env.example', isOptional: true);
+    dotenv.env['JIKAN_API_URL'] = 'https://api.jikan.moe/v4';
+  });
+
   group('ApiService Tests', () {
     test('getTopAnime returns list of Anime on success', () async {
       final mockClient = MockClient((request) async {

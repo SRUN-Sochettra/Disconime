@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/anime_model.dart';
-import '../providers/anime_provider.dart';
-import '../providers/search_history_provider.dart';
-import '../widgets/anime_card_skeleton.dart';
-import '../widgets/anime_list_tile.dart';
-import '../widgets/error_view.dart';
-import 'detail_screen.dart';
+import 'package:anime_discovery/models/anime_model.dart';
+import 'package:anime_discovery/providers/anime_provider.dart';
+import 'package:anime_discovery/providers/search_history_provider.dart';
+import 'package:anime_discovery/widgets/anime_card_skeleton.dart';
+import 'package:anime_discovery/widgets/anime_list_tile.dart';
+import 'package:anime_discovery/widgets/error_view.dart';
+import 'package:anime_discovery/screens/detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
