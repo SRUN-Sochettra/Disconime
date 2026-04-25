@@ -1,10 +1,15 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 import '../models/anime_model.dart';
 
 class ApiService {
   final http.Client client;
+
+  static const Duration _minRequestInterval = Duration(milliseconds: 400);
+  DateTime _lastRequestTime = DateTime.fromMillisecondsSinceEpoch(0);
 
   ApiService({http.Client? client}) : client = client ?? http.Client();
 
@@ -16,57 +21,92 @@ class ApiService {
     }
   }
 
-  Future<List<Anime>> getTopAnime({int page = 1}) async {
-    final response = await client.get(Uri.parse('$baseUrl/top/anime?page=$page'));
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      final List<dynamic> animeList = data['data'];
-      return animeList.map((json) => Anime.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to load top anime');
+  Future<void> _throttle() async {
+    final now = DateTime.now();
+    final elapsed = now.difference(_lastRequestTime);
+    if (elapsed < _minRequestInterval) {
+      await Future.delayed(_minRequestInterval - elapsed);
     }
+    _lastRequestTime = DateTime.now();
+  }
+
+  Future<Map<String, dynamic>> _getJson(Uri uri) async {
+    await _throttle();
+    try {
+      final response = await client.get(uri);
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else if (response.statusCode == 429) {
+        throw Exception('Rate limit exceeded. Please try again shortly.');
+      } else {
+        throw Exception('Request failed with status ${response.statusCode}.');
+      }
+    } catch (e) {
+      debugPrint('[ApiService] Error fetching $uri: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<Anime>> getTopAnime({int page = 1}) async {
+    final data = await _getJson(Uri.parse('$baseUrl/top/anime?page=$page'));
+    final List<dynamic> animeList = data['data'] ?? [];
+    return animeList
+        .map((item) => Anime.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   Future<List<Anime>> searchAnime(String query, {int page = 1}) async {
-    final response = await client.get(Uri.parse('$baseUrl/anime?q=$query&page=$page'));
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      final List<dynamic> animeList = data['data'];
-      return animeList.map((json) => Anime.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to search anime');
-    }
+    final encoded = Uri.encodeComponent(query);
+    final data =
+        await _getJson(Uri.parse('$baseUrl/anime?q=$encoded&page=$page'));
+    final List<dynamic> animeList = data['data'] ?? [];
+    return animeList
+        .map((item) => Anime.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   Future<Anime> getAnimeDetails(int id) async {
-    final response = await client.get(Uri.parse('$baseUrl/anime/$id'));
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      return Anime.fromJson(data['data']);
-    } else {
-      throw Exception('Failed to load anime details');
-    }
+    final data = await _getJson(Uri.parse('$baseUrl/anime/$id'));
+    return Anime.fromJson(data['data'] as Map<String, dynamic>);
   }
 
-  Future<List<Anime>> getAnimeRecommendations(int malId, {int page = 1}) async {
-    final response = await client.get(Uri.parse('$baseUrl/anime/$malId/recommendations?page=$page'));
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> decodedData = json.decode(response.body);
-      final List<dynamic> recData = decodedData['data'] ?? [];
-      
-      return recData.map((json) {
-        final entry = json['entry'];
-        return Anime(
-          malId: entry['mal_id'] ?? 0,
-          title: entry['title'] ?? '',
-          imageUrl: entry['images']?['jpg']?['large_image_url'] ?? entry['images']?['jpg']?['image_url'] ?? '',
-          score: Score(),
-          synopsis: Synopsis(text: ''),
-          genres: [],
-        );
-      }).toList();
-    } else {
-      throw Exception('Failed to load recommendations');
+  Future<List<Anime>> getAnimeRecommendations(int malId) async {
+    final data = await _getJson(
+      Uri.parse('$baseUrl/anime/$malId/recommendations'),
+    );
+
+    final List<dynamic> recData = data['data'] ?? [];
+    final List<Anime> results = [];
+
+    for (final item in recData) {
+      try {
+        final map = item as Map<String, dynamic>;
+        final entry = map['entry'] as Map<String, dynamic>?;
+
+        if (entry == null) {
+          debugPrint('[ApiService] skipping rec — entry is null');
+          continue;
+        }
+
+        final images = entry['images'] as Map<String, dynamic>?;
+        final jpg = images?['jpg'] as Map<String, dynamic>?;
+
+        results.add(Anime(
+          malId: entry['mal_id'] as int? ?? 0,
+          title: entry['title'] as String? ?? '',
+          imageUrl: jpg?['large_image_url'] as String? ??
+              jpg?['image_url'] as String? ??
+              '',
+          score: const Score(),
+          synopsis: const Synopsis(text: ''),
+          genres: const [],
+        ));
+      } catch (e, stack) {
+        debugPrint('[ApiService] failed to parse rec entry: $e\n$stack');
+        continue;
+      }
     }
+
+    return results;
   }
 }

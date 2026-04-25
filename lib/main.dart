@@ -4,20 +4,23 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/main_screen.dart';
 import 'providers/anime_provider.dart';
-import 'services/audio_service.dart';
+import 'providers/favorites_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  
-  // Initialize background audio service
-  await AudioService().init();
+
+  // Load persisted favorites before the app renders.
+  final favoritesProvider = FavoritesProvider();
+  await favoritesProvider.loadFavorites();
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
         ChangeNotifierProvider(create: (context) => AnimeProvider()),
+        // Provide the already-initialized favorites provider.
+        ChangeNotifierProvider.value(value: favoritesProvider),
       ],
       child: const ApiReaderApp(),
     ),
@@ -60,17 +63,15 @@ class ApiReaderApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cyberCyan = const Color(0xFF00E5FF);
-    
-    // Dark Theme Colors
-    final darkColor = const Color(0xFFE0E0E0);
-    final scaffoldDark = const Color(0xFF050505);
-    final surfaceDark = const Color(0xFF111111);
-    
-    // Light Theme Colors
-    final lightColor = const Color(0xFF1A1A1A);
-    final scaffoldLight = const Color(0xFFF5F5F5);
-    final surfaceLight = const Color(0xFFFFFFFF);
+    const cyberCyan = Color(0xFF00E5FF);
+
+    const darkColor = Color(0xFFE0E0E0);
+    const scaffoldDark = Color(0xFF050505);
+    const surfaceDark = Color(0xFF111111);
+
+    const lightColor = Color(0xFF1A1A1A);
+    const scaffoldLight = Color(0xFFF5F5F5);
+    const surfaceLight = Color(0xFFFFFFFF);
 
     final themeProvider = Provider.of<ThemeProvider>(context);
 
@@ -97,7 +98,7 @@ class ApiReaderApp extends StatelessWidget {
             fontWeight: FontWeight.bold,
             letterSpacing: 2.0,
           ),
-          iconTheme: IconThemeData(color: cyberCyan),
+          iconTheme: const IconThemeData(color: cyberCyan),
         ),
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: surfaceLight,
@@ -116,7 +117,8 @@ class ApiReaderApp extends StatelessWidget {
           ),
         ),
         textTheme: _buildTextTheme(ThemeData.light().textTheme, lightColor),
-        primaryTextTheme: _buildTextTheme(ThemeData.light().primaryTextTheme, lightColor),
+        primaryTextTheme:
+            _buildTextTheme(ThemeData.light().primaryTextTheme, lightColor),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
@@ -138,7 +140,7 @@ class ApiReaderApp extends StatelessWidget {
             fontWeight: FontWeight.bold,
             letterSpacing: 2.0,
           ),
-          iconTheme: IconThemeData(color: cyberCyan),
+          iconTheme: const IconThemeData(color: cyberCyan),
         ),
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: surfaceDark,
@@ -157,7 +159,8 @@ class ApiReaderApp extends StatelessWidget {
           ),
         ),
         textTheme: _buildTextTheme(ThemeData.dark().textTheme, darkColor),
-        primaryTextTheme: _buildTextTheme(ThemeData.dark().primaryTextTheme, darkColor),
+        primaryTextTheme:
+            _buildTextTheme(ThemeData.dark().primaryTextTheme, darkColor),
       ),
       home: const MainScreen(),
     );

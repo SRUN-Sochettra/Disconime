@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/anime_model.dart';
 import '../providers/anime_provider.dart';
+import '../widgets/anime_image.dart';
+import '../widgets/error_view.dart';
 import 'detail_screen.dart';
 import '../main.dart';
 
@@ -22,18 +24,22 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AnimeProvider>().fetchTopAnime();
     });
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-        final provider = context.read<AnimeProvider>();
-        if (provider.topAnimeState != FetchState.loading) {
-          provider.fetchTopAnime(loadMore: true);
-        }
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      final provider = context.read<AnimeProvider>();
+      if (provider.topAnimeState != FetchState.loading) {
+        provider.fetchTopAnime(loadMore: true);
       }
-    });
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
@@ -59,10 +65,8 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context, themeProvider, child) {
               return Switch(
                 value: themeProvider.isDarkMode,
-                onChanged: (value) {
-                  themeProvider.toggleTheme(value);
-                },
-                activeColor: Theme.of(context).colorScheme.primary,
+                onChanged: themeProvider.toggleTheme,
+                activeThumbColor: Theme.of(context).colorScheme.primary,
               );
             },
           ),
@@ -77,19 +81,23 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Consumer<AnimeProvider>(
         builder: (context, provider, child) {
-          if (provider.topAnimeState == FetchState.initial || 
-              (provider.topAnimeState == FetchState.loading && provider.topAnime.isEmpty)) {
+          // ── Initial / first load ──────────────────────────────
+          if (provider.topAnimeState == FetchState.initial ||
+              (provider.topAnimeState == FetchState.loading &&
+                  provider.topAnime.isEmpty)) {
             return Center(
-              child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
             );
           }
 
-          if (provider.topAnimeState == FetchState.error && provider.topAnime.isEmpty) {
-            return Center(
-              child: Text(
-                '[ERROR]: ${provider.errorMessage}',
-                style: TextStyle(color: Theme.of(context).colorScheme.primary),
-              ),
+          // ── Full screen error (no cached data to show) ────────
+          if (provider.topAnimeState == FetchState.error &&
+              provider.topAnime.isEmpty) {
+            return ErrorView(
+              message: provider.errorMessage,
+              onRetry: () => provider.fetchTopAnime(),
             );
           }
 
@@ -99,20 +107,42 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.only(top: kToolbarHeight + 20),
-              itemCount: provider.topAnime.length + (provider.topAnimeState == FetchState.loading ? 1 : 0),
+              itemCount: provider.topAnime.length +
+                  // Extra slot for loader or inline error at the bottom.
+                  (provider.topAnimeState == FetchState.loading ||
+                          provider.topAnimeState == FetchState.error
+                      ? 1
+                      : 0),
               itemBuilder: (context, index) {
-                if (index == provider.topAnime.length) {
+                // ── Bottom loader ───────────────────────────────
+                if (index == provider.topAnime.length &&
+                    provider.topAnimeState == FetchState.loading) {
                   return Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Center(
-                      child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+                      child: CircularProgressIndicator(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   );
                 }
-                
+
+                // ── Inline load-more error with retry ───────────
+                // Shown at the bottom when pagination fails but we
+                // already have data above to show.
+                if (index == provider.topAnime.length &&
+                    provider.topAnimeState == FetchState.error) {
+                  return ErrorView(
+                    message: provider.errorMessage,
+                    onRetry: () => provider.fetchTopAnime(loadMore: true),
+                    expand: false,
+                  );
+                }
+
                 final Anime item = provider.topAnime[index];
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 8),
                   child: ClipRect(
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
@@ -123,43 +153,54 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => DetailScreen(anime: item),
+                                builder: (context) =>
+                                    DetailScreen(anime: item),
                               ),
                             );
                           },
                           child: Container(
-                            color: Theme.of(context).colorScheme.surface.withAlpha(100),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surface
+                                .withAlpha(100),
                             padding: const EdgeInsets.all(12),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Container(
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Theme.of(context).colorScheme.primary, width: 1),
+                                    border: Border.all(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
+                                      width: 1,
+                                    ),
                                   ),
-                                  child: Image.network(
-                                    item.imageUrl,
-                                    width: 60,
-                                    height: 80,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, size: 60, color: Colors.grey),
+                                  child: AnimeImage(
+                                    imageUrl: item.imageUrl,
+                                    size: AnimeImageSize.small,
                                   ),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         '> ${item.title}',
-                                        style: Theme.of(context).textTheme.titleMedium,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
                                         '[SCORE]: ${item.score.value ?? 'N/A'}',
-                                        style: Theme.of(context).textTheme.labelMedium,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelMedium,
                                       ),
                                     ],
                                   ),

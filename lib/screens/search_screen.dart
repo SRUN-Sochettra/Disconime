@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/anime_model.dart';
 import '../providers/anime_provider.dart';
+import '../widgets/anime_image.dart';
+import '../widgets/error_view.dart';
 import 'detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -20,19 +22,24 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-        final provider = context.read<AnimeProvider>();
-        if (provider.searchState != FetchState.loading && _controller.text.isNotEmpty) {
-          provider.searchAnime(_controller.text, loadMore: true);
-        }
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      final provider = context.read<AnimeProvider>();
+      if (provider.searchState != FetchState.loading &&
+          _controller.text.isNotEmpty) {
+        provider.searchAnime(_controller.text, loadMore: true);
       }
-    });
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
@@ -63,37 +70,60 @@ class _SearchScreenState extends State<SearchScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
+              // ── Search field ──────────────────────────────────
               TextField(
                 controller: _controller,
-                style: GoogleFonts.spaceMono(color: Theme.of(context).colorScheme.primary),
+                style: GoogleFonts.spaceMono(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 decoration: InputDecoration(
                   labelText: '> INPUT QUERY',
-                  labelStyle: GoogleFonts.spaceMono(color: Theme.of(context).colorScheme.primary),
+                  labelStyle: GoogleFonts.spaceMono(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.zero,
-                    borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.zero,
-                    borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 2,
+                    ),
                   ),
                   suffixIcon: IconButton(
-                    icon: Icon(Icons.search, color: Theme.of(context).colorScheme.primary),
+                    icon: Icon(
+                      Icons.search,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     onPressed: () => _performSearch(_controller.text),
                   ),
                 ),
                 onSubmitted: _performSearch,
               ),
               const SizedBox(height: 20),
+
+              // ── Results area ──────────────────────────────────
               Expanded(
                 child: Consumer<AnimeProvider>(
                   builder: (context, provider, child) {
+                    // Awaiting first input.
                     if (provider.searchState == FetchState.initial) {
                       return Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.search, size: 64, color: Theme.of(context).colorScheme.onSurface.withAlpha(76)),
+                            Icon(
+                              Icons.search,
+                              size: 64,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withAlpha(76),
+                            ),
                             const SizedBox(height: 16),
                             const Text("> AWAITING_INPUT"),
                           ],
@@ -101,42 +131,77 @@ class _SearchScreenState extends State<SearchScreen> {
                       );
                     }
 
-                    if (provider.searchState == FetchState.loading && provider.searchResults.isEmpty) {
-                      return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
-                    }
-
-                    if (provider.searchState == FetchState.error && provider.searchResults.isEmpty) {
+                    // Full screen loader — first page only.
+                    if (provider.searchState == FetchState.loading &&
+                        provider.searchResults.isEmpty) {
                       return Center(
-                        child: Text(
-                          '[ERROR]: ${provider.errorMessage}',
-                          style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                        child: CircularProgressIndicator(
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       );
                     }
 
-                    if (provider.searchState == FetchState.loaded && provider.searchResults.isEmpty) {
-                      return const Center(child: Text('[NO_RECORDS_FOUND]'));
+                    // Full screen error — no results to show at all.
+                    if (provider.searchState == FetchState.error &&
+                        provider.searchResults.isEmpty) {
+                      return ErrorView(
+                        message: provider.errorMessage,
+                        onRetry: () =>
+                            provider.searchAnime(_controller.text),
+                      );
+                    }
+
+                    // Empty results state.
+                    if (provider.searchState == FetchState.loaded &&
+                        provider.searchResults.isEmpty) {
+                      return const Center(
+                          child: Text('[NO_RECORDS_FOUND]'));
                     }
 
                     return ListView.builder(
                       controller: _scrollController,
-                      itemCount: provider.searchResults.length + (provider.searchState == FetchState.loading ? 1 : 0),
+                      itemCount: provider.searchResults.length +
+                          // Extra slot for loader or inline error.
+                          (provider.searchState == FetchState.loading ||
+                                  provider.searchState == FetchState.error
+                              ? 1
+                              : 0),
                       itemBuilder: (context, index) {
-                        if (index == provider.searchResults.length) {
+                        // ── Bottom loader ─────────────────────
+                        if (index == provider.searchResults.length &&
+                            provider.searchState == FetchState.loading) {
                           return Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Center(
-                              child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+                              child: CircularProgressIndicator(
+                                color:
+                                    Theme.of(context).colorScheme.primary,
+                              ),
                             ),
+                          );
+                        }
+
+                        // ── Inline load-more error with retry ─
+                        if (index == provider.searchResults.length &&
+                            provider.searchState == FetchState.error) {
+                          return ErrorView(
+                            message: provider.errorMessage,
+                            onRetry: () => provider.searchAnime(
+                              _controller.text,
+                              loadMore: true,
+                            ),
+                            expand: false,
                           );
                         }
 
                         final Anime item = provider.searchResults[index];
                         return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 8),
                           child: ClipRect(
                             child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                              filter:
+                                  ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                               child: Card(
                                 margin: EdgeInsets.zero,
                                 child: InkWell(
@@ -144,43 +209,56 @@ class _SearchScreenState extends State<SearchScreen> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => DetailScreen(anime: item),
+                                        builder: (context) =>
+                                            DetailScreen(anime: item),
                                       ),
                                     );
                                   },
                                   child: Container(
-                                    color: Theme.of(context).colorScheme.surface.withAlpha(100),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .surface
+                                        .withAlpha(100),
                                     padding: const EdgeInsets.all(12),
                                     child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Container(
                                           decoration: BoxDecoration(
-                                            border: Border.all(color: Theme.of(context).colorScheme.primary, width: 1),
+                                            border: Border.all(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                              width: 1,
+                                            ),
                                           ),
-                                          child: Image.network(
-                                            item.imageUrl,
-                                            width: 60,
-                                            height: 80,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, size: 60, color: Colors.grey),
+                                          child: AnimeImage(
+                                            imageUrl: item.imageUrl,
+                                            size: AnimeImageSize.small,
                                           ),
                                         ),
                                         const SizedBox(width: 16),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Text(
                                                 '> ${item.title}',
-                                                style: Theme.of(context).textTheme.titleMedium,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleMedium,
                                                 maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
+                                                overflow:
+                                                    TextOverflow.ellipsis,
                                               ),
                                               const SizedBox(height: 8),
                                               Text(
                                                 '[SCORE]: ${item.score.value ?? 'N/A'}',
-                                                style: Theme.of(context).textTheme.labelMedium,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .labelMedium,
                                               ),
                                             ],
                                           ),
