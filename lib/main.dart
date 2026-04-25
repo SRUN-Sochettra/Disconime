@@ -43,7 +43,14 @@ Future<void> main() async {
 }
 
 class ApiReaderApp extends StatelessWidget {
-  const ApiReaderApp({super.key});
+  final ThemeData? theme;
+  final ThemeData? darkTheme;
+
+  const ApiReaderApp({
+    super.key,
+    this.theme,
+    this.darkTheme,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +60,8 @@ class ApiReaderApp extends StatelessWidget {
       title: 'Disconime',
       debugShowCheckedModeBanner: false,
       themeMode: themeProvider.themeMode,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      theme: theme ?? AppTheme.light,
+      darkTheme: darkTheme ?? AppTheme.dark,
       home: const MainScreen(),
     );
   }

@@ -25,7 +25,10 @@ void main() {
           ChangeNotifierProvider(create: (_) => FavoritesProvider()),
           ChangeNotifierProvider(create: (_) => SearchHistoryProvider()),
         ],
-        child: const ApiReaderApp(),
+        child: ApiReaderApp(
+          theme: ThemeData(useMaterial3: true),
+          darkTheme: ThemeData(useMaterial3: true, brightness: Brightness.dark),
+        ),
       ),
     );
     
