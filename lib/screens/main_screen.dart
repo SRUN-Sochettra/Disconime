@@ -6,6 +6,7 @@ import 'package:anime_discovery/screens/genres_screen.dart';
 import 'package:anime_discovery/screens/favorites_screen.dart';
 import 'package:anime_discovery/screens/schedule_screen.dart';
 import 'package:anime_discovery/screens/characters_screen.dart';
+import 'package:anime_discovery/screens/statistics_screen.dart';
 import 'package:anime_discovery/screens/about_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class _MainScreenState extends State<MainScreen> {
     const ScheduleScreen(),
     const CharactersScreen(),
     const FavoritesScreen(),
+    const StatisticsScreen(),
     const AboutScreen(),
   ];
 
@@ -85,6 +87,11 @@ class _MainScreenState extends State<MainScreen> {
               icon: Icon(Icons.bookmark_border_rounded),
               activeIcon: Icon(Icons.bookmark_rounded),
               label: 'Saved',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart_rounded),
+              activeIcon: Icon(Icons.bar_chart_rounded),
+              label: 'Stats',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline_rounded),
