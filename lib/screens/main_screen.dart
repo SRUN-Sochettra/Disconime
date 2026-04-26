@@ -217,10 +217,15 @@ class MainScreen extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   children: [
+                    Image.asset(
+                      'assets/icons/app_logo.png',
+                      width: 28,
+                      height: 28,
+                    ),
+                    const SizedBox(width: 10),
                     Text(
                       'MORE',
-                      style:
-                          theme.textTheme.displayLarge?.copyWith(fontSize: 22),
+                      style: theme.textTheme.displayLarge?.copyWith(fontSize: 22),
                     ),
                   ],
                 ),

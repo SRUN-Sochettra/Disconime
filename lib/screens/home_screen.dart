@@ -14,7 +14,7 @@ import 'package:anime_discovery/widgets/filter_sheet.dart';
 import 'package:anime_discovery/widgets/anime_image.dart';
 import 'package:anime_discovery/widgets/pagination_indicator.dart';
 import 'package:anime_discovery/router/route_names.dart';
-import 'package:anime_discovery/widgets/section_app_bar.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -105,9 +105,28 @@ class _HomeScreenState extends State<HomeScreen>
     super.build(context); // Required for AutomaticKeepAliveClientMixin
 
     return Scaffold(
-      appBar: SectionAppBar(
-        title: 'Disconime',
-        fontSize: 26,
+      appBar: AppBar(
+        toolbarHeight: 64,
+        centerTitle: false,
+        titleSpacing: 20,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/icons/app_logo.png',
+              width: 32,
+              height: 32,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'DISCONIME',
+              style: Theme.of(context)
+                  .textTheme
+                  .displayLarge
+                  ?.copyWith(fontSize: 26),
+            ),
+          ],
+        ),
         leading: Consumer<ThemeProvider>(
           builder: (context, themeProvider, child) {
             return IconButton(
@@ -131,6 +150,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             onPressed: () => setState(() => _isGridView = !_isGridView),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: _TopAnimeBody(
