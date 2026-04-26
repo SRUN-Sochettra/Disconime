@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 
 import '../models/character_model.dart';
 import '../providers/characters_provider.dart';
+import 'package:anime_discovery/providers/fetch_state.dart';
+
 import '../router/route_names.dart';
 import '../widgets/anime_image.dart';
 import '../widgets/empty_state.dart';

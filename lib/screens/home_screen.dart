@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:anime_discovery/models/anime_model.dart';
 import 'package:anime_discovery/providers/anime_provider.dart';
+import 'package:anime_discovery/providers/fetch_state.dart';
 import 'package:anime_discovery/providers/theme_provider.dart';
 import 'package:anime_discovery/widgets/anime_card_skeleton.dart';
 import 'package:anime_discovery/widgets/anime_list_tile.dart';

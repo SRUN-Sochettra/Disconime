@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:anime_discovery/models/anime_model.dart';
 import 'package:anime_discovery/providers/anime_provider.dart';
+import 'package:anime_discovery/providers/fetch_state.dart';
+
 import 'package:anime_discovery/providers/search_history_provider.dart';
 import 'package:anime_discovery/widgets/anime_card_skeleton.dart';
 import 'package:anime_discovery/widgets/anime_list_tile.dart';
@@ -131,7 +133,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 prefixIcon: Icon(Icons.search_rounded, color: primary),
                 suffixIcon: ValueListenableBuilder<bool>(
                   valueListenable: _hasText,
-                  builder: (_, hasText, _) => hasText
+                  builder: (_, hasText, __) => hasText
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded),
                           onPressed: () => _controller.clear(),

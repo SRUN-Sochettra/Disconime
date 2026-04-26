@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 
 import '../models/schedule_model.dart';
 import '../providers/schedule_provider.dart';
+import 'package:anime_discovery/providers/fetch_state.dart';
+
 import '../router/route_names.dart';
 import '../widgets/anime_image.dart';
 import '../widgets/empty_state.dart';
@@ -53,6 +55,8 @@ class _ScheduleScreenState extends State<ScheduleScreen>
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       final day = BroadcastDay.values[_tabController.index];
+      // FIX: Reset scroll to top on tab switch (Issue #12)
+      _scrollControllers[day]?.jumpTo(0);
       provider.selectDay(day);
     });
 

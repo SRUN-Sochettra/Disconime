@@ -70,19 +70,6 @@ class MainScreen extends StatelessWidget {
     ),
   ];
 
-  // ── All routes that live in the shell ───────────────────────────
-  static const List<String> _allRoutes = [
-    RouteNames.home,
-    RouteNames.search,
-    RouteNames.seasonal,
-    RouteNames.schedule,
-    RouteNames.genres,
-    RouteNames.characters,
-    RouteNames.favorites,
-    RouteNames.statistics,
-    RouteNames.about,
-  ];
-
   int _currentBottomIndex(String path) {
     for (var i = 0; i < _bottomTabs.length; i++) {
       final route = _bottomTabs[i].route;

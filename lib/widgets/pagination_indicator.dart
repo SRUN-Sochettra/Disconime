@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+
 /// Displays a subtle pagination status bar at the top of a
 /// scrollable list showing:
 /// - How many items are currently loaded

@@ -1,10 +1,10 @@
-// REPLACE the imports section with:
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/character_model.dart';
 import '../providers/characters_provider.dart';
-import '../providers/anime_provider.dart' show AnimeProvider; // ADD show
+import '../providers/anime_provider.dart' show AnimeProvider;
+import '../providers/fetch_state.dart';
 import '../widgets/anime_image.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/error_view.dart';
@@ -401,10 +401,10 @@ class _AnimeographySection extends StatelessWidget {
 
     try {
       final fullAnime = await animeProvider.getAnimeDetails(item.malId);
+      // FIX: Guard before every navigation call (Issue #9)
       if (!context.mounted) return;
-
-      // Dismiss dialog and push route
       Navigator.pop(context);
+      if (!context.mounted) return;
       context.push(
         RouteNames.animeDetailPath(fullAnime.malId),
         extra: fullAnime,

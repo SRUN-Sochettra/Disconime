@@ -3,8 +3,7 @@ import '../models/anime_model.dart';
 import '../models/filter_model.dart';
 import '../services/api_service.dart';
 import '../utils/error_utils.dart';
-
-enum FetchState { initial, loading, loaded, error }
+import 'fetch_state.dart';
 
 class AnimeProvider extends ChangeNotifier {
   final ApiService _apiService;

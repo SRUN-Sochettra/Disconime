@@ -2,8 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../models/schedule_model.dart';
 import '../services/api_service.dart';
 import '../utils/error_utils.dart';
-
-enum FetchState { initial, loading, loaded, error }
+import 'fetch_state.dart';
 
 class ScheduleProvider extends ChangeNotifier {
   final ApiService _apiService;

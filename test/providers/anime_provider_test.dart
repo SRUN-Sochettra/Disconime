@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:anime_discovery/providers/anime_provider.dart';
+import 'package:anime_discovery/providers/fetch_state.dart';
+
 import 'package:anime_discovery/models/filter_model.dart';
 import '../helpers/mock_api_service.dart';
 import '../helpers/test_data.dart';

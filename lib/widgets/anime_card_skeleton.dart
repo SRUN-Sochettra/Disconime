@@ -69,8 +69,8 @@ class AnimeListSkeleton extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         physics: const NeverScrollableScrollPhysics(),
         itemCount: itemCount,
-        // FIX: __ → _ (unnecessary double underscore lint)
-        itemBuilder: (_, _) => const AnimeCardSkeleton(),
+        // FIX: use __ for second parameter to avoid duplicate identifier error
+        itemBuilder: (_, __) => const AnimeCardSkeleton(),
       ),
     );
   }
@@ -90,8 +90,8 @@ class RecommendationListSkeleton extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: itemCount,
-          // FIX: __ → _ (unnecessary double underscore lint)
-          itemBuilder: (_, _) => const RecommendationCardSkeleton(),
+          // FIX: use __ for second parameter to avoid duplicate identifier error
+          itemBuilder: (_, __) => const RecommendationCardSkeleton(),
         ),
       ),
     );

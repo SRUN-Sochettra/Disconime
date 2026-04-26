@@ -70,6 +70,13 @@ class ConnectivityService {
     _isOnline = online;
   }
 
+  /// Cancels the connectivity subscription and closes the stream controller.
+  ///
+  /// **Note:** This is intentionally never called in production because
+  /// [ConnectivityService] is a singleton that lives for the entire app
+  /// lifetime. The [StreamController] leak is accepted by design.
+  /// If app-termination cleanup is required, hook into [WidgetsBindingObserver]
+  /// and call this from `didRequestAppExit` / `AppLifecycleState.detached`.
   Future<void> dispose() async {
     await _connectivitySub?.cancel();
     await _controller.close();

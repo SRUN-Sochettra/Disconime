@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/anime_provider.dart';
+import 'package:anime_discovery/providers/fetch_state.dart';
+
 import '../widgets/error_view.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/empty_state.dart';
@@ -58,7 +60,7 @@ class _GenresScreenState extends State<GenresScreen>
                   mainAxisSpacing: 12,
                 ),
                 itemCount: 16,
-                itemBuilder: (_, _) =>
+                itemBuilder: (_, __) =>
                     const SkeletonBox(borderRadius: 12),
               ),
             );

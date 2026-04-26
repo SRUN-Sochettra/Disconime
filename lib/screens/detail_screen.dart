@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/anime_model.dart';
 import '../providers/anime_provider.dart';
+import 'package:anime_discovery/providers/fetch_state.dart';
+
 import '../providers/favorites_provider.dart';
 import '../widgets/anime_image.dart';
 import '../widgets/anime_card_skeleton.dart';
@@ -39,13 +41,9 @@ class _DetailScreenState extends State<DetailScreen>
       if (!mounted) return;
       final provider = context.read<AnimeProvider>();
 
-      // FIX: Only clear if we are viewing a DIFFERENT anime
-      // This prevents wiping cached data when navigating to
-      // the same anime from recommendations
-      if (provider.currentRecMalId != widget.anime.malId) {
-        provider.clearDetailData();
-      }
-
+      // FIX: Removed clearDetailData() — fetchCharacters/fetchStaff already
+      // deduplicate via their own _current*MalId trackers, so a broad clear
+      // is redundant and causes stale-data flashes when navigating.
       provider.fetchRecommendations(widget.anime.malId);
       provider.fetchCharacters(widget.anime.malId);
       provider.fetchStaff(widget.anime.malId);
@@ -1103,10 +1101,10 @@ class _RecommendationsSection extends StatelessWidget {
                   try {
                     final fullAnime =
                         await animeProvider.getAnimeDetails(rec.malId);
+                    // FIX: Guard before every navigation call (Issue #6)
                     if (!context.mounted) return;
-
-                    // Dismiss dialog and push route
                     Navigator.pop(context);
+                    if (!context.mounted) return;
                     context.push(
                       RouteNames.animeDetailPath(fullAnime.malId),
                       extra: fullAnime,

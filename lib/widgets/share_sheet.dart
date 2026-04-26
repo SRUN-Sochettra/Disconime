@@ -92,10 +92,17 @@ class _ShareSheetContent extends StatelessWidget {
   // ── Actions ───────────────────────────────────────────────────
   Future<void> _shareViaSystem(BuildContext context) async {
     Navigator.pop(context);
+    
+    // FIX: Reverted to standard Share.share() as SharePlus was undefined.
+    // Added sharePositionOrigin to prevent crashes on iPad/macOS (Issue #10).
+    final box = context.findRenderObject() as RenderBox?;
     await Share.share(
-  _buildShareText(),
-  subject: anime.title,
-);
+      _buildShareText(),
+      subject: anime.title,
+      sharePositionOrigin: box != null 
+          ? box.localToGlobal(Offset.zero) & box.size 
+          : null,
+    );
   }
 
   Future<void> _copyCard(BuildContext context) async {

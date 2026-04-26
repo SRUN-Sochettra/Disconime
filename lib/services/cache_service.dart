@@ -30,6 +30,8 @@ class CacheService {
     return _prefs!;
   }
 
+  static const int _maxEntries = 100;
+
   // ── Write ─────────────────────────────────────────────────────
   Future<void> set(String key, dynamic data) async {
     try {
@@ -40,10 +42,49 @@ class CacheService {
         '$_timePrefix$key',
         DateTime.now().millisecondsSinceEpoch,
       );
+
+      // FIX: Evict old entries to keep storage usage bounded (Issue #13)
+      await _trimOldEntries(prefs);
     } catch (e, stack) {
       debugPrint('[CacheService] Failed to write $key: $e');
       GlobalErrorHandler.reportError(e, stack);
     }
+  }
+
+  /// Removes oldest entries if we exceed [_maxEntries].
+  Future<void> _trimOldEntries(SharedPreferences prefs) async {
+    final allKeys = prefs.getKeys();
+    final timeKeys = allKeys.where((k) => k.startsWith(_timePrefix)).toList();
+
+    if (timeKeys.length <= _maxEntries) return;
+
+    // Collect all timestamps to find the oldest
+    final entries = <MapEntry<String, int>>[];
+    for (final tk in timeKeys) {
+      final t = prefs.getInt(tk);
+      if (t != null) {
+        entries.add(MapEntry(tk, t));
+      }
+    }
+
+    // Sort by timestamp (ascending - oldest first)
+    entries.sort((a, b) => a.value.compareTo(b.value));
+
+    // Remove the oldest 20% or whatever is needed to get back to 90% capacity
+    // to avoid trimming on every single write once we hit the limit.
+    final targetCount = (_maxEntries * 0.9).toInt();
+    final numToRemove = timeKeys.length - targetCount;
+
+    for (var i = 0; i < numToRemove; i++) {
+      final timeKey = entries[i].key;
+      final dataKey = timeKey.replaceFirst(_timePrefix, _dataPrefix);
+      await prefs.remove(timeKey);
+      await prefs.remove(dataKey);
+    }
+
+    debugPrint(
+      '[CacheService] Evicted $numToRemove entries. New count: $targetCount',
+    );
   }
 
   // ── Read ──────────────────────────────────────────────────────
@@ -109,8 +150,12 @@ class CacheService {
     String? orderBy,
     String? sort,
   }) =>
-      'top_anime_p${page}_t${type}_f${filter}_r${rating}'
-      '_o${orderBy}_s${sort}';
+      'top_anime_p$page'
+      '_t$type'
+      '_f$filter'
+      '_r$rating'
+      '_o$orderBy'
+      '_s$sort';
 
   static String searchKey(String query, int page) =>
       'search_${query.toLowerCase().trim()}_p$page';

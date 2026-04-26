@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:anime_discovery/models/anime_model.dart';
 import 'package:anime_discovery/providers/anime_provider.dart';
+import 'package:anime_discovery/providers/fetch_state.dart';
+
 import 'package:anime_discovery/services/api_service.dart';
 
 class FakeApiService extends ApiService {

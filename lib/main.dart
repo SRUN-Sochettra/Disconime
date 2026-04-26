@@ -58,7 +58,7 @@ Future<void> main() async {
   );
 }
 
-class ApiReaderApp extends StatelessWidget {
+class ApiReaderApp extends StatefulWidget {
   final ThemeData? theme;
   final ThemeData? darkTheme;
 
@@ -69,6 +69,32 @@ class ApiReaderApp extends StatelessWidget {
   });
 
   @override
+  State<ApiReaderApp> createState() => _ApiReaderAppState();
+}
+
+class _ApiReaderAppState extends State<ApiReaderApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    // FIX: Implement lifecycle management (Issue #7)
+    ConnectivityService.instance.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached) {
+      ConnectivityService.instance.dispose();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
 
@@ -76,8 +102,8 @@ class ApiReaderApp extends StatelessWidget {
       title: 'Disconime',
       debugShowCheckedModeBanner: false,
       themeMode: themeProvider.themeMode,
-      theme: theme ?? AppTheme.light,
-      darkTheme: darkTheme ?? AppTheme.dark,
+      theme: widget.theme ?? AppTheme.light,
+      darkTheme: widget.darkTheme ?? AppTheme.dark,
       // ── GoRouter wiring ─────────────────────────────────────
       routerConfig: appRouter,
       // ── Global error boundary ────────────────────────────────

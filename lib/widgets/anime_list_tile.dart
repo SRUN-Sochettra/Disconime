@@ -120,7 +120,11 @@ class AnimeListTile extends StatelessWidget {
               ),
             ),
 
-            ?trailing,
+            // FIX: use local variable for type promotion
+            () {
+              final t = trailing;
+              return t ?? const SizedBox.shrink();
+            }(),
           ],
         ),
       ),
