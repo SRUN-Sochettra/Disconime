@@ -50,6 +50,7 @@ class AnimeProvider extends ChangeNotifier {
   List<Anime> get recommendations => _recommendations;
   FetchState get recommendationsState => _recommendationsState;
   String get recommendationsErrorMessage => _recommendationsError;
+  int get currentRecMalId => _currentRecMalId;
 
   // ── Characters ───────────────────────────────────────────────
   List<AnimeCharacter> _characters = [];

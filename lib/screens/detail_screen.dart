@@ -36,8 +36,16 @@ class _DetailScreenState extends State<DetailScreen>
     super.initState();
     _tabController = TabController(length: _tabCount, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final provider = context.read<AnimeProvider>();
-      provider.clearDetailData();
+
+      // FIX: Only clear if we are viewing a DIFFERENT anime
+      // This prevents wiping cached data when navigating to
+      // the same anime from recommendations
+      if (provider.currentRecMalId != widget.anime.malId) {
+        provider.clearDetailData();
+      }
+
       provider.fetchRecommendations(widget.anime.malId);
       provider.fetchCharacters(widget.anime.malId);
       provider.fetchStaff(widget.anime.malId);
@@ -549,13 +557,15 @@ class _CharacterCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        // AnimeCharacter is already flat — access fields directly
+        // FIX: AnimeCharacter is flat — access fields directly
+        // No nested .character property exists
         final topChar = TopCharacter(
-          malId: character.malId,        // FIX: was character.character.malId
-          name: character.name,          // FIX: was character.character.name
-          imageUrl: character.imageUrl,  // FIX: was character.character.imageUrl
+          malId: character.malId,
+          name: character.name,
+          imageUrl: character.imageUrl,
           favorites: character.favorites ?? 0,
-          animeNames: const [],          // FIX: was role: character.role (wrong field)
+          animeNames: const [],
+          role: character.role, // FIX: Pass role correctly
         );
         final heroTag = 'char_hero_${character.malId}';
         context.push(

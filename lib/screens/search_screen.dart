@@ -100,7 +100,10 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _openDetail(Anime anime) {
-    context.read<SearchHistoryProvider>().addQuery(_controller.text);
+    final query = _controller.text.trim();
+    if (query.isNotEmpty) {
+      context.read<SearchHistoryProvider>().addQuery(query);
+    }
     context.push(
       RouteNames.animeDetailPath(anime.malId),
       extra: anime,

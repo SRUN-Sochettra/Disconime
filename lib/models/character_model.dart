@@ -135,6 +135,8 @@ class TopCharacter {
   final int favorites;
   final List<String> animeNames;
 
+  final String? role; // FIX: Add role field
+
   const TopCharacter({
     required this.malId,
     required this.name,
@@ -142,6 +144,7 @@ class TopCharacter {
     required this.imageUrl,
     required this.favorites,
     required this.animeNames,
+    this.role, // FIX: Optional so existing code doesn't break
   });
 
   factory TopCharacter.fromJson(Map<String, dynamic> json) {
@@ -170,6 +173,7 @@ class TopCharacter {
       imageUrl: jpg?['image_url'] as String? ?? '',
       favorites: json['favorites'] as int? ?? 0,
       animeNames: animeNames,
+      role: null, // Not available in top characters list
     );
   }
 
