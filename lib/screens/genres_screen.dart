@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/anime_provider.dart';
+import '../widgets/section_app_bar.dart';
 import 'package:anime_discovery/providers/fetch_state.dart';
 
 import '../widgets/error_view.dart';
@@ -39,12 +40,7 @@ class _GenresScreenState extends State<GenresScreen>
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'GENRES',
-          style: theme.textTheme.displayLarge?.copyWith(fontSize: 24),
-        ),
-      ),
+      appBar: const SectionAppBar(title: 'Genres'),
       body: Consumer<AnimeProvider>(
         builder: (context, provider, child) {
           if (provider.genresState == FetchState.initial ||

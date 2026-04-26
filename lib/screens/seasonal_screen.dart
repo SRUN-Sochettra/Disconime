@@ -13,6 +13,7 @@ import '../widgets/error_view.dart';
 import '../widgets/pagination_indicator.dart';
 import '../widgets/empty_state.dart';
 import '../router/route_names.dart';
+import 'package:anime_discovery/widgets/section_app_bar.dart';
 
 class SeasonalScreen extends StatefulWidget {
   const SeasonalScreen({super.key});
@@ -265,10 +266,8 @@ class _SeasonalScreenState extends State<SeasonalScreen>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      appBar: AppBar(
-        title: context.select<AnimeProvider, Widget>(
-          (p) => Text(p.seasonLabel),
-        ),
+      appBar: SectionAppBar(
+        title: 'Seasonal',
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_month_outlined),
@@ -306,7 +305,12 @@ class _SeasonalScreenState extends State<SeasonalScreen>
           }
 
           return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _SeasonContextChip(
+                label: provider.seasonLabel,
+                onTap: _showSeasonPicker,
+              ),
               PaginationIndicator(
                 loadedCount: provider.seasonalAnime.length,
                 isLoading:
@@ -373,6 +377,63 @@ class _SeasonalScreenState extends State<SeasonalScreen>
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _SeasonContextChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _SeasonContextChip({
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withAlpha(20),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: theme.colorScheme.primary.withAlpha(40),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.calendar_month_outlined,
+                size: 14,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label.toUpperCase(),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.arrow_drop_down_rounded,
+                size: 18,
+                color: theme.colorScheme.primary,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

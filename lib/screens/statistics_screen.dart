@@ -4,21 +4,15 @@ import '../models/anime_model.dart';
 import '../providers/favorites_provider.dart';
 import '../widgets/stat_chart.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/section_app_bar.dart';
 
 class StatisticsScreen extends StatelessWidget {
   const StatisticsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'STATISTICS',
-          style: theme.textTheme.displayLarge?.copyWith(fontSize: 24),
-        ),
-      ),
+      appBar: const SectionAppBar(title: 'Statistics'),
       body: Consumer<FavoritesProvider>(
         builder: (context, favProvider, child) {
           final favorites = favProvider.favorites;

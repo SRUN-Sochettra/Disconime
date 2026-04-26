@@ -14,6 +14,8 @@ import '../widgets/share_sheet.dart';
 import '../router/route_names.dart'; // ADD
 import '../models/character_model.dart';
 
+import '../widgets/detail_action_button.dart';
+
 class DetailScreen extends StatefulWidget {
   final Anime anime;
   final String? heroTag;
@@ -66,49 +68,32 @@ class _DetailScreenState extends State<DetailScreen>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        leading: CircleAvatar(
-          backgroundColor: Colors.black.withAlpha(100),
-          child: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_rounded,
-              color: Colors.white,
-            ),
+        leadingWidth: 56,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: DetailActionButton(
+            icon: Icons.arrow_back_rounded,
             onPressed: () => context.pop(),
           ),
         ),
         actions: [
-          // ── Share button ──────────────────────────────────────
-          CircleAvatar(
-            backgroundColor: Colors.black.withAlpha(100),
-            child: IconButton(
-              icon: const Icon(
-                Icons.share_rounded,
-                color: Colors.white,
-              ),
-              onPressed: () => ShareSheet.show(context, anime: anime),
-            ),
+          DetailActionButton(
+            icon: Icons.share_rounded,
+            onPressed: () => ShareSheet.show(context, anime: anime),
           ),
-          const SizedBox(width: 8),
-
-          // ── Bookmark button ───────────────────────────────────
-          CircleAvatar(
-            backgroundColor: Colors.black.withAlpha(100),
-            child: Consumer<FavoritesProvider>(
-              builder: (context, favProvider, child) {
-                final isFav = favProvider.isFavorite(anime.malId);
-                return IconButton(
-                  icon: Icon(
-                    isFav
-                        ? Icons.bookmark_rounded
-                        : Icons.bookmark_outline_rounded,
-                    color: isFav
-                        ? theme.colorScheme.primary
-                        : Colors.white,
-                  ),
-                  onPressed: () => favProvider.toggleFavorite(anime),
-                );
-              },
-            ),
+          Consumer<FavoritesProvider>(
+            builder: (context, favProvider, child) {
+              final isFav = favProvider.isFavorite(anime.malId);
+              return DetailActionButton(
+                icon: isFav
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_outline_rounded,
+                iconColor: isFav
+                    ? theme.colorScheme.primary
+                    : Colors.white,
+                onPressed: () => favProvider.toggleFavorite(anime),
+              );
+            },
           ),
           const SizedBox(width: 8),
         ],

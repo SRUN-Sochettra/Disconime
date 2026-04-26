@@ -12,6 +12,7 @@ import '../widgets/anime_card_skeleton.dart';
 import '../widgets/error_view.dart';
 import '../widgets/pagination_indicator.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/sub_page_app_bar.dart';
 import '../router/route_names.dart';
 
 class GenreDetailScreen extends StatefulWidget {
@@ -82,7 +83,7 @@ class _GenreDetailScreenState extends State<GenreDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.genreName)),
+      appBar: SubPageAppBar(title: widget.genreName),
       body: Consumer<AnimeProvider>(
         builder: (context, provider, child) {
           if (provider.genreAnimeState == FetchState.initial ||

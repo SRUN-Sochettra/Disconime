@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../widgets/section_app_bar.dart';
+
 import '../models/schedule_model.dart';
 import '../providers/schedule_provider.dart';
 import 'package:anime_discovery/providers/fetch_state.dart';
@@ -110,11 +112,8 @@ class _ScheduleScreenState extends State<ScheduleScreen>
     final primary = theme.colorScheme.primary;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'SCHEDULE',
-          style: theme.textTheme.displayLarge?.copyWith(fontSize: 24),
-        ),
+      appBar: SectionAppBar(
+        title: 'Schedule',
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: _ScheduleTabBar(
@@ -150,45 +149,48 @@ class _ScheduleTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: theme.dividerColor),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: theme.dividerColor),
+          ),
         ),
-      ),
-      child: TabBar(
-        controller: controller,
-        isScrollable: true,
-        tabAlignment: TabAlignment.start,
-        labelColor: primary,
-        unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-        indicatorColor: primary,
-        indicatorWeight: 2,
-        labelStyle: theme.textTheme.labelMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-        ),
-        unselectedLabelStyle: theme.textTheme.labelMedium,
-        tabs: BroadcastDay.values.map((day) {
-          return Tab(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(day.label),
-                if (day.isToday) ...[
-                  const SizedBox(width: 4),
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: primary,
-                      shape: BoxShape.circle,
+        child: TabBar(
+          controller: controller,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          labelColor: primary,
+          unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+          indicatorColor: primary,
+          indicatorWeight: 2,
+          labelStyle: theme.textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+          unselectedLabelStyle: theme.textTheme.labelMedium,
+          tabs: BroadcastDay.values.map((day) {
+            return Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(day.label),
+                  if (day.isToday) ...[
+                    const SizedBox(width: 4),
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: primary,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
-            ),
-          );
-        }).toList(),
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }

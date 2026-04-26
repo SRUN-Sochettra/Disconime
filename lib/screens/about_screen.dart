@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/section_app_bar.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -8,12 +9,7 @@ class AboutScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'ABOUT',
-          style: theme.textTheme.displayLarge?.copyWith(fontSize: 24),
-        ),
-      ),
+      appBar: const SectionAppBar(title: 'About'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(

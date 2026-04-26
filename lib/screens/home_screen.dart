@@ -14,6 +14,7 @@ import 'package:anime_discovery/widgets/filter_sheet.dart';
 import 'package:anime_discovery/widgets/anime_image.dart';
 import 'package:anime_discovery/widgets/pagination_indicator.dart';
 import 'package:anime_discovery/router/route_names.dart';
+import 'package:anime_discovery/widgets/section_app_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -102,14 +103,11 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'DISCONIME',
-          style: theme.textTheme.displayLarge?.copyWith(fontSize: 26),
-        ),
+      appBar: SectionAppBar(
+        title: 'Disconime',
+        fontSize: 26,
         leading: Consumer<ThemeProvider>(
           builder: (context, themeProvider, child) {
             return IconButton(
@@ -131,8 +129,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ? Icons.view_list_rounded
                   : Icons.grid_view_rounded,
             ),
-            onPressed: () =>
-                setState(() => _isGridView = !_isGridView),
+            onPressed: () => setState(() => _isGridView = !_isGridView),
           ),
         ],
       ),

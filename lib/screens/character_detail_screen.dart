@@ -8,6 +8,7 @@ import '../providers/fetch_state.dart';
 import '../widgets/anime_image.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/error_view.dart';
+import '../widgets/detail_action_button.dart';
 import '../router/route_names.dart';
 
 class CharacterDetailScreen extends StatefulWidget {
@@ -46,14 +47,12 @@ class _CharacterDetailScreenState extends State<CharacterDetailScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        leading: CircleAvatar(
-          backgroundColor: Colors.black.withAlpha(100),
-          child: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_rounded,
-              color: Colors.white,
-            ),
-            onPressed: () => Navigator.pop(context),
+        leadingWidth: 56,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: DetailActionButton(
+            icon: Icons.arrow_back_rounded,
+            onPressed: () => context.pop(),
           ),
         ),
       ),

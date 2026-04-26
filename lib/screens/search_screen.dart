@@ -14,6 +14,7 @@ import 'package:anime_discovery/widgets/error_view.dart';
 import 'package:anime_discovery/widgets/pagination_indicator.dart';
 import 'package:anime_discovery/widgets/empty_state.dart';
 import 'package:anime_discovery/router/route_names.dart';
+import 'package:anime_discovery/widgets/section_app_bar.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -118,7 +119,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final primary = theme.colorScheme.primary;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('SEARCH')),
+      appBar: const SectionAppBar(title: 'Search'),
       body: Column(
         children: [
           Padding(

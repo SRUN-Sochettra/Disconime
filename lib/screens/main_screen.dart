@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:anime_discovery/widgets/offline_banner.dart';
 import 'package:anime_discovery/router/route_names.dart';
+import 'package:anime_discovery/widgets/app_chrome.dart';
 
 class MainScreen extends StatelessWidget {
   final Widget child;
@@ -126,51 +127,52 @@ class MainScreen extends StatelessWidget {
         ),
         child: SafeArea(
           top: false,
-          child: SizedBox(
-            height: 56,
-            child: Row(
-              children: [
-                // ── Bottom tab items ───────────────────────────
-                ..._bottomTabs.asMap().entries.map((entry) {
-                  final i = entry.key;
-                  final tab = entry.value;
-                  final selected = i == currentBottomIndex;
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+            child: SizedBox(
+              height: AppChrome.bottomNavHeight,
+              child: Row(
+                children: [
+                  ..._bottomTabs.asMap().entries.map((entry) {
+                    final i = entry.key;
+                    final tab = entry.value;
+                    final selected = i == currentBottomIndex;
 
-                  return Expanded(
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          if (selected) return;
+                          context.go(tab.route);
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: _NavBarIcon(
+                          icon: selected ? tab.activeIcon : tab.icon,
+                          label: tab.label,
+                          selected: selected,
+                          primary: primary,
+                          muted: muted,
+                        ),
+                      ),
+                    );
+                  }),
+
+                  Expanded(
                     child: GestureDetector(
-                      onTap: () {
-                        if (selected) return;
-                        context.go(tab.route);
-                      },
+                      onTap: () => _showMoreSheet(context, path),
                       behavior: HitTestBehavior.opaque,
                       child: _NavBarIcon(
-                        icon: selected ? tab.activeIcon : tab.icon,
-                        label: tab.label,
-                        selected: selected,
+                        icon: isOnMorePage
+                            ? Icons.menu_rounded
+                            : Icons.menu_outlined,
+                        label: 'More',
+                        selected: isOnMorePage,
                         primary: primary,
                         muted: muted,
                       ),
                     ),
-                  );
-                }),
-
-                // ── "More" button ──────────────────────────────
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _showMoreSheet(context, path),
-                    behavior: HitTestBehavior.opaque,
-                    child: _NavBarIcon(
-                      icon: isOnMorePage
-                          ? Icons.menu_rounded
-                          : Icons.menu_outlined,
-                      label: 'More',
-                      selected: isOnMorePage,
-                      primary: primary,
-                      muted: muted,
-                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -190,8 +192,9 @@ class MainScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: theme.scaffoldBackgroundColor,
             borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(20),
+              top: Radius.circular(AppChrome.sheetRadius),
             ),
+            border: Border.all(color: theme.dividerColor),
           ),
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           child: Column(
@@ -210,46 +213,77 @@ class MainScreen extends StatelessWidget {
                 ),
               ),
 
-              // ── Menu items ──────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Text(
+                      'MORE',
+                      style:
+                          theme.textTheme.displayLarge?.copyWith(fontSize: 22),
+                    ),
+                  ],
+                ),
+              ),
+
               ..._moreItems.map((item) {
                 final isActive = currentPath == item.route ||
                     currentPath.startsWith('${item.route}/');
 
-                return ListTile(
-                  leading: Icon(
-                    isActive ? item.activeIcon : item.icon,
-                    color: isActive ? primary : null,
-                    size: 22,
-                  ),
-                  title: Text(
-                    item.label,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontSize: 14,
-                      color: isActive ? primary : null,
-                      fontWeight: isActive
-                          ? FontWeight.bold
-                          : FontWeight.normal,
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Material(
+                    color: isActive
+                        ? primary.withAlpha(AppChrome.subtleFillAlpha)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(14),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        if (!isActive) {
+                          context.go(item.route);
+                        }
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isActive
+                                ? primary.withAlpha(AppChrome.subtleBorderAlpha)
+                                : Colors.transparent,
+                          ),
+                        ),
+                        child: ListTile(
+                          leading: Icon(
+                            isActive ? item.activeIcon : item.icon,
+                            color: isActive ? primary : null,
+                            size: 22,
+                          ),
+                          title: Text(
+                            item.label,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontSize: 14,
+                              color: isActive ? primary : null,
+                              fontWeight: isActive
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          trailing: isActive
+                              ? Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                )
+                              : null,
+                        ),
+                      ),
                     ),
                   ),
-                  trailing: isActive
-                      ? Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: primary,
-                            shape: BoxShape.circle,
-                          ),
-                        )
-                      : null,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    if (!isActive) {
-                      context.go(item.route);
-                    }
-                  },
                 );
               }),
               const SizedBox(height: 8),
@@ -279,27 +313,47 @@ class _NavBarIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          size: 22,
-          color: selected ? primary : muted,
+    final theme = Theme.of(context);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: selected
+            ? primary.withAlpha(AppChrome.subtleFillAlpha)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppChrome.navItemRadius),
+        border: Border.all(
+          color: selected
+              ? primary.withAlpha(AppChrome.subtleBorderAlpha)
+              : Colors.transparent,
         ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: AppChrome.navIconSize,
             color: selected ? primary : muted,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontSize: 10,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              color: selected ? primary : muted,
+              letterSpacing: 0.2,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 }

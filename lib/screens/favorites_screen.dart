@@ -6,6 +6,7 @@ import '../models/anime_model.dart';
 import '../widgets/anime_list_tile.dart';
 import '../widgets/empty_state.dart';
 import '../router/route_names.dart';
+import '../widgets/section_app_bar.dart';
 
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
@@ -15,7 +16,7 @@ class FavoritesScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('SAVED')),
+      appBar: const SectionAppBar(title: 'Saved'),
       body: Consumer<FavoritesProvider>(
         builder: (context, provider, child) {
           if (provider.favorites.isEmpty) {

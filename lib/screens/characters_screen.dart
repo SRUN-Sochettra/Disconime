@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../models/character_model.dart';
 import '../providers/characters_provider.dart';
+import '../widgets/section_app_bar.dart';
 import 'package:anime_discovery/providers/fetch_state.dart';
 
 import '../router/route_names.dart';
@@ -81,15 +82,9 @@ class _CharactersScreenState extends State<CharactersScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'CHARACTERS',
-          style: theme.textTheme.displayLarge?.copyWith(fontSize: 24),
-        ),
-      ),
+      appBar: const SectionAppBar(title: 'Characters'),
       body: Consumer<CharactersProvider>(
         builder: (context, provider, child) {
           if (provider.topCharactersState == FetchState.initial ||
