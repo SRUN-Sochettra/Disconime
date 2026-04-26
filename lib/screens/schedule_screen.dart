@@ -25,7 +25,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
 
   final Map<BroadcastDay, ScrollController> _scrollControllers = {};
   final Map<BroadcastDay, Timer?> _scrollDebounces = {};
-  final Map<BroadcastDay, bool> _loadMoreArmed = {};
 
   static const Duration _scrollDebounceDuration =
       Duration(milliseconds: 150);
@@ -45,7 +44,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
     for (final day in BroadcastDay.values) {
       _scrollControllers[day] = ScrollController()
         ..addListener(() => _onScroll(day));
-      _loadMoreArmed[day] = true;
     }
 
     _tabController.addListener(() {
@@ -66,18 +64,13 @@ class _ScheduleScreenState extends State<ScheduleScreen>
     final position = controller.position;
     if (position.maxScrollExtent <= 0) return;
 
-    if (position.extentAfter > 200) {
-      _loadMoreArmed[day] = true;
+    if (position.pixels < position.maxScrollExtent - 200) {
       _scrollDebounces[day]?.cancel();
       return;
     }
 
-    if (!(_loadMoreArmed[day] ?? true) ||
-        (_scrollDebounces[day]?.isActive ?? false)) {
-      return;
-    }
+    if (_scrollDebounces[day]?.isActive ?? false) return;
 
-    _loadMoreArmed[day] = false;
     _scrollDebounces[day] = Timer(_scrollDebounceDuration, () {
       if (!mounted) return;
 

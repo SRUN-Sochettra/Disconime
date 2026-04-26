@@ -173,53 +173,58 @@ class AnimeProvider extends ChangeNotifier {
   }
 
   // ── Search ───────────────────────────────────────────────────
-  Future<void> searchAnime(String query, {bool loadMore = false}) async {
-    if (query.isEmpty) {
-      _searchState = FetchState.initial;
-      _searchResults = [];
-      _currentQuery = '';
-      _hasMoreSearchResults = true;
-      notifyListeners();
-      return;
-    }
+  // ADD a current search tag to prevent race conditions
+String? _activeSearchQuery;
 
-    if (query != _currentQuery) {
-      _currentQuery = query;
-      _hasMoreSearchResults = true;
-      loadMore = false;
-    }
-
-    if (loadMore) {
-      if (!_hasMoreSearchResults) return;
-      if (_searchState == FetchState.loading) return;
-      _searchState = FetchState.loading;
-      notifyListeners();
-    } else {
-      if (_searchState == FetchState.loading) return;
-      _searchResults = [];
-      _searchState = FetchState.loading;
-      notifyListeners();
-    }
-
-    final pageToFetch = loadMore ? _currentSearchPage + 1 : 1;
-
-    try {
-      final results =
-          await _apiService.searchAnime(query, page: pageToFetch);
-      // Guard: discard if the user changed the query while awaiting.
-      if (query != _currentQuery) return;
-      if (results.isEmpty) _hasMoreSearchResults = false;
-      _searchResults =
-          loadMore ? [..._searchResults, ...results] : results;
-      _currentSearchPage = pageToFetch;
-      _searchState = FetchState.loaded;
-      _searchError = '';
-    } catch (e) {
-      _searchState = FetchState.error;
-      _searchError = friendlyError(e);
-    }
+Future<void> searchAnime(String query, {bool loadMore = false}) async {
+  final trimmedQuery = query.trim();
+  
+  if (trimmedQuery.isEmpty) {
+    _searchState = FetchState.initial;
+    _searchResults = [];
+    _activeSearchQuery = null;
     notifyListeners();
+    return;
   }
+
+  // Prevent duplicate identical searches
+  if (!loadMore && trimmedQuery == _activeSearchQuery && _searchState == FetchState.loaded) return;
+
+  _activeSearchQuery = trimmedQuery;
+
+  if (loadMore) {
+    if (!_hasMoreSearchResults || _searchState == FetchState.loading) return;
+  } else {
+    _searchResults = [];
+    _currentSearchPage = 1;
+    _hasMoreSearchResults = true;
+  }
+
+  _searchState = FetchState.loading;
+  notifyListeners();
+
+  try {
+    final pageToFetch = loadMore ? _currentSearchPage + 1 : 1;
+    final results = await _apiService.searchAnime(trimmedQuery, page: pageToFetch);
+
+    // RACE CONDITION GUARD: Only update if this is still the active query
+    if (trimmedQuery != _activeSearchQuery) return;
+
+    if (results.isEmpty) {
+      _hasMoreSearchResults = false;
+    } else {
+      _searchResults = loadMore ? [..._searchResults, ...results] : results;
+      _currentSearchPage = pageToFetch;
+    }
+    _searchState = FetchState.loaded;
+    _searchError = '';
+  } catch (e) {
+    if (trimmedQuery != _activeSearchQuery) return;
+    _searchState = FetchState.error;
+    _searchError = friendlyError(e);
+  }
+  notifyListeners();
+}
 
   // ── Recommendations ──────────────────────────────────────────
   Future<void> fetchRecommendations(int malId) async {

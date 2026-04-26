@@ -25,7 +25,6 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
 
   static const Duration _scrollDebounceDuration = Duration(milliseconds: 150);
   Timer? _scrollDebounce;
-  bool _isLoadMoreArmed = true;
 
   @override
   void initState() {
@@ -41,15 +40,13 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
     final position = _scrollController.position;
     if (position.maxScrollExtent <= 0) return;
 
-    if (position.extentAfter > 200) {
-      _isLoadMoreArmed = true;
+    if (position.pixels < position.maxScrollExtent - 200) {
       _scrollDebounce?.cancel();
       return;
     }
 
-    if (!_isLoadMoreArmed || (_scrollDebounce?.isActive ?? false)) return;
+    if (_scrollDebounce?.isActive ?? false) return;
 
-    _isLoadMoreArmed = false;
     _scrollDebounce = Timer(_scrollDebounceDuration, () {
       if (!mounted) return;
       final provider = context.read<AnimeProvider>();

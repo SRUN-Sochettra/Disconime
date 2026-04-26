@@ -34,37 +34,53 @@ class Anime {
   });
 
   factory Anime.fromJson(Map<String, dynamic> json) {
-    final genreList = <String>[];
-    if (json['genres'] != null) {
-      for (final v in json['genres'] as List<dynamic>) {
-        final name = (v as Map<String, dynamic>)['name'];
-        if (name != null) genreList.add(name as String);
-      }
+  final genreList = <String>[];
+  if (json['genres'] != null) {
+    for (final v in json['genres'] as List<dynamic>) {
+      final name = (v as Map<String, dynamic>)['name'];
+      if (name != null) genreList.add(name as String);
     }
-
-    return Anime(
-      malId: json['mal_id'] as int? ?? 0,
-      title: json['title'] as String? ?? '',
-      titleEnglish: json['title_english'] as String?,
-      titleJapanese: json['title_japanese'] as String?,
-      imageUrl: json['images']?['jpg']?['large_image_url'] as String? ??
-          json['images']?['jpg']?['image_url'] as String? ??
-          '',
-      type: json['type'] as String?,
-      episodes: json['episodes'] as int?,
-      status: json['status'] as String?,
-      duration: json['duration'] as String?,
-      rating: json['rating'] as String?,
-      score: Score.fromJson(json),
-      synopsis: Synopsis.fromJson(json),
-      genres: genreList,
-      year: (json['year'] as int?)?.toString() ??
-          (json['aired']?['prop']?['from']?['year'] as int?)?.toString(),
-      trailer: json['trailer'] != null
-          ? Trailer.fromJson(json['trailer'] as Map<String, dynamic>)
-          : null,
-    );
   }
+
+  // Helper to safely parse numbers that might come as int or double
+  double? parseScore(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value.toDouble();
+    if (value is double) return value;
+    return double.tryParse(value.toString());
+  }
+
+  return Anime(
+    malId: json['mal_id'] as int? ?? 0,
+    title: json['title'] as String? ?? 'Unknown Title',
+    titleEnglish: json['title_english'] as String?,
+    titleJapanese: json['title_japanese'] as String?,
+    imageUrl: json['images']?['jpg']?['large_image_url'] as String? ??
+        json['images']?['jpg']?['image_url'] as String? ??
+        '',
+    type: json['type'] as String?,
+    episodes: json['episodes'] as int?,
+    status: json['status'] as String?,
+    duration: json['duration'] as String?,
+    rating: json['rating'] as String?,
+    score: Score(
+      value: parseScore(json['score']),
+      scoredBy: json['scored_by'] as int?,
+      rank: json['rank'] as int?,
+      popularity: json['popularity'] as int?,
+    ),
+    synopsis: Synopsis(
+      text: json['synopsis'] as String? ?? 'No synopsis available.',
+      background: json['background'] as String?,
+    ),
+    genres: genreList,
+    year: json['year']?.toString() ?? 
+          json['aired']?['prop']?['from']?['year']?.toString(),
+    trailer: json['trailer'] != null
+        ? Trailer.fromJson(json['trailer'] as Map<String, dynamic>)
+        : null,
+  );
+}
 
   Map<String, dynamic> toJson() {
     return {

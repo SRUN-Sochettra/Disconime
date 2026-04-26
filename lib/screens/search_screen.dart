@@ -26,7 +26,6 @@ class _SearchScreenState extends State<SearchScreen> {
 
   static const Duration _scrollDebounceDuration = Duration(milliseconds: 150);
   Timer? _scrollDebounce;
-  bool _isLoadMoreArmed = true;
 
   static const Duration _typingDebounceDuration = Duration(milliseconds: 500);
   Timer? _typingDebounce;
@@ -53,7 +52,6 @@ class _SearchScreenState extends State<SearchScreen> {
     _typingDebounce = Timer(_typingDebounceDuration, () {
       if (!mounted) return;
       context.read<AnimeProvider>().searchAnime(text);
-      _isLoadMoreArmed = true;
     });
   }
 
@@ -62,15 +60,13 @@ class _SearchScreenState extends State<SearchScreen> {
     final position = _scrollController.position;
     if (position.maxScrollExtent <= 0) return;
 
-    if (position.extentAfter > 200) {
-      _isLoadMoreArmed = true;
+    if (position.pixels < position.maxScrollExtent - 200) {
       _scrollDebounce?.cancel();
       return;
     }
 
-    if (!_isLoadMoreArmed || (_scrollDebounce?.isActive ?? false)) return;
+    if (_scrollDebounce?.isActive ?? false) return;
 
-    _isLoadMoreArmed = false;
     _scrollDebounce = Timer(_scrollDebounceDuration, () {
       if (!mounted) return;
       final provider = context.read<AnimeProvider>();
@@ -100,7 +96,6 @@ class _SearchScreenState extends State<SearchScreen> {
     if (query.isNotEmpty) {
       context.read<SearchHistoryProvider>().addQuery(query);
       context.read<AnimeProvider>().searchAnime(query);
-      _isLoadMoreArmed = true;
     }
   }
 
