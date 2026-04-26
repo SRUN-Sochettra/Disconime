@@ -248,7 +248,9 @@ class AnimeCharacter {
     return AnimeCharacter(
       malId: character['mal_id'] as int? ?? 0,
       name: character['name'] as String? ?? '',
-      imageUrl: jpg?['image_url'] as String? ?? '',
+      imageUrl: jpg?['large_image_url'] as String? ??
+          jpg?['image_url'] as String? ??
+          '',
       role: json['role'] as String? ?? '',
       // FIX: favorites is nested inside character, not at top level
       favorites: character['favorites'] as int? ?? json['favorites'] as int?,

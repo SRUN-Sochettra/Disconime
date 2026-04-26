@@ -170,7 +170,9 @@ class TopCharacter {
       malId: character['mal_id'] as int? ?? 0,
       name: character['name'] as String? ?? '',
       nameKanji: character['name_kanji'] as String?,
-      imageUrl: jpg?['image_url'] as String? ?? '',
+      imageUrl: jpg?['large_image_url'] as String? ??
+          jpg?['image_url'] as String? ??
+          '',
       favorites: json['favorites'] as int? ?? 0,
       animeNames: animeNames,
       role: null, // Not available in top characters list

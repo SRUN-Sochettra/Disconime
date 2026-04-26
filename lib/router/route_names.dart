@@ -15,7 +15,7 @@ abstract class RouteNames {
   // ── Detail screens (pushed on top of shell) ───────────────────
   static const String animeDetail = '/anime/:malId';
   static const String genreDetail = '/genres/:genreId';
-  static const String characterDetail = '/characters/:malId';
+  static const String characterDetail = '/character/:malId';
 
   // ── Helpers ───────────────────────────────────────────────────
   /// Builds the anime detail path for a given [malId].
@@ -25,5 +25,5 @@ abstract class RouteNames {
   static String genreDetailPath(int genreId) => '/genres/$genreId';
 
   /// Builds the character detail path for a given [malId].
-  static String characterDetailPath(int malId) => '/characters/$malId';
+  static String characterDetailPath(int malId) => '/character/$malId';
 }
