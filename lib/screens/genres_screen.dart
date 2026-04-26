@@ -56,7 +56,7 @@ class _GenresScreenState extends State<GenresScreen>
                   mainAxisSpacing: 12,
                 ),
                 itemCount: 16,
-                itemBuilder: (_, __) =>
+                itemBuilder: (_, _) =>
                     const SkeletonBox(borderRadius: 12),
               ),
             );

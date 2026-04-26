@@ -8,7 +8,6 @@ class SectionAppBar extends StatelessWidget implements PreferredSizeWidget {
   final PreferredSizeWidget? bottom;
   final bool uppercase;
   final double fontSize;
-  final double toolbarHeight;
 
   const SectionAppBar({
     super.key,
@@ -17,32 +16,50 @@ class SectionAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.bottom,
     this.uppercase = true,
-    this.fontSize = 24,
-    this.toolbarHeight = AppChrome.sectionAppBarHeight,
+    this.fontSize = 22,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
 
     return AppBar(
       leading: leading,
       leadingWidth: leading != null ? 56 : null,
-      toolbarHeight: toolbarHeight,
+      toolbarHeight: AppChrome.sectionAppBarHeight,
       centerTitle: false,
-      titleSpacing: 20,
+      titleSpacing: 24,
       elevation: 0,
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
-      title: Text(
-        uppercase ? title.toUpperCase() : title,
-        style: theme.textTheme.displayLarge?.copyWith(fontSize: fontSize),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Gold accent bar before title
+          Container(
+            width: 3,
+            height: 20,
+            decoration: BoxDecoration(
+              color: primary,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            uppercase ? title.toUpperCase() : title,
+            style: theme.textTheme.displayLarge?.copyWith(
+              fontSize: fontSize,
+              letterSpacing: 2.0,
+            ),
+          ),
+        ],
       ),
       actions: actions != null
           ? [
-              const SizedBox(width: 4),
               ...actions!,
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
             ]
           : null,
       bottom: bottom,
@@ -51,6 +68,7 @@ class SectionAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => Size.fromHeight(
-        toolbarHeight + (bottom?.preferredSize.height ?? 0),
+        AppChrome.sectionAppBarHeight +
+            (bottom?.preferredSize.height ?? 0),
       );
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:anime_discovery/providers/theme_provider.dart';
 import 'package:anime_discovery/widgets/offline_banner.dart';
 import 'package:anime_discovery/router/route_names.dart';
 import 'package:anime_discovery/widgets/app_chrome.dart';
@@ -9,7 +11,7 @@ class MainScreen extends StatelessWidget {
 
   const MainScreen({super.key, required this.child});
 
-  // ── Only 5 bottom tabs ─────────────────────────────────────────
+  // ── Only 4 bottom tabs ─────────────────────────────────────────
   static const List<_TabItem> _bottomTabs = [
     _TabItem(
       route: RouteNames.home,
@@ -80,8 +82,6 @@ class MainScreen extends StatelessWidget {
         if (path == route || path.startsWith('$route/')) return i;
       }
     }
-    // If current route is a "more" item, no bottom tab is selected
-    // → return -1 to highlight the "More" button instead
     return -1;
   }
 
@@ -122,57 +122,54 @@ class MainScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: bg,
           border: Border(
-            top: BorderSide(color: theme.dividerColor, width: 1),
+            top: BorderSide(color: theme.dividerColor, width: 0.5),
           ),
         ),
         child: SafeArea(
           top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
-            child: SizedBox(
-              height: AppChrome.bottomNavHeight,
-              child: Row(
-                children: [
-                  ..._bottomTabs.asMap().entries.map((entry) {
-                    final i = entry.key;
-                    final tab = entry.value;
-                    final selected = i == currentBottomIndex;
+          child: SizedBox(
+            height: AppChrome.bottomNavHeight,
+            child: Row(
+              children: [
+                ..._bottomTabs.asMap().entries.map((entry) {
+                  final i = entry.key;
+                  final tab = entry.value;
+                  final selected = i == currentBottomIndex;
 
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          if (selected) return;
-                          context.go(tab.route);
-                        },
-                        behavior: HitTestBehavior.opaque,
-                        child: _NavBarIcon(
-                          icon: selected ? tab.activeIcon : tab.icon,
-                          label: tab.label,
-                          selected: selected,
-                          primary: primary,
-                          muted: muted,
-                        ),
-                      ),
-                    );
-                  }),
-
-                  Expanded(
+                  return Expanded(
                     child: GestureDetector(
-                      onTap: () => _showMoreSheet(context, path),
+                      onTap: () {
+                        if (selected) return;
+                        context.go(tab.route);
+                      },
                       behavior: HitTestBehavior.opaque,
                       child: _NavBarIcon(
-                        icon: isOnMorePage
-                            ? Icons.menu_rounded
-                            : Icons.menu_outlined,
-                        label: 'More',
-                        selected: isOnMorePage,
+                        icon: selected ? tab.activeIcon : tab.icon,
+                        label: tab.label,
+                        selected: selected,
                         primary: primary,
                         muted: muted,
                       ),
                     ),
+                  );
+                }),
+
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _showMoreSheet(context, path),
+                    behavior: HitTestBehavior.opaque,
+                    child: _NavBarIcon(
+                      icon: isOnMorePage
+                          ? Icons.menu_rounded
+                          : Icons.menu_outlined,
+                      label: 'More',
+                      selected: isOnMorePage,
+                      primary: primary,
+                      muted: muted,
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -187,112 +184,247 @@ class MainScreen extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (sheetContext) {
         return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
+          ),
           decoration: BoxDecoration(
             color: theme.scaffoldBackgroundColor,
             borderRadius: const BorderRadius.vertical(
               top: Radius.circular(AppChrome.sheetRadius),
             ),
-            border: Border.all(color: theme.dividerColor),
           ),
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ── Handle ──────────────────────────────────────
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: theme.dividerColor,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    Image.asset(
-                      'assets/icons/app_logo.png',
-                      width: 28,
-                      height: 28,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'MORE',
-                      style: theme.textTheme.displayLarge?.copyWith(fontSize: 22),
-                    ),
-                  ],
-                ),
-              ),
-
-              ..._moreItems.map((item) {
-                final isActive = currentPath == item.route ||
-                    currentPath.startsWith('${item.route}/');
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Material(
-                    color: isActive
-                        ? primary.withAlpha(AppChrome.subtleFillAlpha)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(14),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: () {
-                        Navigator.pop(sheetContext);
-                        if (!isActive) {
-                          context.go(item.route);
-                        }
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: isActive
-                                ? primary.withAlpha(AppChrome.subtleBorderAlpha)
-                                : Colors.transparent,
-                          ),
-                        ),
-                        child: ListTile(
-                          leading: Icon(
-                            isActive ? item.activeIcon : item.icon,
-                            color: isActive ? primary : null,
-                            size: 22,
-                          ),
-                          title: Text(
-                            item.label,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontSize: 14,
-                              color: isActive ? primary : null,
-                              fontWeight: isActive
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                          trailing: isActive
-                              ? Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: primary,
-                                    shape: BoxShape.circle,
-                                  ),
-                                )
-                              : null,
-                        ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Handle ────────────────────────────────────
+                  Center(
+                    child: Container(
+                      width: 32,
+                      height: 3,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: theme.dividerColor,
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
-                );
-              }),
-              const SizedBox(height: 8),
-            ],
+
+                  // ── Title ─────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 3,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: primary,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'MORE',
+                          style: theme.textTheme.displayLarge?.copyWith(
+                            fontSize: 20,
+                            letterSpacing: 2.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Scrollable menu items ─────────────────────
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ..._moreItems.map((item) {
+                            final isActive = currentPath == item.route ||
+                                currentPath.startsWith('${item.route}/');
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 2),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () {
+                                  Navigator.pop(sheetContext);
+                                  if (!isActive) {
+                                    context.go(item.route);
+                                  }
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 12,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        width: 3,
+                                        height: isActive ? 20 : 0,
+                                        margin: const EdgeInsets.only(
+                                          right: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: primary,
+                                          borderRadius:
+                                              BorderRadius.circular(2),
+                                        ),
+                                      ),
+                                      Icon(
+                                        isActive
+                                            ? item.activeIcon
+                                            : item.icon,
+                                        color: isActive ? primary : null,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Text(
+                                          item.label,
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(
+                                            fontSize: 14,
+                                            color: isActive ? primary : null,
+                                            fontWeight: isActive
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isActive)
+                                        Container(
+                                          width: 6,
+                                          height: 6,
+                                          decoration: BoxDecoration(
+                                            color: primary,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+
+                          // ── Divider ──────────────────────────
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                            child: Divider(
+                              color: theme.dividerColor.withAlpha(60),
+                              height: 1,
+                            ),
+                          ),
+
+                          // ── Theme toggle ─────────────────────
+                          Consumer<ThemeProvider>(
+                            builder: (context, themeProvider, child) {
+                              final isDark = themeProvider.isDarkMode;
+
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () {
+                                  themeProvider.toggleTheme(!isDark);
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 12,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 3,
+                                        height: 20,
+                                        margin: const EdgeInsets.only(
+                                          right: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: primary,
+                                          borderRadius:
+                                              BorderRadius.circular(2),
+                                        ),
+                                      ),
+                                      Icon(
+                                        isDark
+                                            ? Icons.light_mode_outlined
+                                            : Icons.dark_mode_outlined,
+                                        color: primary,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Text(
+                                          isDark ? 'Light Mode' : 'Dark Mode',
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(
+                                            fontSize: 14,
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ),
+                                      Container(
+                                        width: 36,
+                                        height: 20,
+                                        decoration: BoxDecoration(
+                                          color: primary.withAlpha(20),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          border: Border.all(
+                                            color: primary.withAlpha(40),
+                                          ),
+                                        ),
+                                        child: AnimatedAlign(
+                                          duration: const Duration(
+                                            milliseconds: 200,
+                                          ),
+                                          curve: Curves.easeOut,
+                                          alignment: isDark
+                                              ? Alignment.centerRight
+                                              : Alignment.centerLeft,
+                                          child: Container(
+                                            width: 16,
+                                            height: 16,
+                                            margin: const EdgeInsets.all(1),
+                                            decoration: BoxDecoration(
+                                              color: primary,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       },
@@ -318,47 +450,55 @@ class _NavBarIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      decoration: BoxDecoration(
-        color: selected
-            ? primary.withAlpha(AppChrome.subtleFillAlpha)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(AppChrome.navItemRadius),
-        border: Border.all(
-          color: selected
-              ? primary.withAlpha(AppChrome.subtleBorderAlpha)
-              : Colors.transparent,
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── Gold dot — always takes space, only fades ──────
+        AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          opacity: selected ? 1.0 : 0.0,
+          child: Container(
+            width: 4,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 4),
+            decoration: BoxDecoration(
+              color: primary,
+              shape: BoxShape.circle,
+            ),
+          ),
         ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
+
+        // ── Icon ───────────────────────────────────────────
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 150),
+          child: Icon(
             icon,
+            key: ValueKey(selected),
             size: AppChrome.navIconSize,
             color: selected ? primary : muted,
           ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontSize: 10,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              color: selected ? primary : muted,
-              letterSpacing: 0.2,
-            ),
+        ),
+        const SizedBox(height: 4),
+
+        // ── Label ──────────────────────────────────────────
+        AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 200),
+          style: TextStyle(
+            fontSize: 8,
+            height: 1.0,
+            fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+            color: selected ? primary : muted,
+            letterSpacing: 1.2,
+          ),
+          child: Text(
+            label.toUpperCase(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

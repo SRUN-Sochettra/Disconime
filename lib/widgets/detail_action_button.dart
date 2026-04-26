@@ -20,16 +20,23 @@ class DetailActionButton extends StatelessWidget {
       height: AppChrome.actionButtonSize,
       margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withAlpha(AppChrome.overlayFillAlpha),
+        color: Colors.black.withAlpha(130),
         shape: BoxShape.circle,
         border: Border.all(
-          color: Colors.white.withAlpha(AppChrome.overlayBorderAlpha),
+          color: Colors.white.withAlpha(20),
+          width: 0.5,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(40),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: IconButton(
         padding: EdgeInsets.zero,
         iconSize: 20,
-        splashRadius: 20,
         icon: Icon(
           icon,
           color: iconColor ?? Colors.white,

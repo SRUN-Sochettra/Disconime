@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:anime_discovery/models/anime_model.dart';
 import 'package:anime_discovery/providers/anime_provider.dart';
 import 'package:anime_discovery/providers/fetch_state.dart';
-import 'package:anime_discovery/providers/theme_provider.dart';
 import 'package:anime_discovery/widgets/anime_card_skeleton.dart';
 import 'package:anime_discovery/widgets/anime_list_tile.dart';
 import 'package:anime_discovery/widgets/skeleton_loader.dart';
@@ -14,6 +13,8 @@ import 'package:anime_discovery/widgets/filter_sheet.dart';
 import 'package:anime_discovery/widgets/anime_image.dart';
 import 'package:anime_discovery/widgets/pagination_indicator.dart';
 import 'package:anime_discovery/router/route_names.dart';
+import 'package:anime_discovery/widgets/section_app_bar.dart';
+import 'package:anime_discovery/widgets/view_toggle.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -105,50 +106,14 @@ class _HomeScreenState extends State<HomeScreen>
     super.build(context); // Required for AutomaticKeepAliveClientMixin
 
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 64,
-        centerTitle: false,
-        titleSpacing: 20,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              'assets/icons/app_logo.png',
-              width: 32,
-              height: 32,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'DISCONIME',
-              style: Theme.of(context)
-                  .textTheme
-                  .displayLarge
-                  ?.copyWith(fontSize: 26),
-            ),
-          ],
-        ),
-        leading: Consumer<ThemeProvider>(
-          builder: (context, themeProvider, child) {
-            return IconButton(
-              icon: Icon(
-                themeProvider.isDarkMode
-                    ? Icons.light_mode_outlined
-                    : Icons.dark_mode_outlined,
-              ),
-              onPressed: () =>
-                  themeProvider.toggleTheme(!themeProvider.isDarkMode),
-            );
-          },
-        ),
+      appBar: SectionAppBar(
+        title: 'Disconime',
+        fontSize: 22,
         actions: [
           _FilterActionButton(onPressed: _showFilterSheet),
-          IconButton(
-            icon: Icon(
-              _isGridView
-                  ? Icons.view_list_rounded
-                  : Icons.grid_view_rounded,
-            ),
-            onPressed: () => setState(() => _isGridView = !_isGridView),
+          ViewToggleButton(
+            isGridView: _isGridView,
+            onToggle: () => setState(() => _isGridView = !_isGridView),
           ),
           const SizedBox(width: 8),
         ],

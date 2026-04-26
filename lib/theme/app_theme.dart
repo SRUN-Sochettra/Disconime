@@ -55,10 +55,10 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         centerTitle: false,
         iconTheme: IconThemeData(color: primaryColor),
-        titleTextStyle: GoogleFonts.cormorantGaramond(
+        titleTextStyle: GoogleFonts.inter(
           color: primaryColor,
           fontSize: 24,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w700,
           letterSpacing: 0.5,
         ),
       ),
@@ -95,17 +95,18 @@ class AppTheme {
       textTheme: GoogleFonts.interTextTheme(
         isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme,
       ).copyWith(
-        displayLarge: GoogleFonts.cormorantGaramond(
+        displayLarge: GoogleFonts.inter(
           color: primaryColor,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w800,
           fontSize: 32,
-          letterSpacing: 1.0,
+          letterSpacing: 1.5,
         ),
-        titleLarge: GoogleFonts.cormorantGaramond(
+        titleLarge: GoogleFonts.inter(
           color: primaryColor,
-          fontWeight: FontWeight.bold,
-          fontSize: 26,
+          fontWeight: FontWeight.w700,
+          fontSize: 24,
           height: 1.2,
+          letterSpacing: 0.3,
         ),
         titleMedium: GoogleFonts.inter(
           color: primaryColor,

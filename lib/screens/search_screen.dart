@@ -15,6 +15,9 @@ import 'package:anime_discovery/widgets/pagination_indicator.dart';
 import 'package:anime_discovery/widgets/empty_state.dart';
 import 'package:anime_discovery/router/route_names.dart';
 import 'package:anime_discovery/widgets/section_app_bar.dart';
+import 'package:anime_discovery/widgets/view_toggle.dart';
+import 'package:anime_discovery/widgets/anime_image.dart';
+import 'package:anime_discovery/widgets/skeleton_loader.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -26,6 +29,7 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  bool _isGridView = false;
 
   static const Duration _scrollDebounceDuration = Duration(milliseconds: 150);
   Timer? _scrollDebounce;
@@ -119,7 +123,16 @@ class _SearchScreenState extends State<SearchScreen> {
     final primary = theme.colorScheme.primary;
 
     return Scaffold(
-      appBar: const SectionAppBar(title: 'Search'),
+      appBar: SectionAppBar(
+        title: 'Search',
+        actions: [
+          ViewToggleButton(
+            isGridView: _isGridView,
+            onToggle: () => setState(() => _isGridView = !_isGridView),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: Column(
         children: [
           Padding(
@@ -134,7 +147,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 prefixIcon: Icon(Icons.search_rounded, color: primary),
                 suffixIcon: ValueListenableBuilder<bool>(
                   valueListenable: _hasText,
-                  builder: (_, hasText, __) => hasText
+                  builder: (_, hasText, _) => hasText
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded),
                           onPressed: () => _controller.clear(),
@@ -199,39 +212,9 @@ class _SearchScreenState extends State<SearchScreen> {
                       hasMore: provider.hasMoreSearchResults,
                     ),
                     Expanded(
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(16),
-                        itemCount: provider.searchResults.length +
-                            (provider.searchState == FetchState.loading
-                                ? 1
-                                : 0) +
-                            (provider.searchResults.isNotEmpty ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == provider.searchResults.length &&
-                              provider.searchState ==
-                                  FetchState.loading) {
-                            return const LoadMoreSkeleton();
-                          }
-
-                          if (index >= provider.searchResults.length) {
-                            return PageCounter(
-                              currentPage: provider.currentSearchPage,
-                              isLoading: provider.searchState ==
-                                  FetchState.loading,
-                            );
-                          }
-
-                          final Anime anime =
-                              provider.searchResults[index];
-                          final heroTag = 'search_hero_${anime.malId}';
-                          return AnimeListTile(
-                            anime: anime,
-                            heroTag: heroTag,
-                            onTap: () => _openDetail(anime),
-                          );
-                        },
-                      ),
+                      child: _isGridView
+                          ? _buildGridView(provider)
+                          : _buildListView(provider),
                     ),
                   ],
                 );
@@ -240,6 +223,92 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildListView(AnimeProvider provider) {
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      itemCount: provider.searchResults.length +
+          (provider.searchState == FetchState.loading ? 1 : 0) +
+          (provider.searchResults.isNotEmpty ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == provider.searchResults.length &&
+            provider.searchState == FetchState.loading) {
+          return const LoadMoreSkeleton();
+        }
+
+        if (index >= provider.searchResults.length) {
+          return PageCounter(
+            currentPage: provider.currentSearchPage,
+            isLoading: provider.searchState == FetchState.loading,
+          );
+        }
+
+        final Anime anime = provider.searchResults[index];
+        final heroTag = 'search_hero_${anime.malId}';
+        return AnimeListTile(
+          anime: anime,
+          heroTag: heroTag,
+          onTap: () => _openDetail(anime),
+        );
+      },
+    );
+  }
+
+  Widget _buildGridView(AnimeProvider provider) {
+    return GridView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.62,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: provider.searchResults.length +
+          (provider.searchState == FetchState.loading ? 2 : 0),
+      itemBuilder: (context, index) {
+        if (index >= provider.searchResults.length &&
+            provider.searchState == FetchState.loading) {
+          return const SkeletonLoader(child: AnimeCardSkeleton());
+        }
+
+        final item = provider.searchResults[index];
+        final heroTag = 'search_hero_${item.malId}';
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _openDetail(item),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: AnimeImage(
+                  imageUrl: item.imageUrl,
+                  width: double.infinity,
+                  heroTag: heroTag,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                item.title,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontSize: 13),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${item.score.value ?? 'N/A'} ★',
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

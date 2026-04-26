@@ -57,8 +57,14 @@ class _ScheduleScreenState extends State<ScheduleScreen>
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       final day = BroadcastDay.values[_tabController.index];
+
       // FIX: Reset scroll to top on tab switch (Issue #12)
-      _scrollControllers[day]?.jumpTo(0);
+      // Only scroll if the controller is attached
+      final controller = _scrollControllers[day];
+      if (controller != null && controller.hasClients) {
+        controller.jumpTo(0);
+      }
+
       provider.selectDay(day);
     });
 

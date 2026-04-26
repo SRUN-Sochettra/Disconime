@@ -70,7 +70,7 @@ class AnimeListSkeleton extends StatelessWidget {
         physics: const NeverScrollableScrollPhysics(),
         itemCount: itemCount,
         // FIX: use __ for second parameter to avoid duplicate identifier error
-        itemBuilder: (_, __) => const AnimeCardSkeleton(),
+        itemBuilder: (_, _) => const AnimeCardSkeleton(),
       ),
     );
   }
@@ -91,7 +91,7 @@ class RecommendationListSkeleton extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           itemCount: itemCount,
           // FIX: use __ for second parameter to avoid duplicate identifier error
-          itemBuilder: (_, __) => const RecommendationCardSkeleton(),
+          itemBuilder: (_, _) => const RecommendationCardSkeleton(),
         ),
       ),
     );

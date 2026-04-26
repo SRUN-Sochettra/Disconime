@@ -14,6 +14,9 @@ import '../widgets/pagination_indicator.dart';
 import '../widgets/empty_state.dart';
 import '../router/route_names.dart';
 import 'package:anime_discovery/widgets/section_app_bar.dart';
+import 'package:anime_discovery/widgets/view_toggle.dart';
+import 'package:anime_discovery/widgets/anime_image.dart';
+import 'package:anime_discovery/widgets/skeleton_loader.dart';
 
 class SeasonalScreen extends StatefulWidget {
   const SeasonalScreen({super.key});
@@ -28,6 +31,7 @@ class _SeasonalScreenState extends State<SeasonalScreen>
   bool get wantKeepAlive => true;
 
   bool _hasFetched = false;
+  bool _isGridView = false;
   final ScrollController _scrollController = ScrollController();
   static const List<String> _seasons = ['winter', 'spring', 'summer', 'fall'];
 
@@ -274,6 +278,11 @@ class _SeasonalScreenState extends State<SeasonalScreen>
             tooltip: 'Select season',
             onPressed: _showSeasonPicker,
           ),
+          ViewToggleButton(
+            isGridView: _isGridView,
+            onToggle: () => setState(() => _isGridView = !_isGridView),
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Consumer<AnimeProvider>(
@@ -323,61 +332,143 @@ class _SeasonalScreenState extends State<SeasonalScreen>
                     year: provider.selectedYear,
                     season: provider.selectedSeason,
                   ),
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: provider.seasonalAnime.length +
-                        (provider.seasonalState == FetchState.loading ||
-                                provider.seasonalState == FetchState.error
-                            ? 1
-                            : 0) +
-                        (provider.seasonalAnime.isNotEmpty ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == provider.seasonalAnime.length &&
-                          provider.seasonalState == FetchState.loading) {
-                        return const LoadMoreSkeleton();
-                      }
-
-                      if (index == provider.seasonalAnime.length &&
-                          provider.seasonalState == FetchState.error) {
-                        return ErrorView(
-                          message: provider.seasonalErrorMessage,
-                          onRetry: () => provider.fetchSeasonalAnime(
-                            year: provider.selectedYear,
-                            season: provider.selectedSeason,
-                            loadMore: true,
-                          ),
-                          expand: false,
-                        );
-                      }
-
-                      if (index >= provider.seasonalAnime.length) {
-                        return PageCounter(
-                          currentPage: provider.currentSeasonalPage,
-                          isLoading: provider.seasonalState ==
-                              FetchState.loading,
-                        );
-                      }
-
-                      final Anime item = provider.seasonalAnime[index];
-                      final heroTag = 'seasonal_hero_${item.malId}';
-                      return AnimeListTile(
-                        anime: item,
-                        showTypeBadge: true,
-                        heroTag: heroTag,
-                        onTap: () => context.push(
-                          RouteNames.animeDetailPath(item.malId),
-                          extra: item,
-                        ),
-                      );
-                    },
-                  ),
+                  child: _isGridView
+                      ? _buildGridView(provider)
+                      : _buildListView(provider),
                 ),
               ),
             ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildListView(AnimeProvider provider) {
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      itemCount: provider.seasonalAnime.length +
+          (provider.seasonalState == FetchState.loading ||
+                  provider.seasonalState == FetchState.error
+              ? 1
+              : 0) +
+          (provider.seasonalAnime.isNotEmpty ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == provider.seasonalAnime.length &&
+            provider.seasonalState == FetchState.loading) {
+          return const LoadMoreSkeleton();
+        }
+
+        if (index == provider.seasonalAnime.length &&
+            provider.seasonalState == FetchState.error) {
+          return ErrorView(
+            message: provider.seasonalErrorMessage,
+            onRetry: () => provider.fetchSeasonalAnime(
+              year: provider.selectedYear,
+              season: provider.selectedSeason,
+              loadMore: true,
+            ),
+            expand: false,
+          );
+        }
+
+        if (index >= provider.seasonalAnime.length) {
+          return PageCounter(
+            currentPage: provider.currentSeasonalPage,
+            isLoading: provider.seasonalState == FetchState.loading,
+          );
+        }
+
+        final Anime item = provider.seasonalAnime[index];
+        final heroTag = 'seasonal_hero_${item.malId}';
+        return AnimeListTile(
+          anime: item,
+          showTypeBadge: true,
+          heroTag: heroTag,
+          onTap: () => context.push(
+            RouteNames.animeDetailPath(item.malId),
+            extra: item,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGridView(AnimeProvider provider) {
+    return GridView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.62,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: provider.seasonalAnime.length +
+          (provider.seasonalState == FetchState.loading ||
+                  provider.seasonalState == FetchState.error
+              ? 2
+              : 0),
+      itemBuilder: (context, index) {
+        if (index >= provider.seasonalAnime.length &&
+            provider.seasonalState == FetchState.loading) {
+          return const SkeletonLoader(child: AnimeCardSkeleton());
+        }
+
+        if (index >= provider.seasonalAnime.length &&
+            provider.seasonalState == FetchState.error) {
+          if (index == provider.seasonalAnime.length) {
+            return ErrorView(
+              message: provider.seasonalErrorMessage,
+              onRetry: () => provider.fetchSeasonalAnime(
+                year: provider.selectedYear,
+                season: provider.selectedSeason,
+                loadMore: true,
+              ),
+              expand: false,
+            );
+          }
+          return const SizedBox.shrink();
+        }
+
+        final item = provider.seasonalAnime[index];
+        final heroTag = 'seasonal_hero_${item.malId}';
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => context.push(
+            RouteNames.animeDetailPath(item.malId),
+            extra: item,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: AnimeImage(
+                  imageUrl: item.imageUrl,
+                  width: double.infinity,
+                  heroTag: heroTag,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                item.title,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontSize: 13),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${item.score.value ?? 'N/A'} ★',
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

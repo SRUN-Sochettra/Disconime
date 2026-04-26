@@ -6,15 +6,15 @@ import 'package:provider/provider.dart';
 
 import '../models/character_model.dart';
 import '../providers/characters_provider.dart';
-import '../widgets/section_app_bar.dart';
-import 'package:anime_discovery/providers/fetch_state.dart';
-
+import '../providers/fetch_state.dart';
 import '../router/route_names.dart';
 import '../widgets/anime_image.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_view.dart';
 import '../widgets/pagination_indicator.dart';
+import '../widgets/section_app_bar.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/view_toggle.dart';
 
 class CharactersScreen extends StatefulWidget {
   const CharactersScreen({super.key});
@@ -30,6 +30,7 @@ class _CharactersScreenState extends State<CharactersScreen>
 
   bool _hasFetched = false;
   final ScrollController _scrollController = ScrollController();
+  bool _isGridView = true; // Default to grid since characters look best as grid
 
   static const Duration _scrollDebounceDuration =
       Duration(milliseconds: 150);
@@ -84,7 +85,15 @@ class _CharactersScreenState extends State<CharactersScreen>
     super.build(context);
 
     return Scaffold(
-      appBar: const SectionAppBar(title: 'Characters'),
+      appBar: SectionAppBar(
+        title: 'Characters',
+        actions: [
+          ViewToggleButton(
+            isGridView: _isGridView,
+            onToggle: () => setState(() => _isGridView = !_isGridView),
+          ),
+        ],
+      ),
       body: Consumer<CharactersProvider>(
         builder: (context, provider, child) {
           if (provider.topCharactersState == FetchState.initial ||
@@ -119,42 +128,151 @@ class _CharactersScreenState extends State<CharactersScreen>
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () => provider.fetchTopCharacters(),
-                  child: GridView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      childAspectRatio: 0.58,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 16,
-                    ),
-                    itemCount: provider.topCharacters.length +
-                        (provider.topCharactersState == FetchState.loading
-                            ? 3
-                            : 0),
-                    itemBuilder: (context, index) {
-                      if (index >= provider.topCharacters.length) {
-                        return const _CharacterCardSkeleton();
-                      }
-
-                      final character = provider.topCharacters[index];
-                      final rank = index + 1;
-                      final heroTag = 'character_hero_${character.malId}';
-
-                      return _CharacterCard(
-                        character: character,
-                        rank: rank,
-                        heroTag: heroTag,
-                      );
-                    },
-                  ),
+                  child: _isGridView ? _buildGrid(provider) : _buildList(provider),
                 ),
               ),
             ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildGrid(CharactersProvider provider) {
+    return GridView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 0.58,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: provider.topCharacters.length +
+          (provider.topCharactersState == FetchState.loading ? 3 : 0),
+      itemBuilder: (context, index) {
+        if (index >= provider.topCharacters.length) {
+          return const _CharacterCardSkeleton();
+        }
+
+        final character = provider.topCharacters[index];
+        final rank = index + 1;
+        final heroTag = 'character_hero_${character.malId}';
+
+        return _CharacterCard(
+          character: character,
+          rank: rank,
+          heroTag: heroTag,
+        );
+      },
+    );
+  }
+
+  Widget _buildList(CharactersProvider provider) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      itemCount: provider.topCharacters.length +
+          (provider.topCharactersState == FetchState.loading ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= provider.topCharacters.length) {
+          return const _CharacterListSkeleton();
+        }
+
+        final character = provider.topCharacters[index];
+        final rank = index + 1;
+        final heroTag = 'character_list_${character.malId}';
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => context.push(
+              '${RouteNames.characterDetailPath(character.malId)}'
+              '?heroTag=${Uri.encodeComponent(heroTag)}',
+              extra: character,
+            ),
+            child: Row(
+              children: [
+                // Rank
+                SizedBox(
+                  width: 32,
+                  child: Text(
+                    '#$rank',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: rank <= 3 ? primary : null,
+                      fontWeight:
+                          rank <= 3 ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
+
+                // Avatar
+                AnimeImage(
+                  imageUrl: character.imageUrl,
+                  width: 52,
+                  height: 52,
+                  borderRadius: 26,
+                  heroTag: heroTag,
+                ),
+                const SizedBox(width: 14),
+
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        character.name,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontSize: 14,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (character.animeNames.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          character.animeNames.first,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // Favorites
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.favorite_rounded,
+                      size: 12,
+                      color: primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      character.formattedFavorites,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -317,6 +435,33 @@ class _CharacterCardSkeleton extends StatelessWidget {
         SizedBox(height: 4),
         SkeletonBox(height: 10, width: 60, borderRadius: 4),
       ],
+    );
+  }
+}
+class _CharacterListSkeleton extends StatelessWidget {
+  const _CharacterListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          SizedBox(width: 32),
+          SkeletonBox(width: 52, height: 52, borderRadius: 26),
+          SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonBox(height: 14, width: 140, borderRadius: 4),
+                SizedBox(height: 6),
+                SkeletonBox(height: 10, width: 100, borderRadius: 4),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
