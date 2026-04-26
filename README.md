@@ -1,50 +1,66 @@
+```markdown
 # Disconime
+
+[![Flutter Version](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev/)
+[![Dart Version](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart)](https://dart.dev/)
+[![API: Jikan](https://img.shields.io/badge/API-Jikan_v4-blue)](https://jikan.moe/)
 
 A high-end anime discovery platform built with Flutter and the Jikan API.
 
 ---
 
-## Features
+## Visuals
 
-- 🏆 Top anime rankings with advanced filters
-- 🔍 Instant search with history
-- 🌸 Seasonal anime browser
-- 📅 Weekly broadcast schedule
-- 🎭 Genre exploration
-- 👤 Character profiles & voice actors
-- 📊 Personal statistics dashboard
-- 🔖 Offline-first with smart caching
-- 🌙 Dark / Light mode
-- 📤 Share anime cards
+> <img width="584" height="1280" alt="mainscreen" src="https://github.com/user-attachments/assets/d0adc898-d534-4e71-8ed6-356e2c5c578e" />
+<img width="585" height="1280" alt="mainscreen_light" src="https://github.com/user-attachments/assets/f3e1353a-6584-4fb2-9c1b-86f99c9b53be" />
+<img width="586" height="1280" alt="searchscreen" src="https://github.com/user-attachments/assets/30f544d6-9431-4ac4-b28f-3c908e63d4de" />
+<img width="584" height="1280" alt="detailscreen" src="https://github.com/user-attachments/assets/6ef3f40c-3a48-4144-bd18-ea83450c14ef" />
+<img width="585" height="1280" alt="dashboard" src="https://github.com/user-attachments/assets/f9179a2a-1859-40a4-985d-0b99b1647aca" />
+
 
 ---
 
-## Tech Stack
+## Features
+
+- 🏆 **Top Rankings:** Advanced filtering for highest-rated series.
+- 🔍 **Instant Search:** Real-time querying with persistent search history.
+- 🌸 **Seasonal Browser:** Explore current and upcoming anime seasons.
+- 📅 **Broadcast Schedule:** Track weekly episode releases.
+- 🎭 **Genre Exploration:** Categorized discovery system.
+- 👤 **Comprehensive Profiles:** Detailed character data and voice actor information.
+- 📊 **Dashboard:** Personal viewing statistics.
+- 🔖 **Offline-First:** Smart caching mechanisms for network resilience.
+- 🌙 **Theming:** Seamless Dark and Light mode transitions.
+- 📤 **Native Sharing:** Integrated anime card distribution.
+
+---
+
+## Technical Architecture
+
+### Core Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Framework | Flutter 3.x |
-| Language | Dart |
+| Language | Dart 3.x |
 | State Management | Provider |
-| Navigation | GoRouter |
-| API | Jikan REST API v4 |
-| Caching | SharedPreferences |
-| Image Loading | CachedNetworkImage |
+| Routing | GoRouter |
+| Data Source | Jikan REST API v4 |
+| Local Storage | SharedPreferences |
+| Network | http, internet_connection_checker_plus |
 
----
+### Directory Structure
 
-## Architecture
-
-```
+```text
 lib/
-├── models/        # Data models
-├── providers/     # State management
-├── screens/       # UI screens
-├── services/      # API + Cache + Connectivity
-├── theme/         # App theme + colors
-├── utils/         # Error utilities
-├── widgets/       # Reusable widgets
-└── router/        # GoRouter navigation
+├── models/        # Data serialization and domain models
+├── providers/     # State management and business logic
+├── screens/       # Primary UI views
+├── services/      # API, Cache, and Connectivity interfaces
+├── theme/         # Application styling and color palettes
+├── utils/         # Error handling and utility functions
+├── widgets/       # Reusable UI components
+└── router/        # GoRouter configuration
 ```
 
 ---
@@ -52,49 +68,55 @@ lib/
 ## Getting Started
 
 ### Prerequisites
-- Flutter SDK 3.x
-- Dart 3.x
-- Android Studio / VS Code
+- Flutter SDK ^3.10.4
+- Dart SDK
+- Target deployment device or emulator
 
 ### Installation
 
+1. Clone the repository:
 ```bash
-# Clone the repo
-git clone https://github.com/YOUR_USERNAME/anime_discovery.git
+git clone [https://github.com/SRUN-Sochettra/disconime.git](https://github.com/SRUN-Sochettra/disconime.git)
+cd disconime
+```
 
-# Navigate to project
-cd anime_discovery
-
-# Install dependencies
+2. Install dependencies:
+```bash
 flutter pub get
+```
 
-# Run the app
+3. Environment Configuration:
+Create a `.env` file at the project root matching the provided `.env.example` structure:
+```bash
+JIKAN_API_URL=[https://api.jikan.moe/v4](https://api.jikan.moe/v4)
+```
+
+4. Execute static analysis and tests to verify environment integrity:
+```bash
+flutter analyze
+flutter test
+```
+
+5. Run the application:
+```bash
 flutter run
-```
-
-### Environment
-This app uses the Jikan public API — no API key required.
-
-If you have a `.env` file, create one at the root:
-```
-JIKAN_API_URL=https://api.jikan.moe/v4
 ```
 
 ---
 
-## Data Source
-
-Powered by [Jikan API v4](https://jikan.moe/) —
-an unofficial MyAnimeList REST API.
+## Quality Assurance
+This repository enforces strict static analysis. Ensure all modifications pass the `flutter analyze` pipeline and meet coverage requirements in `flutter test` before issuing pull requests.
 
 ---
 
 ## Developer
 
-**SRUN-Sochettra**
+**Srun Sochettra**
+*Professional NullPointerException Hunter*
 
 ---
 
 ## License
 
-This project is for educational purposes.
+This project is maintained for educational purposes.
+```
