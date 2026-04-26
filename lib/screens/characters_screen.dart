@@ -177,16 +177,15 @@ class _CharacterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('Character image URL: ${character.imageUrl}');
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
 
     return GestureDetector(
-      onTap: () => context.push(
-        '${RouteNames.characterDetailPath(character.malId)}'
-        '?heroTag=${Uri.encodeComponent(heroTag)}',
-        extra: character,
-      ),
+      onTap: () {
+        final path = '${RouteNames.characterDetailPath(character.malId)}'
+            '?heroTag=${Uri.encodeComponent(heroTag)}';
+        context.push(path, extra: character);
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

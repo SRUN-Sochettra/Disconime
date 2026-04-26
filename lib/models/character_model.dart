@@ -148,8 +148,9 @@ class TopCharacter {
   });
 
   factory TopCharacter.fromJson(Map<String, dynamic> json) {
-    final character = json['character'] as Map<String, dynamic>? ?? {};
-    final images = character['images'] as Map<String, dynamic>?;
+    // The /top/characters endpoint returns data DIRECTLY at root level.
+    // There is NO nested 'character' key — unlike /anime/:id/characters.
+    final images = json['images'] as Map<String, dynamic>?;
     final jpg = images?['jpg'] as Map<String, dynamic>?;
 
     // Extract anime names this character appears in.
@@ -167,15 +168,15 @@ class TopCharacter {
     }
 
     return TopCharacter(
-      malId: character['mal_id'] as int? ?? 0,
-      name: character['name'] as String? ?? '',
-      nameKanji: character['name_kanji'] as String?,
+      malId: json['mal_id'] as int? ?? 0,
+      name: json['name'] as String? ?? '',
+      nameKanji: json['name_kanji'] as String?,
       imageUrl: jpg?['large_image_url'] as String? ??
           jpg?['image_url'] as String? ??
           '',
       favorites: json['favorites'] as int? ?? 0,
       animeNames: animeNames,
-      role: null, // Not available in top characters list
+      role: null,
     );
   }
 

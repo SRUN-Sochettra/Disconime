@@ -550,7 +550,6 @@ class _CharacterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('Character image URL: ${character.imageUrl}');
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
 
