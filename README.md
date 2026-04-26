@@ -1,4 +1,3 @@
-```markdown
 # Disconime
 
 [![Flutter Version](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev/)
@@ -11,12 +10,13 @@ A high-end anime discovery platform built with Flutter and the Jikan API.
 
 ## Visuals
 
-> <img width="584" height="1280" alt="mainscreen" src="https://github.com/user-attachments/assets/d0adc898-d534-4e71-8ed6-356e2c5c578e" />
-<img width="585" height="1280" alt="mainscreen_light" src="https://github.com/user-attachments/assets/f3e1353a-6584-4fb2-9c1b-86f99c9b53be" />
-<img width="586" height="1280" alt="searchscreen" src="https://github.com/user-attachments/assets/30f544d6-9431-4ac4-b28f-3c908e63d4de" />
-<img width="584" height="1280" alt="detailscreen" src="https://github.com/user-attachments/assets/6ef3f40c-3a48-4144-bd18-ea83450c14ef" />
-<img width="585" height="1280" alt="dashboard" src="https://github.com/user-attachments/assets/f9179a2a-1859-40a4-985d-0b99b1647aca" />
-
+<div align="center">
+  <img width="584" height="1280" alt="mainscreen" src="https://github.com/user-attachments/assets/5c749abf-e936-4e29-88fb-5b932aa9040c" />
+<img width="585" height="1280" alt="mainscreen_light" src="https://github.com/user-attachments/assets/eb3ae508-adbe-4e2f-8cbe-817f33c5e3ff" />
+<img width="586" height="1280" alt="searchscreen" src="https://github.com/user-attachments/assets/4b345d7d-0fc9-46b1-8433-8305519ec7b1" />
+<img width="584" height="1280" alt="detailscreen" src="https://github.com/user-attachments/assets/a4c0ebc4-7a96-4cfc-b339-49fe72509ca8" />
+<img width="585" height="1280" alt="dashboard" src="https://github.com/user-attachments/assets/844e6fd6-0d61-4214-8e95-4c7089258e71" />
+</div>
 
 ---
 
@@ -87,7 +87,7 @@ flutter pub get
 
 3. Environment Configuration:
 Create a `.env` file at the project root matching the provided `.env.example` structure:
-```bash
+```text
 JIKAN_API_URL=[https://api.jikan.moe/v4](https://api.jikan.moe/v4)
 ```
 
@@ -119,4 +119,3 @@ This repository enforces strict static analysis. Ensure all modifications pass t
 ## License
 
 This project is maintained for educational purposes.
-```
