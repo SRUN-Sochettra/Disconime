@@ -64,15 +64,15 @@ class AppTheme {
       ),
 
       // ── Bottom Navigation ────────────────────────────────────
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: bgColor,
-        selectedItemColor: AppColors.accent,
-        unselectedItemColor: mutedColor,
-        type: BottomNavigationBarType.fixed,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        elevation: 0,
-      ),
+      // bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      //   backgroundColor: bgColor,
+      //   selectedItemColor: AppColors.accent,
+      //   unselectedItemColor: mutedColor,
+      //   type: BottomNavigationBarType.fixed,
+      //   showSelectedLabels: false,
+      //   showUnselectedLabels: false,
+      //   elevation: 0,
+      // ),
 
       // ── Divider ──────────────────────────────────────────────
       dividerTheme: DividerThemeData(

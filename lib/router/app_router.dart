@@ -17,24 +17,20 @@ import 'package:anime_discovery/models/anime_model.dart';
 import 'package:anime_discovery/models/character_model.dart';
 import 'route_names.dart';
 
-/// The single [GoRouter] instance for the entire app.
-///
-/// Architecture:
-/// - A [ShellRoute] wraps the 9 main tabs — the bottom nav bar
-///   persists while navigating between tabs.
-/// - Detail screens ([DetailScreen], [GenreDetailScreen],
-///   [CharacterDetailScreen]) are pushed on TOP of the shell
-///   so the nav bar is hidden, matching the previous behaviour.
-///
-/// Extra objects (full [Anime], [TopCharacter]) are passed via
-/// GoRouter's `extra` parameter to avoid re-fetching data that
-/// the calling screen already has.
+// FIX: Dedicated navigator key for the shell so it is never
+// disposed when switching tabs — prevents the "already disposed"
+// crash and provider lookup failures mid-navigation.
+final _shellNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shell',
+);
+
 final GoRouter appRouter = GoRouter(
   initialLocation: RouteNames.home,
   debugLogDiagnostics: false,
   routes: [
-    // ── Shell — persistent bottom nav ─────────────────────────
     ShellRoute(
+      // FIX: Assign the shell key
+      navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) {
         return MainScreen(child: child);
       },
@@ -105,22 +101,32 @@ final GoRouter appRouter = GoRouter(
       ],
     ),
 
-    // ── Anime detail — pushed on top of shell ─────────────────
+    // ── Detail screens outside shell ───────────────────────────
     GoRoute(
       path: RouteNames.animeDetail,
       pageBuilder: (context, state) {
         final anime = state.extra as Anime?;
-        final malId = int.tryParse(state.pathParameters['malId'] ?? '');
+        final malId = int.tryParse(
+          state.pathParameters['malId'] ?? '',
+        );
+
+        if (malId == null) {
+          return _noTransitionPage(
+            key: state.pageKey,
+            child: const Scaffold(
+              body: Center(child: Text('Invalid anime ID')),
+            ),
+          );
+        }
+
         final heroTag = state.uri.queryParameters['heroTag'];
 
-        // If the full Anime object was passed as extra use it
-        // directly. Otherwise the detail screen will fetch it.
         return _scaleFadePage(
           key: state.pageKey,
           child: DetailScreen(
             anime: anime ??
                 Anime(
-                  malId: malId ?? 0,
+                  malId: malId,
                   title: '',
                   imageUrl: '',
                   score: const Score(),
@@ -133,7 +139,6 @@ final GoRouter appRouter = GoRouter(
       },
     ),
 
-    // ── Genre detail — pushed on top of shell ─────────────────
     GoRoute(
       path: RouteNames.genreDetail,
       pageBuilder: (context, state) {
@@ -152,7 +157,6 @@ final GoRouter appRouter = GoRouter(
       },
     ),
 
-    // ── Character detail — pushed on top of shell ─────────────
     GoRoute(
       path: RouteNames.characterDetail,
       pageBuilder: (context, state) {
@@ -171,7 +175,6 @@ final GoRouter appRouter = GoRouter(
           );
         }
 
-        // Fallback — should not happen in normal navigation flow.
         return _scaleFadePage(
           key: state.pageKey,
           child: CharacterDetailScreen(
@@ -192,7 +195,6 @@ final GoRouter appRouter = GoRouter(
 
 // ── Page builder helpers ──────────────────────────────────────────
 
-/// No transition — used for tab switches inside the shell.
 NoTransitionPage<void> _noTransitionPage({
   required LocalKey key,
   required Widget child,
@@ -200,7 +202,6 @@ NoTransitionPage<void> _noTransitionPage({
   return NoTransitionPage<void>(key: key, child: child);
 }
 
-/// Scale + fade transition — used for detail screens.
 CustomTransitionPage<void> _scaleFadePage({
   required LocalKey key,
   required Widget child,
@@ -212,14 +213,12 @@ CustomTransitionPage<void> _scaleFadePage({
     reverseTransitionDuration: const Duration(milliseconds: 250),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       const curve = Curves.easeOutCubic;
-
       final scale = Tween<double>(begin: 0.92, end: 1.0).animate(
         CurvedAnimation(parent: animation, curve: curve),
       );
       final fade = Tween<double>(begin: 0.0, end: 1.0).animate(
         CurvedAnimation(parent: animation, curve: curve),
       );
-
       return ScaleTransition(
         scale: scale,
         child: FadeTransition(opacity: fade, child: child),
@@ -228,7 +227,6 @@ CustomTransitionPage<void> _scaleFadePage({
   );
 }
 
-/// Slide transition — used for genre detail drill-down.
 CustomTransitionPage<void> _slidePage({
   required LocalKey key,
   required Widget child,
@@ -240,16 +238,13 @@ CustomTransitionPage<void> _slidePage({
     reverseTransitionDuration: const Duration(milliseconds: 250),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       const curve = Curves.easeOutCubic;
-
       final slide = Tween<Offset>(
         begin: const Offset(1.0, 0.0),
         end: Offset.zero,
       ).animate(CurvedAnimation(parent: animation, curve: curve));
-
       final fade = Tween<double>(begin: 0.0, end: 1.0).animate(
         CurvedAnimation(parent: animation, curve: curve),
       );
-
       return SlideTransition(
         position: slide,
         child: FadeTransition(opacity: fade, child: child),

@@ -14,17 +14,26 @@ class GenresScreen extends StatefulWidget {
   State<GenresScreen> createState() => _GenresScreenState();
 }
 
-class _GenresScreenState extends State<GenresScreen> {
+class _GenresScreenState extends State<GenresScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  bool _hasFetched = false;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AnimeProvider>().fetchGenres();
+      if (!_hasFetched && mounted) {
+        _hasFetched = true;
+        context.read<AnimeProvider>().fetchGenres();
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = Theme.of(context);
 
     return Scaffold(

@@ -20,7 +20,11 @@ class ScheduleScreen extends StatefulWidget {
 }
 
 class _ScheduleScreenState extends State<ScheduleScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  bool _hasFetched = false;
   late final TabController _tabController;
 
   final Map<BroadcastDay, ScrollController> _scrollControllers = {};
@@ -53,7 +57,10 @@ class _ScheduleScreenState extends State<ScheduleScreen>
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      provider.fetchSchedule(provider.selectedDay);
+      if (!_hasFetched && mounted) {
+        _hasFetched = true;
+        provider.fetchSchedule(provider.selectedDay);
+      }
     });
   }
 
@@ -94,6 +101,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
 

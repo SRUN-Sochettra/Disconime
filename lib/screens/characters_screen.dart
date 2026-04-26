@@ -20,7 +20,12 @@ class CharactersScreen extends StatefulWidget {
   State<CharactersScreen> createState() => _CharactersScreenState();
 }
 
-class _CharactersScreenState extends State<CharactersScreen> {
+class _CharactersScreenState extends State<CharactersScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  bool _hasFetched = false;
   final ScrollController _scrollController = ScrollController();
 
   static const Duration _scrollDebounceDuration =
@@ -31,15 +36,16 @@ class _CharactersScreenState extends State<CharactersScreen> {
   @override
   void initState() {
     super.initState();
-
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<CharactersProvider>();
-      if (provider.topCharactersState == FetchState.initial) {
-        provider.fetchTopCharacters();
+      if (!_hasFetched && mounted) {
+        _hasFetched = true;
+        final provider = context.read<CharactersProvider>();
+        if (provider.topCharactersState == FetchState.initial) {
+          provider.fetchTopCharacters();
+        }
       }
     });
-
-    _scrollController.addListener(_onScroll);
   }
 
   void _onScroll() {
@@ -72,6 +78,7 @@ class _CharactersScreenState extends State<CharactersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = Theme.of(context);
 
     return Scaffold(

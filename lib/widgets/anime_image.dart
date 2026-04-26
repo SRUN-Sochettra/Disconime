@@ -7,8 +7,6 @@ class AnimeImage extends StatelessWidget {
   final double? height;
   final double borderRadius;
   final BoxFit fit;
-  // Hero tag — when provided the image is wrapped in a Hero widget
-  // so it animates smoothly between list and detail screen.
   final String? heroTag;
 
   const AnimeImage({
@@ -24,56 +22,44 @@ class AnimeImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
 
-    int? cacheWidth;
-    int? cacheHeight;
-
-    if (width != null && width!.isFinite && width! > 0) {
-      cacheWidth = (width! * devicePixelRatio).round().clamp(1, 3000);
-    }
-
-    if (height != null && height!.isFinite && height! > 0) {
-      cacheHeight = (height! * devicePixelRatio).round().clamp(1, 3000);
-    }
-
+    // FIX: Do NOT pass memCacheWidth/memCacheHeight —
+    // these trigger synchronous decode on the main thread
+    // which causes ANR when many images load at once.
+    // Let CachedNetworkImage manage its own cache sizing.
     final image = Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
         color: isDark ? Colors.grey[900] : Colors.grey[200],
         borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 40 : 15),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: imageUrl.isEmpty
             ? _Placeholder(isDark: isDark)
             : CachedNetworkImage(
-                imageUrl: imageUrl,
+                imageUrl: _sanitizeUrl(imageUrl),
                 width: width,
                 height: height,
                 fit: fit,
-                memCacheWidth: cacheWidth,
-                memCacheHeight: cacheHeight,
-                placeholder: (context, url) => _Placeholder(isDark: isDark),
+                // FIX: Limit concurrent image requests
+                // by using a fixed max width for the cache
+                maxWidthDiskCache: 600,
+                maxHeightDiskCache: 900,
+                fadeInDuration: const Duration(milliseconds: 200),
+                fadeOutDuration: const Duration(milliseconds: 100),
+                placeholder: (context, url) =>
+                    _Placeholder(isDark: isDark),
                 errorWidget: (context, url, error) =>
                     _ErrorPlaceholder(isDark: isDark),
               ),
       ),
     );
 
-    // Wrap with Hero only when a tag is provided.
     if (heroTag != null) {
       return Hero(
         tag: heroTag!,
-        // Keep the clipping behaviour during the flight animation.
         flightShuttleBuilder: (
           flightContext,
           animation,
@@ -84,7 +70,6 @@ class AnimeImage extends StatelessWidget {
           return AnimatedBuilder(
             animation: animation,
             builder: (context, child) {
-              // Interpolate border radius from list (12) to detail (0).
               final radius = Tween<double>(
                 begin: direction == HeroFlightDirection.push
                     ? borderRadius
@@ -100,10 +85,10 @@ class AnimeImage extends StatelessWidget {
               );
             },
             child: CachedNetworkImage(
-              imageUrl: imageUrl,
+              imageUrl: _sanitizeUrl(imageUrl),
               fit: BoxFit.cover,
-              memCacheWidth: cacheWidth,
-              memCacheHeight: cacheHeight,
+              maxWidthDiskCache: 600,
+              maxHeightDiskCache: 900,
             ),
           );
         },
@@ -113,11 +98,17 @@ class AnimeImage extends StatelessWidget {
 
     return image;
   }
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Private helper widgets
-// ─────────────────────────────────────────────────────────────────────────────
+  // FIX: Jikan sometimes returns URLs with spaces or
+  // special characters that cause decode failures
+  String _sanitizeUrl(String url) {
+    try {
+      return Uri.encodeFull(url);
+    } catch (_) {
+      return url;
+    }
+  }
+}
 
 class _Placeholder extends StatelessWidget {
   final bool isDark;

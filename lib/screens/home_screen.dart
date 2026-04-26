@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -22,35 +21,42 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  static const double _loadMoreThreshold = 400;
-  static const Duration _scrollDebounceDuration = Duration(milliseconds: 150);
+class _HomeScreenState extends State<HomeScreen>
+    with AutomaticKeepAliveClientMixin {
+  // FIX: Keep state alive so re-visiting tab does not re-fetch
+  @override
+  bool get wantKeepAlive => true;
+
+  static const Duration _scrollDebounceDuration =
+      Duration(milliseconds: 150);
 
   final ScrollController _scrollController = ScrollController();
   bool _isGridView = false;
   Timer? _scrollDebounce;
+  bool _hasFetched = false; // FIX: Only fetch once
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AnimeProvider>().fetchTopAnime();
-    });
     _scrollController.addListener(_onScroll);
+    // FIX: Defer fetch to after first frame only
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_hasFetched && mounted) {
+        _hasFetched = true;
+        context.read<AnimeProvider>().fetchTopAnime();
+      }
+    });
   }
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     final position = _scrollController.position;
     if (position.maxScrollExtent <= 0) return;
-
     if (position.pixels < position.maxScrollExtent - 200) {
       _scrollDebounce?.cancel();
       return;
     }
-
     if (_scrollDebounce?.isActive ?? false) return;
-
     _scrollDebounce = Timer(_scrollDebounceDuration, () {
       if (!mounted) return;
       final provider = context.read<AnimeProvider>();
@@ -94,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -123,7 +130,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? Icons.view_list_rounded
                   : Icons.grid_view_rounded,
             ),
-            onPressed: () => setState(() => _isGridView = !_isGridView),
+            onPressed: () =>
+                setState(() => _isGridView = !_isGridView),
           ),
         ],
       ),
@@ -156,7 +164,9 @@ class _FilterActionButton extends StatelessWidget {
       children: [
         IconButton(
           icon: Icon(
-            hasActiveFilter ? Icons.tune_rounded : Icons.tune_outlined,
+            hasActiveFilter
+                ? Icons.tune_rounded
+                : Icons.tune_outlined,
           ),
           tooltip: 'Filter',
           onPressed: onPressed,
@@ -227,7 +237,8 @@ class _TopAnimeBody extends StatelessWidget {
     if (topAnimeState == FetchState.error && topAnime.isEmpty) {
       return ErrorView(
         message: errorMessage,
-        onRetry: () => context.read<AnimeProvider>().fetchTopAnime(),
+        onRetry: () =>
+            context.read<AnimeProvider>().fetchTopAnime(),
       );
     }
 
@@ -240,7 +251,8 @@ class _TopAnimeBody extends StatelessWidget {
         ),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () => context.read<AnimeProvider>().fetchTopAnime(),
+            onRefresh: () =>
+                context.read<AnimeProvider>().fetchTopAnime(),
             child: isGridView
                 ? _TopAnimeGridView(
                     topAnime: topAnime,
@@ -302,24 +314,22 @@ class _TopAnimeListView extends StatelessWidget {
             topAnimeState == FetchState.loading) {
           return const LoadMoreSkeleton();
         }
-
         if (index == topAnime.length &&
             topAnimeState == FetchState.error) {
           return ErrorView(
             message: errorMessage,
-            onRetry: () =>
-                context.read<AnimeProvider>().fetchTopAnime(loadMore: true),
+            onRetry: () => context
+                .read<AnimeProvider>()
+                .fetchTopAnime(loadMore: true),
             expand: false,
           );
         }
-
         if (index >= topAnime.length) {
           return PageCounter(
             currentPage: currentPage,
             isLoading: topAnimeState == FetchState.loading,
           );
         }
-
         final anime = topAnime[index];
         final heroTag = 'anime_hero_${anime.malId}';
         return AnimeListTile(
@@ -372,13 +382,13 @@ class _TopAnimeGridView extends StatelessWidget {
             topAnimeState == FetchState.loading) {
           return const SkeletonLoader(child: AnimeCardSkeleton());
         }
-
         if (index >= topAnime.length &&
             topAnimeState == FetchState.error) {
           if (index == topAnime.length) {
             return ErrorView(
-              message:
-                  context.read<AnimeProvider>().topAnimeErrorMessage,
+              message: context
+                  .read<AnimeProvider>()
+                  .topAnimeErrorMessage,
               onRetry: () => context
                   .read<AnimeProvider>()
                   .fetchTopAnime(loadMore: true),
@@ -387,7 +397,6 @@ class _TopAnimeGridView extends StatelessWidget {
           }
           return const SizedBox.shrink();
         }
-
         final anime = topAnime[index];
         final heroTag = 'anime_hero_${anime.malId}';
         return InkWell(

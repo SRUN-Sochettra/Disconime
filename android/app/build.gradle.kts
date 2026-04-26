@@ -16,7 +16,8 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        // FIX: Use string literal directly instead of deprecated toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {

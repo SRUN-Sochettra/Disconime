@@ -3,30 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/global_error_handler.dart';
 
-/// A lightweight key-value cache backed by [SharedPreferences].
-///
-/// Each entry stores:
-/// - The serialised JSON string
-/// - A timestamp used to enforce [ttl] expiry
-///
-/// Usage:
-/// ```dart
-/// // Write
-/// await CacheService.instance.set('top_anime_p1', jsonData);
-///
-/// // Read (returns null if missing or expired)
-/// final cached = await CacheService.instance.get('top_anime_p1');
-/// ```
 class CacheService {
   CacheService._();
-
   static final CacheService instance = CacheService._();
 
-  // ── Key prefixes ──────────────────────────────────────────────
   static const String _dataPrefix = 'cache_data_';
   static const String _timePrefix = 'cache_time_';
 
-  // ── Default TTLs ──────────────────────────────────────────────
   static const Duration topAnimeTtl = Duration(minutes: 30);
   static const Duration searchTtl = Duration(minutes: 10);
   static const Duration detailTtl = Duration(hours: 6);
@@ -64,8 +47,6 @@ class CacheService {
   }
 
   // ── Read ──────────────────────────────────────────────────────
-  /// Returns the cached value for [key] if it exists and has not
-  /// exceeded [ttl]. Returns null otherwise.
   Future<dynamic> get(String key, {required Duration ttl}) async {
     try {
       final prefs = await _getPrefs();
@@ -73,11 +54,7 @@ class CacheService {
       if (timestamp == null) return null;
 
       final age = DateTime.now().millisecondsSinceEpoch - timestamp;
-      if (age >= ttl.inMilliseconds) {
-        // Expired — return null so caller tries network, but KEEP it 
-        // in SharedPreferences for potential stale fallback if offline.
-        return null;
-      }
+      if (age >= ttl.inMilliseconds) return null;
 
       final encoded = prefs.getString('$_dataPrefix$key');
       if (encoded == null) return null;
@@ -101,13 +78,13 @@ class CacheService {
     }
   }
 
-  /// Removes all cache entries.
   Future<void> clearAll() async {
     try {
       final prefs = await _getPrefs();
       final keys = prefs.getKeys();
       for (final key in keys) {
-        if (key.startsWith(_dataPrefix) || key.startsWith(_timePrefix)) {
+        if (key.startsWith(_dataPrefix) ||
+            key.startsWith(_timePrefix)) {
           await prefs.remove(key);
         }
       }
@@ -124,8 +101,6 @@ class CacheService {
   }
 
   // ── Cache key builders ────────────────────────────────────────
-  // Centralised so every call site uses the same key format.
-
   static String topAnimeKey({
     int page = 1,
     String? type,
@@ -134,18 +109,14 @@ class CacheService {
     String? orderBy,
     String? sort,
   }) =>
-      // ignore: unnecessary_brace_in_string_interps
       'top_anime_p${page}_t${type}_f${filter}_r${rating}'
-      // ignore: unnecessary_brace_in_string_interps
       '_o${orderBy}_s${sort}';
 
   static String searchKey(String query, int page) =>
       'search_${query.toLowerCase().trim()}_p$page';
 
   static String detailKey(int malId) => 'detail_$malId';
-
   static String charactersKey(int malId) => 'characters_$malId';
-
   static String staffKey(int malId) => 'staff_$malId';
 
   static String seasonalKey({
@@ -156,16 +127,12 @@ class CacheService {
       'seasonal_${year ?? 'now'}_${season ?? 'now'}_p$page';
 
   static String genresKey() => 'genres';
-
   static String genreAnimeKey(int genreId, int page) =>
       'genre_${genreId}_p$page';
-
   static String scheduleKey(String day, int page) =>
       'schedule_${day}_p$page';
-
   static String recommendationsKey(int malId) => 'recs_$malId';
-
   static String topCharactersKey(int page) => 'top_chars_p$page';
-
-  static String characterDetailKey(int malId) => 'char_detail_$malId';
+  static String characterDetailKey(int malId) =>
+      'char_detail_$malId';
 }

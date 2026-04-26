@@ -11,7 +11,6 @@ class CharactersProvider extends ChangeNotifier {
   CharactersProvider({ApiService? apiService})
       : _apiService = apiService ?? ApiService();
 
-  // ── Top Characters list ───────────────────────────────────────
   List<TopCharacter> _topCharacters = [];
   FetchState _topCharactersState = FetchState.initial;
   int _currentPage = 1;
@@ -24,8 +23,6 @@ class CharactersProvider extends ChangeNotifier {
   bool get hasMore => _hasMore;
   String get topCharactersErrorMessage => _topCharactersError;
 
-  // ── Character Detail ──────────────────────────────────────────
-  // Cached per malId so navigating back and re-tapping is instant.
   final Map<int, Character> _detailCache = {};
   final Map<int, FetchState> _detailStates = {};
   final Map<int, String> _detailErrors = {};
@@ -35,23 +32,21 @@ class CharactersProvider extends ChangeNotifier {
       _detailStates[malId] ?? FetchState.initial;
   String detailErrorFor(int malId) => _detailErrors[malId] ?? '';
 
-  // ── Fetch top characters ──────────────────────────────────────
   Future<void> fetchTopCharacters({bool loadMore = false}) async {
     if (loadMore) {
       if (!_hasMore) return;
       if (_topCharactersState == FetchState.loading) return;
-      _topCharactersState = FetchState.loading;
-      _topCharactersError = '';
-      Future.microtask(() => notifyListeners());
     } else {
       if (_topCharactersState == FetchState.loading) return;
       _topCharacters = [];
       _currentPage = 1;
       _hasMore = true;
-      _topCharactersState = FetchState.loading;
-      _topCharactersError = '';
-      Future.microtask(() => notifyListeners());
     }
+
+    // FIX: Direct notify, no microtask
+    _topCharactersState = FetchState.loading;
+    _topCharactersError = '';
+    notifyListeners();
 
     final pageToFetch = loadMore ? _currentPage + 1 : 1;
 
@@ -73,15 +68,13 @@ class CharactersProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Fetch character detail ────────────────────────────────────
   Future<void> fetchCharacterDetail(int malId) async {
-    // Return cached result immediately.
     if (_detailStates[malId] == FetchState.loaded) return;
     if (_detailStates[malId] == FetchState.loading) return;
 
     _detailStates[malId] = FetchState.loading;
     _detailErrors[malId] = '';
-    Future.microtask(() => notifyListeners());
+    notifyListeners();
 
     try {
       final character = await _apiService.getCharacterDetail(malId);
@@ -93,5 +86,4 @@ class CharactersProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
-
 }

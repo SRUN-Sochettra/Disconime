@@ -16,6 +16,11 @@ import 'package:anime_discovery/widgets/global_error_handler.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // FIX: Limit image cache
+  PaintingBinding.instance.imageCache.maximumSize = 80;
+  PaintingBinding.instance.imageCache.maximumSizeBytes =
+      40 * 1024 * 1024; // 40MB
+
   try {
     await dotenv.load(fileName: '.env');
   } catch (e) {

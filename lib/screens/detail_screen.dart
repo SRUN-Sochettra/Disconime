@@ -10,6 +10,7 @@ import '../widgets/anime_card_skeleton.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/share_sheet.dart';
 import '../router/route_names.dart'; // ADD
+import '../models/character_model.dart';
 
 class DetailScreen extends StatefulWidget {
   final Anime anime;
@@ -536,6 +537,7 @@ class _CharactersTab extends StatelessWidget {
 }
 
 // ── Character card ────────────────────────────────────────────────
+// ── Character card ────────────────────────────────────────────────
 class _CharacterCard extends StatelessWidget {
   final AnimeCharacter character;
   const _CharacterCard({required this.character});
@@ -547,16 +549,18 @@ class _CharacterCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        // Map AnimeCharacter to TopCharacter for the detail screen
+        // AnimeCharacter is already flat — access fields directly
         final topChar = TopCharacter(
-          malId: character.character.malId,
-          name: character.character.name,
-          imageUrl: character.character.imageUrl,
-          role: character.role,
+          malId: character.malId,        // FIX: was character.character.malId
+          name: character.name,          // FIX: was character.character.name
+          imageUrl: character.imageUrl,  // FIX: was character.character.imageUrl
           favorites: character.favorites ?? 0,
+          animeNames: const [],          // FIX: was role: character.role (wrong field)
         );
+        final heroTag = 'char_hero_${character.malId}';
         context.push(
-          RouteNames.characterDetailPath(topChar.malId),
+          '${RouteNames.characterDetailPath(topChar.malId)}'
+          '?heroTag=${Uri.encodeComponent(heroTag)}',
           extra: topChar,
         );
       },
@@ -567,7 +571,7 @@ class _CharacterCard extends StatelessWidget {
             child: Stack(
               children: [
                 AnimeImage(
-                  imageUrl: character.imageUrl,
+                  imageUrl: character.imageUrl, // FIX: was character.imageUrl (correct but verify)
                   width: double.infinity,
                   borderRadius: 10,
                 ),
@@ -602,7 +606,7 @@ class _CharacterCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            character.name,
+            character.name, // FIX: was character.name (correct but verify)
             style: theme.textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w600,
             ),

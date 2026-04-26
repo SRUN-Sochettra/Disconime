@@ -136,18 +136,17 @@ class AnimeProvider extends ChangeNotifier {
     if (loadMore) {
       if (!_hasMoreTopAnime) return;
       if (_topAnimeState == FetchState.loading) return;
-      _topAnimeState = FetchState.loading;
-      _topAnimeError = '';
-      Future.microtask(() => notifyListeners());
     } else {
       if (_topAnimeState == FetchState.loading) return;
       _topAnime = [];
       _currentTopPage = 1;
       _hasMoreTopAnime = true;
-      _topAnimeState = FetchState.loading;
-      _topAnimeError = '';
-      Future.microtask(() => notifyListeners());
     }
+
+    // FIX: Set state and notify ONCE — no Future.microtask
+    _topAnimeState = FetchState.loading;
+    _topAnimeError = '';
+    notifyListeners();
 
     final pageToFetch = loadMore ? _currentTopPage + 1 : 1;
 
@@ -173,58 +172,53 @@ class AnimeProvider extends ChangeNotifier {
   }
 
   // ── Search ───────────────────────────────────────────────────
-  // ADD a current search tag to prevent race conditions
-String? _activeSearchQuery;
-
-Future<void> searchAnime(String query, {bool loadMore = false}) async {
-  final trimmedQuery = query.trim();
-  
-  if (trimmedQuery.isEmpty) {
-    _searchState = FetchState.initial;
-    _searchResults = [];
-    _activeSearchQuery = null;
-    notifyListeners();
-    return;
-  }
-
-  // Prevent duplicate identical searches
-  if (!loadMore && trimmedQuery == _activeSearchQuery && _searchState == FetchState.loaded) return;
-
-  _activeSearchQuery = trimmedQuery;
-
-  if (loadMore) {
-    if (!_hasMoreSearchResults || _searchState == FetchState.loading) return;
-  } else {
-    _searchResults = [];
-    _currentSearchPage = 1;
-    _hasMoreSearchResults = true;
-  }
-
-  _searchState = FetchState.loading;
-  notifyListeners();
-
-  try {
-    final pageToFetch = loadMore ? _currentSearchPage + 1 : 1;
-    final results = await _apiService.searchAnime(trimmedQuery, page: pageToFetch);
-
-    // RACE CONDITION GUARD: Only update if this is still the active query
-    if (trimmedQuery != _activeSearchQuery) return;
-
-    if (results.isEmpty) {
-      _hasMoreSearchResults = false;
-    } else {
-      _searchResults = loadMore ? [..._searchResults, ...results] : results;
-      _currentSearchPage = pageToFetch;
+  Future<void> searchAnime(String query, {bool loadMore = false}) async {
+    if (query.isEmpty) {
+      _searchState = FetchState.initial;
+      _searchResults = [];
+      _currentQuery = '';
+      _hasMoreSearchResults = true;
+      notifyListeners();
+      return;
     }
-    _searchState = FetchState.loaded;
-    _searchError = '';
-  } catch (e) {
-    if (trimmedQuery != _activeSearchQuery) return;
-    _searchState = FetchState.error;
-    _searchError = friendlyError(e);
+
+    if (query != _currentQuery) {
+      _currentQuery = query;
+      _hasMoreSearchResults = true;
+      loadMore = false;
+    }
+
+    if (loadMore) {
+      if (!_hasMoreSearchResults) return;
+      if (_searchState == FetchState.loading) return;
+    } else {
+      if (_searchState == FetchState.loading) return;
+      _searchResults = [];
+    }
+
+    // FIX: Single notify, no microtask
+    _searchState = FetchState.loading;
+    notifyListeners();
+
+    final pageToFetch = loadMore ? _currentSearchPage + 1 : 1;
+
+    try {
+      final results =
+          await _apiService.searchAnime(query, page: pageToFetch);
+      if (query != _currentQuery) return;
+      if (results.isEmpty) _hasMoreSearchResults = false;
+      _searchResults =
+          loadMore ? [..._searchResults, ...results] : results;
+      _currentSearchPage = pageToFetch;
+      _searchState = FetchState.loaded;
+      _searchError = '';
+    } catch (e) {
+      if (query != _currentQuery) return;
+      _searchState = FetchState.error;
+      _searchError = friendlyError(e);
+    }
+    notifyListeners();
   }
-  notifyListeners();
-}
 
   // ── Recommendations ──────────────────────────────────────────
   Future<void> fetchRecommendations(int malId) async {
@@ -238,15 +232,16 @@ Future<void> searchAnime(String query, {bool loadMore = false}) async {
     _recommendations = [];
     _recommendationsState = FetchState.loading;
     _recommendationsError = '';
-    Future.microtask(() => notifyListeners());
+    // FIX: No microtask — direct notify
+    notifyListeners();
 
     try {
       final results = await _apiService.getAnimeRecommendations(malId);
-      // Guard: discard if the user navigated to a different anime.
       if (malId != _currentRecMalId) return;
       _recommendations = results;
       _recommendationsState = FetchState.loaded;
     } catch (e) {
+      if (malId != _currentRecMalId) return;
       _recommendationsState = FetchState.error;
       _recommendationsError = friendlyError(e);
     }
@@ -272,15 +267,15 @@ Future<void> searchAnime(String query, {bool loadMore = false}) async {
     _characters = [];
     _charactersState = FetchState.loading;
     _charactersError = '';
-    Future.microtask(() => notifyListeners());
+    notifyListeners();
 
     try {
       final results = await _apiService.getAnimeCharacters(malId);
-      // Guard: discard if the user navigated to a different anime.
       if (malId != _currentCharactersMalId) return;
       _characters = results;
       _charactersState = FetchState.loaded;
     } catch (e) {
+      if (malId != _currentCharactersMalId) return;
       _charactersState = FetchState.error;
       _charactersError = friendlyError(e);
     }
@@ -306,15 +301,15 @@ Future<void> searchAnime(String query, {bool loadMore = false}) async {
     _staff = [];
     _staffState = FetchState.loading;
     _staffError = '';
-    Future.microtask(() => notifyListeners());
+    notifyListeners();
 
     try {
       final results = await _apiService.getAnimeStaff(malId);
-      // Guard: discard if the user navigated to a different anime.
       if (malId != _currentStaffMalId) return;
       _staff = results;
       _staffState = FetchState.loaded;
     } catch (e) {
+      if (malId != _currentStaffMalId) return;
       _staffState = FetchState.error;
       _staffError = friendlyError(e);
     }
@@ -328,9 +323,6 @@ Future<void> searchAnime(String query, {bool loadMore = false}) async {
     _staffError = '';
   }
 
-  // ── Clear all detail screen data ─────────────────────────────
-  // Call this when leaving the detail screen so navigating back
-  // to a new anime always fetches fresh data.
   void clearDetailData() {
     clearRecommendations();
     clearCharacters();
@@ -355,16 +347,15 @@ Future<void> searchAnime(String query, {bool loadMore = false}) async {
     if (loadMore) {
       if (!_hasMoreSeasonalAnime) return;
       if (_seasonalState == FetchState.loading) return;
-      _seasonalState = FetchState.loading;
-      notifyListeners();
     } else {
       if (_seasonalState == FetchState.loading) return;
       _seasonalAnime = [];
       _currentSeasonalPage = 1;
       _hasMoreSeasonalAnime = true;
-      _seasonalState = FetchState.loading;
-      notifyListeners();
     }
+
+    _seasonalState = FetchState.loading;
+    notifyListeners();
 
     final pageToFetch = loadMore ? _currentSeasonalPage + 1 : 1;
 
@@ -427,16 +418,15 @@ Future<void> searchAnime(String query, {bool loadMore = false}) async {
     if (loadMore) {
       if (!_hasMoreGenreAnime) return;
       if (_genreAnimeState == FetchState.loading) return;
-      _genreAnimeState = FetchState.loading;
-      notifyListeners();
     } else {
       if (_genreAnimeState == FetchState.loading) return;
       _genreAnime = [];
       _currentGenrePage = 1;
       _hasMoreGenreAnime = true;
-      _genreAnimeState = FetchState.loading;
-      notifyListeners();
     }
+
+    _genreAnimeState = FetchState.loading;
+    notifyListeners();
 
     final pageToFetch = loadMore ? _currentGenrePage + 1 : 1;
 
@@ -445,7 +435,6 @@ Future<void> searchAnime(String query, {bool loadMore = false}) async {
         genreId,
         page: pageToFetch,
       );
-      // Guard: discard if the user switched to a different genre.
       if (genreId != _currentGenreId) return;
       if (results.isEmpty) _hasMoreGenreAnime = false;
       _genreAnime = loadMore ? [..._genreAnime, ...results] : results;
@@ -463,5 +452,4 @@ Future<void> searchAnime(String query, {bool loadMore = false}) async {
   Future<Anime> getAnimeDetails(int malId) async {
     return _apiService.getAnimeDetails(malId);
   }
-
 }

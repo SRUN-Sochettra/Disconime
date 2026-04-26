@@ -19,7 +19,12 @@ class SeasonalScreen extends StatefulWidget {
   State<SeasonalScreen> createState() => _SeasonalScreenState();
 }
 
-class _SeasonalScreenState extends State<SeasonalScreen> {
+class _SeasonalScreenState extends State<SeasonalScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  bool _hasFetched = false;
   final ScrollController _scrollController = ScrollController();
   static const List<String> _seasons = ['winter', 'spring', 'summer', 'fall'];
 
@@ -29,10 +34,13 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AnimeProvider>().fetchSeasonalAnime();
-    });
     _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_hasFetched && mounted) {
+        _hasFetched = true;
+        context.read<AnimeProvider>().fetchSeasonalAnime();
+      }
+    });
   }
 
   void _onScroll() {
@@ -253,6 +261,7 @@ class _SeasonalScreenState extends State<SeasonalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: AppBar(
         title: context.select<AnimeProvider, Widget>(
