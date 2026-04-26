@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Signature for the optional error reporter callback
@@ -313,8 +314,4 @@ class _DefaultAsyncError extends StatelessWidget {
       ),
     );
   }
-}
-
-// Needed for kDebugMode
-// ignore: depend_on_referenced_packages
-const bool kDebugMode = bool.fromEnvironment('dart.vm.product') == false;
+}

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/character_model.dart';
 import '../services/api_service.dart';
+import '../utils/error_utils.dart';
 
 enum FetchState { initial, loading, loaded, error }
 
@@ -66,7 +67,7 @@ class CharactersProvider extends ChangeNotifier {
       _topCharactersError = '';
     } catch (e) {
       _topCharactersState = FetchState.error;
-      _topCharactersError = _friendlyError(e);
+      _topCharactersError = friendlyError(e);
     }
     notifyListeners();
   }
@@ -87,23 +88,9 @@ class CharactersProvider extends ChangeNotifier {
       _detailStates[malId] = FetchState.loaded;
     } catch (e) {
       _detailStates[malId] = FetchState.error;
-      _detailErrors[malId] = _friendlyError(e);
+      _detailErrors[malId] = friendlyError(e);
     }
     notifyListeners();
   }
 
-  // ── Helpers ───────────────────────────────────────────────────
-  String _friendlyError(Object e) {
-    final msg = e.toString().toLowerCase();
-    if (msg.contains('429') || msg.contains('rate limit')) {
-      return 'Too many requests. Please wait a moment and try again.';
-    }
-    if (msg.contains('socketexception') || msg.contains('network')) {
-      return 'No internet connection. Please check your network.';
-    }
-    if (msg.contains('timeout')) {
-      return 'The request timed out. Please try again.';
-    }
-    return 'Something went wrong. Please try again.';
-  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/anime_model.dart';
 import '../models/filter_model.dart';
 import '../services/api_service.dart';
+import '../utils/error_utils.dart';
 
 enum FetchState { initial, loading, loaded, error }
 
@@ -165,7 +166,7 @@ class AnimeProvider extends ChangeNotifier {
       _topAnimeError = '';
     } catch (e) {
       _topAnimeState = FetchState.error;
-      _topAnimeError = _friendlyError(e);
+      _topAnimeError = friendlyError(e);
     }
     notifyListeners();
   }
@@ -213,7 +214,7 @@ class AnimeProvider extends ChangeNotifier {
       _searchError = '';
     } catch (e) {
       _searchState = FetchState.error;
-      _searchError = _friendlyError(e);
+      _searchError = friendlyError(e);
     }
     notifyListeners();
   }
@@ -240,7 +241,7 @@ class AnimeProvider extends ChangeNotifier {
       _recommendationsState = FetchState.loaded;
     } catch (e) {
       _recommendationsState = FetchState.error;
-      _recommendationsError = _friendlyError(e);
+      _recommendationsError = friendlyError(e);
     }
     notifyListeners();
   }
@@ -274,7 +275,7 @@ class AnimeProvider extends ChangeNotifier {
       _charactersState = FetchState.loaded;
     } catch (e) {
       _charactersState = FetchState.error;
-      _charactersError = _friendlyError(e);
+      _charactersError = friendlyError(e);
     }
     notifyListeners();
   }
@@ -308,7 +309,7 @@ class AnimeProvider extends ChangeNotifier {
       _staffState = FetchState.loaded;
     } catch (e) {
       _staffState = FetchState.error;
-      _staffError = _friendlyError(e);
+      _staffError = friendlyError(e);
     }
     notifyListeners();
   }
@@ -378,7 +379,7 @@ class AnimeProvider extends ChangeNotifier {
       _seasonalError = '';
     } catch (e) {
       _seasonalState = FetchState.error;
-      _seasonalError = _friendlyError(e);
+      _seasonalError = friendlyError(e);
     }
     notifyListeners();
   }
@@ -398,7 +399,7 @@ class AnimeProvider extends ChangeNotifier {
       _genresError = '';
     } catch (e) {
       _genresState = FetchState.error;
-      _genresError = _friendlyError(e);
+      _genresError = friendlyError(e);
     }
     notifyListeners();
   }
@@ -444,7 +445,7 @@ class AnimeProvider extends ChangeNotifier {
       _genreAnimeError = '';
     } catch (e) {
       _genreAnimeState = FetchState.error;
-      _genreAnimeError = _friendlyError(e);
+      _genreAnimeError = friendlyError(e);
     }
     notifyListeners();
   }
@@ -454,21 +455,4 @@ class AnimeProvider extends ChangeNotifier {
     return _apiService.getAnimeDetails(malId);
   }
 
-  // ── Helpers ──────────────────────────────────────────────────
-  String _friendlyError(Object e) {
-    final msg = e.toString().toLowerCase();
-    if (msg.contains('429') || msg.contains('rate limit')) {
-      return 'Too many requests. Please wait a moment and try again.';
-    }
-    if (msg.contains('socketexception') || msg.contains('network')) {
-      return 'No internet connection. Please check your network.';
-    }
-    if (msg.contains('timeout')) {
-      return 'The request timed out. Please try again.';
-    }
-    if (msg.contains('404')) {
-      return 'Content not found.';
-    }
-    return 'Something went wrong. Please try again.';
-  }
 }

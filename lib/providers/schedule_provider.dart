@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/schedule_model.dart';
 import '../services/api_service.dart';
+import '../utils/error_utils.dart';
 
 enum FetchState { initial, loading, loaded, error }
 
@@ -78,6 +79,9 @@ class ScheduleProvider extends ChangeNotifier {
         page: pageToFetch,
       );
 
+      // Guard: discard if the user switched to a different day while awaiting.
+      if (day != _selectedDay) return;
+
       if (results.isEmpty) {
         _hasMore[day] = false;
       }
@@ -89,8 +93,10 @@ class ScheduleProvider extends ChangeNotifier {
       _states[day] = FetchState.loaded;
       _errors[day] = '';
     } catch (e) {
+      // Guard: don't overwrite a newer fetch's error state.
+      if (day != _selectedDay) return;
       _states[day] = FetchState.error;
-      _errors[day] = _friendlyError(e);
+      _errors[day] = friendlyError(e);
     }
     notifyListeners();
   }
@@ -108,17 +114,4 @@ class ScheduleProvider extends ChangeNotifier {
     return BroadcastDay.values[index.clamp(0, 6)];
   }
 
-  String _friendlyError(Object e) {
-    final msg = e.toString().toLowerCase();
-    if (msg.contains('429') || msg.contains('rate limit')) {
-      return 'Too many requests. Please wait a moment and try again.';
-    }
-    if (msg.contains('socketexception') || msg.contains('network')) {
-      return 'No internet connection. Please check your network.';
-    }
-    if (msg.contains('timeout')) {
-      return 'The request timed out. Please try again.';
-    }
-    return 'Something went wrong. Please try again.';
-  }
 }
