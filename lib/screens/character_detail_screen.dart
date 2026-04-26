@@ -62,33 +62,76 @@ class _CharacterDetailScreenState extends State<CharacterDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Hero portrait ───────────────────────────────────
-            AnimeImage(
-              imageUrl: char.imageUrl,
-              width: double.infinity,
-              height: 420,
-              borderRadius: 0,
-              heroTag: widget.heroTag,
-            ),
+            // FIX: Handle empty imageUrl gracefully
+            char.imageUrl.isNotEmpty
+                ? AnimeImage(
+                    imageUrl: char.imageUrl,
+                    width: double.infinity,
+                    height: 420,
+                    borderRadius: 0,
+                    heroTag: widget.heroTag,
+                  )
+                : Container(
+                    width: double.infinity,
+                    height: 420,
+                    color: theme.colorScheme.surface,
+                    child: Center(
+                      child: Icon(
+                        Icons.person_outline_rounded,
+                        size: 80,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
 
             Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Name ──────────────────────────────────────
+                // ── Name ──────────────────────────────────────
+                Text(
+                  char.name.isNotEmpty ? char.name : 'Unknown Character',
+                  style: theme.textTheme.titleLarge,
+                ),
+                if (char.nameKanji != null &&
+                    char.nameKanji!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
                   Text(
-                    char.name,
-                    style: theme.textTheme.titleLarge,
+                    char.nameKanji!,
+                    style: theme.textTheme.labelSmall,
                   ),
-                  if (char.nameKanji != null &&
-                      char.nameKanji!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      char.nameKanji!,
-                      style: theme.textTheme.labelSmall,
+                ],
+
+                // FIX: Show role if available
+                if (char.role != null && char.role!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
                     ),
-                  ],
-                  const SizedBox(height: 16),
+                    decoration: BoxDecoration(
+                      color: char.role == 'Main'
+                          ? theme.colorScheme.primary.withAlpha(20)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withAlpha(
+                          char.role == 'Main' ? 60 : 30,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      char.role!,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
 
                   // ── Favorites badge ────────────────────────────
                   _FavoritesBadge(count: char.formattedFavorites),

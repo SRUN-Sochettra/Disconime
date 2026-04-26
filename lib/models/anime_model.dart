@@ -250,7 +250,8 @@ class AnimeCharacter {
       name: character['name'] as String? ?? '',
       imageUrl: jpg?['image_url'] as String? ?? '',
       role: json['role'] as String? ?? '',
-      favorites: json['favorites'] as int?,
+      // FIX: favorites is nested inside character, not at top level
+      favorites: character['favorites'] as int? ?? json['favorites'] as int?,
     );
   }
 }

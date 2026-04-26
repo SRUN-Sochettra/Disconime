@@ -532,7 +532,7 @@ class _CharactersTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        childAspectRatio: 0.65,
+        childAspectRatio: 0.55, // FIX: Slightly taller to fit name + favorites
         crossAxisSpacing: 12,
         mainAxisSpacing: 16,
       ),
@@ -557,17 +557,25 @@ class _CharacterCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        // FIX: AnimeCharacter is flat — access fields directly
-        // No nested .character property exists
+        // FIX: Guard against invalid malId
+        if (character.malId == 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Character data not available.'),
+            ),
+          );
+          return;
+        }
+
         final topChar = TopCharacter(
           malId: character.malId,
           name: character.name,
           imageUrl: character.imageUrl,
           favorites: character.favorites ?? 0,
           animeNames: const [],
-          role: character.role, // FIX: Pass role correctly
+          role: character.role,
         );
-        final heroTag = 'char_hero_${character.malId}';
+        final heroTag = 'char_detail_${character.malId}';
         context.push(
           '${RouteNames.characterDetailPath(topChar.malId)}'
           '?heroTag=${Uri.encodeComponent(heroTag)}',
@@ -577,14 +585,35 @@ class _CharacterCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Image ──────────────────────────────────────────
           Expanded(
             child: Stack(
               children: [
-                AnimeImage(
-                  imageUrl: character.imageUrl, // FIX: was character.imageUrl (correct but verify)
-                  width: double.infinity,
-                  borderRadius: 10,
-                ),
+                // FIX: Use character.imageUrl directly
+                // AnimeCharacter.fromJson already extracts the
+                // URL from the nested character.images.jpg path
+                character.imageUrl.isNotEmpty
+                    ? AnimeImage(
+                        imageUrl: character.imageUrl,
+                        width: double.infinity,
+                        borderRadius: 10,
+                      )
+                    : Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: theme.dividerColor,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.person_outline_rounded,
+                          size: 32,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                // Role badge
                 Positioned(
                   bottom: 6,
                   left: 6,
@@ -615,31 +644,38 @@ class _CharacterCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
+
+          // ── Name ───────────────────────────────────────────
           Text(
-            character.name, // FIX: was character.name (correct but verify)
+            character.name,
             style: theme.textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w600,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
+
+          // ── Favorites count ────────────────────────────────
           if (character.favorites != null && character.favorites! > 0)
-            Row(
-              children: [
-                Icon(
-                  Icons.favorite_rounded,
-                  size: 10,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 3),
-                Text(
-                  _formatNumber(character.favorites!),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 10,
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.favorite_rounded,
+                    size: 10,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 3),
+                  Text(
+                    _formatNumber(character.favorites!),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 10,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
         ],
       ),

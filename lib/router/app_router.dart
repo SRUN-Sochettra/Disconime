@@ -160,31 +160,25 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: RouteNames.characterDetail,
       pageBuilder: (context, state) {
-        final character = state.extra as TopCharacter?;
+        // FIX: Safely cast extra — might be null if deep-linked
+        final character = state.extra is TopCharacter
+            ? state.extra as TopCharacter
+            : null;
         final malId =
             int.tryParse(state.pathParameters['malId'] ?? '') ?? 0;
         final heroTag = state.uri.queryParameters['heroTag'];
 
-        if (character != null) {
-          return _scaleFadePage(
-            key: state.pageKey,
-            child: CharacterDetailScreen(
-              character: character,
-              heroTag: heroTag,
-            ),
-          );
-        }
-
         return _scaleFadePage(
           key: state.pageKey,
           child: CharacterDetailScreen(
-            character: TopCharacter(
-              malId: malId,
-              name: '',
-              imageUrl: '',
-              favorites: 0,
-              animeNames: const [],
-            ),
+            character: character ??
+                TopCharacter(
+                  malId: malId,
+                  name: '',
+                  imageUrl: '',
+                  favorites: 0,
+                  animeNames: const [],
+                ),
             heroTag: heroTag,
           ),
         );
