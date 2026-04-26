@@ -346,23 +346,34 @@ class _AnimeographySection extends StatelessWidget {
     );
   }
 
-  Future<void> _openAnime(
-    BuildContext context, CharacterAnime item) async {
-  final animeProvider = context.read<AnimeProvider>();
-  try {
-    final fullAnime = await animeProvider.getAnimeDetails(item.malId);
-    if (!context.mounted) return;
-    context.push(
-      RouteNames.animeDetailPath(fullAnime.malId),
-      extra: fullAnime,
+  Future<void> _openAnime(BuildContext context, CharacterAnime item) async {
+    final animeProvider = context.read<AnimeProvider>();
+
+    // Show loading dialog immediately
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
-  } catch (_) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Failed to load anime details.')),
-    );
+
+    try {
+      final fullAnime = await animeProvider.getAnimeDetails(item.malId);
+      if (!context.mounted) return;
+
+      // Dismiss dialog and push route
+      Navigator.pop(context);
+      context.push(
+        RouteNames.animeDetailPath(fullAnime.malId),
+        extra: fullAnime,
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      Navigator.pop(context); // Dismiss on error
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to load anime details.')),
+      );
+    }
   }
-}
 }
 
 // ── Voice actors section ──────────────────────────────────────────

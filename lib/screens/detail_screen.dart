@@ -545,74 +545,90 @@ class _CharacterCard extends StatelessWidget {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Stack(
-            children: [
-              AnimeImage(
-                imageUrl: character.imageUrl,
-                width: double.infinity,
-                borderRadius: 10,
-              ),
-              Positioned(
-                bottom: 6,
-                left: 6,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: character.role == 'Main'
-                        ? primary.withAlpha(220)
-                        : Colors.black.withAlpha(160),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    character.role,
-                    style: theme.textTheme.labelSmall?.copyWith(
+    return GestureDetector(
+      onTap: () {
+        // Map AnimeCharacter to TopCharacter for the detail screen
+        final topChar = TopCharacter(
+          malId: character.character.malId,
+          name: character.character.name,
+          imageUrl: character.character.imageUrl,
+          role: character.role,
+          favorites: character.favorites ?? 0,
+        );
+        context.push(
+          RouteNames.characterDetailPath(topChar.malId),
+          extra: topChar,
+        );
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                AnimeImage(
+                  imageUrl: character.imageUrl,
+                  width: double.infinity,
+                  borderRadius: 10,
+                ),
+                Positioned(
+                  bottom: 6,
+                  left: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
                       color: character.role == 'Main'
-                          ? Colors.black
-                          : Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
+                          ? primary.withAlpha(220)
+                          : Colors.black.withAlpha(160),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      character.role,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: character.role == 'Main'
+                            ? Colors.black
+                            : Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          character.name,
-          style: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w600,
+          const SizedBox(height: 6),
+          Text(
+            character.name,
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        if (character.favorites != null && character.favorites! > 0)
-          Row(
-            children: [
-              Icon(
-                Icons.favorite_rounded,
-                size: 10,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 3),
-              Text(
-                _formatNumber(character.favorites!),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontSize: 10,
+          if (character.favorites != null && character.favorites! > 0)
+            Row(
+              children: [
+                Icon(
+                  Icons.favorite_rounded,
+                  size: 10,
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
-              ),
-            ],
-          ),
-      ],
+                const SizedBox(width: 3),
+                Text(
+                  _formatNumber(character.favorites!),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: 10,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 
@@ -1024,24 +1040,37 @@ class _RecommendationsSection extends StatelessWidget {
 
               return GestureDetector(
                 onTap: () async {
-  final animeProvider = context.read<AnimeProvider>();
-  try {
-    final fullAnime =
-        await animeProvider.getAnimeDetails(rec.malId);
-    if (!context.mounted) return;
-    context.push(
-      RouteNames.animeDetailPath(fullAnime.malId),
-      extra: fullAnime,
-    );
-  } catch (_) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Failed to load anime details.'),
-      ),
-    );
-  }
-},
+                  final animeProvider = context.read<AnimeProvider>();
+
+                  // Show loading dialog immediately
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (_) =>
+                        const Center(child: CircularProgressIndicator()),
+                  );
+
+                  try {
+                    final fullAnime =
+                        await animeProvider.getAnimeDetails(rec.malId);
+                    if (!context.mounted) return;
+
+                    // Dismiss dialog and push route
+                    Navigator.pop(context);
+                    context.push(
+                      RouteNames.animeDetailPath(fullAnime.malId),
+                      extra: fullAnime,
+                    );
+                  } catch (_) {
+                    if (!context.mounted) return;
+                    Navigator.pop(context); // Dismiss on error
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Failed to load anime details.'),
+                      ),
+                    );
+                  }
+                },
                 child: Padding(
                   padding: const EdgeInsets.only(right: 12),
                   child: Column(

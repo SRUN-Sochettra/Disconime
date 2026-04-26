@@ -27,7 +27,6 @@ class _CharactersScreenState extends State<CharactersScreen> {
       Duration(milliseconds: 150);
 
   Timer? _scrollDebounce;
-  bool _isLoadMoreArmed = true;
 
   @override
   void initState() {
@@ -47,28 +46,20 @@ class _CharactersScreenState extends State<CharactersScreen> {
     if (!_scrollController.hasClients) return;
 
     final position = _scrollController.position;
-    if (position.maxScrollExtent <= 0) return;
+    // Load more when 200px from bottom
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      if (_scrollDebounce?.isActive ?? false) return;
 
-    if (position.extentAfter > 300) {
-      _isLoadMoreArmed = true;
-      _scrollDebounce?.cancel();
-      return;
+      _scrollDebounce = Timer(_scrollDebounceDuration, () {
+        if (!mounted) return;
+
+        final provider = context.read<CharactersProvider>();
+        if (provider.topCharactersState != FetchState.loading &&
+            provider.hasMore) {
+          provider.fetchTopCharacters(loadMore: true);
+        }
+      });
     }
-
-    if (!_isLoadMoreArmed || (_scrollDebounce?.isActive ?? false)) {
-      return;
-    }
-
-    _isLoadMoreArmed = false;
-    _scrollDebounce = Timer(_scrollDebounceDuration, () {
-      if (!mounted) return;
-
-      final provider = context.read<CharactersProvider>();
-      if (provider.topCharactersState != FetchState.loading &&
-          provider.hasMore) {
-        provider.fetchTopCharacters(loadMore: true);
-      }
-    });
   }
 
   @override

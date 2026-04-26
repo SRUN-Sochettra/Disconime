@@ -44,6 +44,7 @@ class CharactersProvider extends ChangeNotifier {
       _topCharactersError = '';
       Future.microtask(() => notifyListeners());
     } else {
+      if (_topCharactersState == FetchState.loading) return;
       _topCharacters = [];
       _currentPage = 1;
       _hasMore = true;
