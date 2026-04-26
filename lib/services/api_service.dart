@@ -120,14 +120,9 @@ class ApiService {
     String cacheKey, {
     required Duration ttl,
   }) async {
-    // 1. Try fresh cache.
-    final cached = await _cache.get(cacheKey, ttl: ttl);
-    if (cached != null) {
-      debugPrint('[ApiService] Cache hit: $cacheKey');
-      return cached as Map<String, dynamic>;
-    }
-
-    // 2. Offline — try stale cache (any age).
+    // 1. Offline — serve any cached data regardless of age.
+    //    Must check BEFORE the strict-TTL read, because CacheService.get
+    //    deletes entries that exceed the provided TTL.
     if (!_isOnline) {
       final stale = await _cache.get(
         cacheKey,
@@ -140,6 +135,13 @@ class ApiService {
       throw Exception(
         'No internet connection and no cached data available.',
       );
+    }
+
+    // 2. Online — try fresh cache.
+    final cached = await _cache.get(cacheKey, ttl: ttl);
+    if (cached != null) {
+      debugPrint('[ApiService] Cache hit: $cacheKey');
+      return cached as Map<String, dynamic>;
     }
 
     // 3. Fetch from network and store in cache.

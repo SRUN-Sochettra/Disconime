@@ -12,13 +12,12 @@ class FavoritesProvider extends ChangeNotifier {
   // on every call to the getter. Invalidated on every mutation.
   List<Anime>? _cachedList;
 
-  // FIX: Guard flag prevents concurrent toggleFavorite calls
-  // (e.g. rapid taps) from interleaving map mutation and persist.
-  bool _isPersisting = false;
-
-  // FIX: Cache the SharedPreferences instance after first load
+  // Cache the SharedPreferences instance after first load
   // so every _persist() call does not pay the getInstance() cost.
   SharedPreferences? _prefs;
+
+  // Coalesces rapid toggles — only the last state is flushed to disk.
+  bool _pendingPersist = false;
 
   List<Anime> get favorites => _cachedList ??= _favorites.values.toList();
 
@@ -47,23 +46,28 @@ class FavoritesProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> toggleFavorite(Anime anime) async {
-    // FIX: Ignore rapid taps while a persist is in flight.
-    if (_isPersisting) return;
-    _isPersisting = true;
-
+  void toggleFavorite(Anime anime) {
+    // Always mutate in-memory state synchronously so no tap is ever dropped.
     if (_favorites.containsKey(anime.malId)) {
       _favorites.remove(anime.malId);
     } else {
       _favorites[anime.malId] = anime;
     }
 
-    // Invalidate cache on every mutation.
     _cachedList = null;
     notifyListeners();
-    await _persist();
 
-    _isPersisting = false;
+    // Coalesce rapid writes: schedule a single persist after the microtask.
+    _schedulePersist();
+  }
+
+  void _schedulePersist() {
+    if (_pendingPersist) return; // already scheduled
+    _pendingPersist = true;
+    Future.microtask(() async {
+      _pendingPersist = false;
+      await _persist();
+    });
   }
 
   Future<void> _persist() async {

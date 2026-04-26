@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:anime_discovery/main.dart';
 import 'package:anime_discovery/providers/theme_provider.dart';
 import 'package:anime_discovery/providers/anime_provider.dart';

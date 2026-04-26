@@ -203,6 +203,8 @@ class AnimeProvider extends ChangeNotifier {
     try {
       final results =
           await _apiService.searchAnime(query, page: pageToFetch);
+      // Guard: discard if the user changed the query while awaiting.
+      if (query != _currentQuery) return;
       if (results.isEmpty) _hasMoreSearchResults = false;
       _searchResults =
           loadMore ? [..._searchResults, ...results] : results;
@@ -231,7 +233,10 @@ class AnimeProvider extends ChangeNotifier {
     Future.microtask(() => notifyListeners());
 
     try {
-      _recommendations = await _apiService.getAnimeRecommendations(malId);
+      final results = await _apiService.getAnimeRecommendations(malId);
+      // Guard: discard if the user navigated to a different anime.
+      if (malId != _currentRecMalId) return;
+      _recommendations = results;
       _recommendationsState = FetchState.loaded;
     } catch (e) {
       _recommendationsState = FetchState.error;
@@ -262,7 +267,10 @@ class AnimeProvider extends ChangeNotifier {
     Future.microtask(() => notifyListeners());
 
     try {
-      _characters = await _apiService.getAnimeCharacters(malId);
+      final results = await _apiService.getAnimeCharacters(malId);
+      // Guard: discard if the user navigated to a different anime.
+      if (malId != _currentCharactersMalId) return;
+      _characters = results;
       _charactersState = FetchState.loaded;
     } catch (e) {
       _charactersState = FetchState.error;
@@ -293,7 +301,10 @@ class AnimeProvider extends ChangeNotifier {
     Future.microtask(() => notifyListeners());
 
     try {
-      _staff = await _apiService.getAnimeStaff(malId);
+      final results = await _apiService.getAnimeStaff(malId);
+      // Guard: discard if the user navigated to a different anime.
+      if (malId != _currentStaffMalId) return;
+      _staff = results;
       _staffState = FetchState.loaded;
     } catch (e) {
       _staffState = FetchState.error;
@@ -424,6 +435,8 @@ class AnimeProvider extends ChangeNotifier {
         genreId,
         page: pageToFetch,
       );
+      // Guard: discard if the user switched to a different genre.
+      if (genreId != _currentGenreId) return;
       if (results.isEmpty) _hasMoreGenreAnime = false;
       _genreAnime = loadMore ? [..._genreAnime, ...results] : results;
       _currentGenrePage = pageToFetch;

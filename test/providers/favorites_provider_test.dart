@@ -23,7 +23,9 @@ void main() {
     });
 
     test('loads persisted favorites on init', () async {
-      await provider.toggleFavorite(TestData.naruto);
+      provider.toggleFavorite(TestData.naruto);
+      // Let the microtask-based persist flush to SharedPreferences.
+      await Future.delayed(Duration.zero);
 
       final newProvider = FavoritesProvider();
       await newProvider.loadFavorites();
@@ -35,25 +37,25 @@ void main() {
   });
 
   group('toggleFavorite', () {
-    test('adds anime to favorites', () async {
-      await provider.toggleFavorite(TestData.naruto);
+    test('adds anime to favorites', () {
+      provider.toggleFavorite(TestData.naruto);
 
       expect(provider.favorites.length, 1);
       expect(provider.isFavorite(TestData.naruto.malId), isTrue);
     });
 
-    test('removes anime from favorites when already favorited', () async {
-      await provider.toggleFavorite(TestData.naruto);
+    test('removes anime from favorites when already favorited', () {
+      provider.toggleFavorite(TestData.naruto);
       expect(provider.isFavorite(TestData.naruto.malId), isTrue);
 
-      await provider.toggleFavorite(TestData.naruto);
+      provider.toggleFavorite(TestData.naruto);
       expect(provider.isFavorite(TestData.naruto.malId), isFalse);
       expect(provider.favorites, isEmpty);
     });
 
-    test('can add multiple anime', () async {
-      await provider.toggleFavorite(TestData.naruto);
-      await provider.toggleFavorite(TestData.fmab);
+    test('can add multiple anime', () {
+      provider.toggleFavorite(TestData.naruto);
+      provider.toggleFavorite(TestData.fmab);
 
       expect(provider.favorites.length, 2);
       expect(provider.isFavorite(TestData.naruto.malId), isTrue);
@@ -61,7 +63,8 @@ void main() {
     });
 
     test('persists changes to SharedPreferences', () async {
-      await provider.toggleFavorite(TestData.naruto);
+      provider.toggleFavorite(TestData.naruto);
+      await Future.delayed(Duration.zero);
 
       final newProvider = FavoritesProvider();
       await newProvider.loadFavorites();
@@ -71,8 +74,10 @@ void main() {
     });
 
     test('persists removal to SharedPreferences', () async {
-      await provider.toggleFavorite(TestData.naruto);
-      await provider.toggleFavorite(TestData.naruto);
+      provider.toggleFavorite(TestData.naruto);
+      await Future.delayed(Duration.zero);
+      provider.toggleFavorite(TestData.naruto);
+      await Future.delayed(Duration.zero);
 
       final newProvider = FavoritesProvider();
       await newProvider.loadFavorites();
@@ -87,15 +92,15 @@ void main() {
       expect(provider.isFavorite(99999), isFalse);
     });
 
-    test('returns true after adding', () async {
-      await provider.toggleFavorite(TestData.naruto);
+    test('returns true after adding', () {
+      provider.toggleFavorite(TestData.naruto);
       expect(provider.isFavorite(TestData.naruto.malId), isTrue);
     });
   });
 
   group('favorites getter', () {
-    test('returns consistent list reference when not mutated', () async {
-      await provider.toggleFavorite(TestData.naruto);
+    test('returns consistent list reference when not mutated', () {
+      provider.toggleFavorite(TestData.naruto);
 
       final list1 = provider.favorites;
       final list2 = provider.favorites;
@@ -104,11 +109,11 @@ void main() {
       expect(identical(list1, list2), isTrue);
     });
 
-    test('invalidates cache after mutation', () async {
-      await provider.toggleFavorite(TestData.naruto);
+    test('invalidates cache after mutation', () {
+      provider.toggleFavorite(TestData.naruto);
       final list1 = provider.favorites;
 
-      await provider.toggleFavorite(TestData.fmab);
+      provider.toggleFavorite(TestData.fmab);
       final list2 = provider.favorites;
 
       expect(identical(list1, list2), isFalse);
