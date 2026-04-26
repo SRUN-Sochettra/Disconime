@@ -14,8 +14,8 @@ A high-end anime discovery platform built with Flutter and the Jikan API.
   <img width="250" alt="mainscreen" src="https://github.com/user-attachments/assets/5c749abf-e936-4e29-88fb-5b932aa9040c" />
   <img width="250" alt="mainscreen_light" src="https://github.com/user-attachments/assets/eb3ae508-adbe-4e2f-8cbe-817f33c5e3ff" />
   <img width="250" alt="searchscreen" src="https://github.com/user-attachments/assets/4b345d7d-0fc9-46b1-8433-8305519ec7b1" />
-  <img width="250" height="1280" alt="detailscreen" src="https://github.com/user-attachments/assets/a4c0ebc4-7a96-4cfc-b339-49fe72509ca8" />
-  <img width="250" height="1280" alt="dashboard" src="https://github.com/user-attachments/assets/844e6fd6-0d61-4214-8e95-4c7089258e71" />
+  <img width="250" alt="detailscreen" src="https://github.com/user-attachments/assets/a4c0ebc4-7a96-4cfc-b339-49fe72509ca8" />
+  <img width="250" alt="dashboard" src="https://github.com/user-attachments/assets/844e6fd6-0d61-4214-8e95-4c7089258e71" />
 </div>
 
 ---
