@@ -71,44 +71,49 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> _getJson(Uri uri) async {
-    try {
-      return await _throttle(() async {
-        for (var attempt = 0; attempt <= _maxRetries; attempt++) {
-          final response = await client.get(uri);
+    for (var attempt = 0; attempt <= _maxRetries; attempt++) {
+      try {
+        final response = await _throttle(() => client.get(uri));
 
-          if (response.statusCode == 200) {
-            return json.decode(response.body) as Map<String, dynamic>;
-          }
+        if (response.statusCode == 200) {
+          return json.decode(response.body) as Map<String, dynamic>;
+        }
 
-          if (_shouldRetry(response) && attempt < _maxRetries) {
-            final delay = _retryDelayFor(response, attempt);
-            debugPrint(
-              '[ApiService] Retrying $uri after status '
-              '${response.statusCode} in ${delay.inMilliseconds}ms '
-              '(attempt ${attempt + 1}/$_maxRetries).',
-            );
-            await Future.delayed(delay);
-            continue;
-          }
+        if (_shouldRetry(response) && attempt < _maxRetries) {
+          final delay = _retryDelayFor(response, attempt);
+          debugPrint(
+            '[ApiService] Retrying $uri after status '
+            '${response.statusCode} in ${delay.inMilliseconds}ms '
+            '(attempt ${attempt + 1}/$_maxRetries).',
+          );
+          // Wait OUTSIDE the throttle closure to avoid blocking the queue.
+          await Future.delayed(delay);
+          continue;
+        }
 
-          if (response.statusCode == 429) {
-            throw Exception(
-              'Rate limit exceeded after retries. '
-              'Please try again shortly.',
-            );
-          }
-
+        if (response.statusCode == 429) {
           throw Exception(
-            'Request failed with status ${response.statusCode}.',
+            'Rate limit exceeded after retries. '
+            'Please try again shortly.',
           );
         }
-        throw Exception('Request failed after retries.');
-      });
-    } catch (e, stack) {
-      debugPrint('[ApiService] Error fetching $uri: $e');
-      GlobalErrorHandler.reportError(e, stack);
-      rethrow;
+
+        throw Exception(
+          'Request failed with status ${response.statusCode}.',
+        );
+      } catch (e, stack) {
+        if (attempt < _maxRetries && (e is http.ClientException || e is TimeoutException)) {
+           final delay = Duration(seconds: 1 << attempt);
+           debugPrint('[ApiService] Connection error, retrying in ${delay.inSeconds}s: $e');
+           await Future.delayed(delay);
+           continue;
+        }
+        debugPrint('[ApiService] Error fetching $uri: $e');
+        GlobalErrorHandler.reportError(e, stack);
+        rethrow;
+      }
     }
+    throw Exception('Request failed after retries.');
   }
 
   // ── Cached fetch helper ───────────────────────────────────────
@@ -145,9 +150,26 @@ class ApiService {
     }
 
     // 3. Fetch from network and store in cache.
-    final data = await _getJson(uri);
-    await _cache.set(cacheKey, data);
-    return data;
+    try {
+      final data = await _getJson(uri);
+      await _cache.set(cacheKey, data);
+      return data;
+    } catch (e) {
+      // IF ONLINE BUT FETCH FAILED, TRY STALE CACHE BEFORE RETHROWING.
+      // This protects against data loss if CacheService.get (strict TTL)
+      // returned null but the data still exists on disk.
+      final stale = await _cache.get(
+        cacheKey,
+        ttl: const Duration(days: 365),
+      );
+      if (stale != null) {
+        debugPrint(
+          '[ApiService] Serving stale cache (online failure fallback): $cacheKey',
+        );
+        return stale as Map<String, dynamic>;
+      }
+      rethrow;
+    }
   }
 
   // ── Top Anime ─────────────────────────────────────────────────

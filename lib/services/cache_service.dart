@@ -74,8 +74,8 @@ class CacheService {
 
       final age = DateTime.now().millisecondsSinceEpoch - timestamp;
       if (age >= ttl.inMilliseconds) {
-        // Expired — clean up silently.
-        await _delete(prefs, key);
+        // Expired — return null so caller tries network, but KEEP it 
+        // in SharedPreferences for potential stale fallback if offline.
         return null;
       }
 

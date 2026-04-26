@@ -140,6 +140,7 @@ class AnimeProvider extends ChangeNotifier {
       _topAnimeError = '';
       Future.microtask(() => notifyListeners());
     } else {
+      if (_topAnimeState == FetchState.loading) return;
       _topAnime = [];
       _currentTopPage = 1;
       _hasMoreTopAnime = true;
@@ -194,6 +195,7 @@ class AnimeProvider extends ChangeNotifier {
       _searchState = FetchState.loading;
       notifyListeners();
     } else {
+      if (_searchState == FetchState.loading) return;
       _searchResults = [];
       _searchState = FetchState.loading;
       notifyListeners();
@@ -351,6 +353,7 @@ class AnimeProvider extends ChangeNotifier {
       _seasonalState = FetchState.loading;
       notifyListeners();
     } else {
+      if (_seasonalState == FetchState.loading) return;
       _seasonalAnime = [];
       _currentSeasonalPage = 1;
       _hasMoreSeasonalAnime = true;
@@ -422,6 +425,7 @@ class AnimeProvider extends ChangeNotifier {
       _genreAnimeState = FetchState.loading;
       notifyListeners();
     } else {
+      if (_genreAnimeState == FetchState.loading) return;
       _genreAnime = [];
       _currentGenrePage = 1;
       _hasMoreGenreAnime = true;

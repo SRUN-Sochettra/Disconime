@@ -56,17 +56,31 @@ class FavoritesProvider extends ChangeNotifier {
 
     _cachedList = null;
     notifyListeners();
-
-    // Coalesce rapid writes: schedule a single persist after the microtask.
     _schedulePersist();
   }
+
+  // Chained tracker to ensure sequential execution.
+  Future<void>? _activePersist;
 
   void _schedulePersist() {
     if (_pendingPersist) return; // already scheduled
     _pendingPersist = true;
+
     Future.microtask(() async {
       _pendingPersist = false;
-      await _persist();
+
+      // Track the current chain and append to it.
+      final completer = Completer<void>();
+      final previous = _activePersist;
+      _activePersist = completer.future;
+
+      try {
+        // Wait for the previous write to finish before starting this one.
+        if (previous != null) await previous;
+        await _persist();
+      } finally {
+        completer.complete();
+      }
     });
   }
 
