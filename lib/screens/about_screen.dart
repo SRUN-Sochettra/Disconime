@@ -23,7 +23,7 @@ class _AboutScreenState extends State<AboutScreen> {
     try {
       final info = await PackageInfo.fromPlatform();
       if (mounted) {
-        setState(() => _appVersion = 'v${info.version}+${info.buildNumber}');
+        setState(() => _appVersion = 'v${info.version}');
       }
     } catch (_) {
       if (mounted) setState(() => _appVersion = 'v1.0.0');
@@ -85,11 +85,7 @@ class _AboutScreenState extends State<AboutScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Container(
-                    width: 40,
-                    height: 2,
-                    color: primary,
-                  ),
+                  Container(width: 40, height: 2, color: primary),
                   const SizedBox(height: 12),
                   Text(
                     'Anime Discovery Platform',
@@ -106,9 +102,7 @@ class _AboutScreenState extends State<AboutScreen> {
                     ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: primary.withAlpha(40),
-                      ),
+                      border: Border.all(color: primary.withAlpha(40)),
                     ),
                     child: Text(
                       _appVersion,
@@ -129,7 +123,7 @@ class _AboutScreenState extends State<AboutScreen> {
             const _AboutSection(
               label: 'The Project',
               body:
-              'A high-end anime discovery platform built with '
+                  'A high-end anime discovery platform built with '
                   'Flutter and the Jikan API. Designed for enthusiasts '
                   'who appreciate minimalist aesthetics and a premium '
                   'content-first experience.\n\n'
@@ -146,7 +140,7 @@ class _AboutScreenState extends State<AboutScreen> {
             const _AboutSection(
               label: 'Architecture',
               body:
-              'Layered architecture with Provider state management. '
+                  'Layered architecture with Provider state management. '
                   'Separation of models, services, providers, screens, '
                   'and widgets. Offline-first caching with stale-while-'
                   'revalidate strategy.',
@@ -156,7 +150,7 @@ class _AboutScreenState extends State<AboutScreen> {
             const _AboutSection(
               label: 'Data Source',
               body:
-              'Powered by the Jikan REST API v4 — an unofficial '
+                  'Powered by the Jikan REST API v4 — an unofficial '
                   'MyAnimeList API. Rate limiting and exponential '
                   'backoff retry logic are handled automatically.',
             ),
@@ -165,7 +159,7 @@ class _AboutScreenState extends State<AboutScreen> {
             const _AboutSection(
               label: 'Features',
               body:
-              '• Top anime rankings with filters\n'
+                  '• Top anime rankings with filters\n'
                   '• Instant search with history\n'
                   '• Seasonal anime browser\n'
                   '• Weekly broadcast schedule\n'
@@ -181,7 +175,7 @@ class _AboutScreenState extends State<AboutScreen> {
             const _AboutSection(
               label: 'Tech Stack',
               body:
-              '• Flutter & Dart\n'
+                  '• Flutter & Dart\n'
                   '• Provider for state management\n'
                   '• GoRouter for navigation\n'
                   '• SharedPreferences for persistence\n'
@@ -204,7 +198,7 @@ class _AboutScreenState extends State<AboutScreen> {
             const _AboutSection(
               label: 'Acknowledgements',
               body:
-              '• Jikan API — for providing free anime data\n'
+                  '• Jikan API — for providing free anime data\n'
                   '• MyAnimeList — the original data source\n'
                   '• Flutter & Dart teams — for the framework\n'
                   '• National University of Management',
@@ -252,16 +246,12 @@ class _AboutScreenState extends State<AboutScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'Powered by Jikan API v4',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 10,
-                    ),
+                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '© 2026 Disconime Team',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 10,
-                    ),
+                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -299,14 +289,14 @@ class _TeamSection extends StatelessWidget {
       name: 'Som Chanrah',
       role: 'UI/UX Support',
       icon: Icons.design_services_rounded,
-      initial: 'M2',
+      initial: 'SC',
       photoPath: 'assets/images/team/member2.jpg',
     ),
     _TeamMember(
       name: 'Sar Chanrithy',
       role: 'Documentation & Presentation',
       icon: Icons.description_rounded,
-      initial: 'M3',
+      initial: 'SC',
       photoPath: 'assets/images/team/member3.jpg',
     ),
   ];
@@ -376,10 +366,7 @@ class _AnimatedMemberCard extends StatefulWidget {
   final _TeamMember member;
   final Duration delay;
 
-  const _AnimatedMemberCard({
-    required this.member,
-    required this.delay,
-  });
+  const _AnimatedMemberCard({required this.member, required this.delay});
 
   @override
   State<_AnimatedMemberCard> createState() => _AnimatedMemberCardState();
@@ -405,10 +392,7 @@ class _AnimatedMemberCardState extends State<_AnimatedMemberCard>
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0.3, 0),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
     Future.delayed(widget.delay, () {
       if (mounted) _controller.forward();
@@ -461,11 +445,7 @@ class _AnimatedMemberCardState extends State<_AnimatedMemberCard>
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          Icon(
-                            member.icon,
-                            size: 12,
-                            color: primary,
-                          ),
+                          Icon(member.icon, size: 12, color: primary),
                           const SizedBox(width: 4),
                           Text(
                             member.role,
@@ -516,9 +496,10 @@ class _TeamAvatarState extends State<_TeamAvatar>
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     )..repeat(reverse: true);
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.08,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -547,19 +528,19 @@ class _TeamAvatarState extends State<_TeamAvatar>
             child: ClipOval(
               child: widget.photoPath != null
                   ? Image.asset(
-                widget.photoPath!,
-                width: 44,
-                height: 44,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _InitialFallback(
-                  initial: widget.initial,
-                  primary: widget.primary,
-                ),
-              )
+                      widget.photoPath!,
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => _InitialFallback(
+                        initial: widget.initial,
+                        primary: widget.primary,
+                      ),
+                    )
                   : _InitialFallback(
-                initial: widget.initial,
-                primary: widget.primary,
-              ),
+                      initial: widget.initial,
+                      primary: widget.primary,
+                    ),
             ),
           ),
         );
@@ -572,10 +553,7 @@ class _InitialFallback extends StatelessWidget {
   final String initial;
   final Color primary;
 
-  const _InitialFallback({
-    required this.initial,
-    required this.primary,
-  });
+  const _InitialFallback({required this.initial, required this.primary});
 
   @override
   Widget build(BuildContext context) {
@@ -813,9 +791,7 @@ class _ChangelogEntry extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: isCurrent
-                      ? primary.withAlpha(20)
-                      : Colors.transparent,
+                  color: isCurrent ? primary.withAlpha(20) : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isCurrent
@@ -885,9 +861,7 @@ class _ChangelogEntry extends StatelessWidget {
                   Expanded(
                     child: Text(
                       change,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        height: 1.5,
-                      ),
+                      style: theme.textTheme.bodySmall?.copyWith(height: 1.5),
                     ),
                   ),
                 ],
@@ -1022,9 +996,7 @@ class _ActionTile extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontSize: 13,
-                    ),
+                    style: theme.textTheme.titleMedium?.copyWith(fontSize: 13),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -1054,10 +1026,7 @@ class _AboutSection extends StatelessWidget {
   final String label;
   final String body;
 
-  const _AboutSection({
-    required this.label,
-    required this.body,
-  });
+  const _AboutSection({required this.label, required this.body});
 
   @override
   Widget build(BuildContext context) {
@@ -1096,9 +1065,7 @@ class _AboutSection extends StatelessWidget {
             padding: const EdgeInsets.only(left: 13),
             child: Text(
               body,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                height: 1.7,
-              ),
+              style: theme.textTheme.bodyMedium?.copyWith(height: 1.7),
             ),
           ),
         ],

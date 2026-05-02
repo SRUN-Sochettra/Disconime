@@ -15,7 +15,7 @@ class CharactersProvider extends ChangeNotifier {
   int _currentPage = 1;
   bool _hasMore = true;
   String _topCharactersError = '';
-  String _characterSort = 'favorites'; // 'favorites', 'name', 'az'
+  String _characterSort = 'favorites'; // favorites | az | za | appearances
 
   List<TopCharacter> get topCharacters => _topCharacters;
   FetchState get topCharactersState => _topCharactersState;
@@ -26,20 +26,30 @@ class CharactersProvider extends ChangeNotifier {
 
   List<TopCharacter> get sortedCharacters {
     if (_topCharacters.isEmpty) return [];
-    var results = List<TopCharacter>.from(_topCharacters);
 
-    if (_characterSort == 'name') {
-      results.sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
-    } else if (_characterSort == 'az') {
-      results.sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
-    } else if (_characterSort == 'favorites') {
-      results.sort(
-          (a, b) => (b.favorites ?? 0).compareTo(a.favorites ?? 0));
+    final results = List<TopCharacter>.from(_topCharacters);
+
+    switch (_characterSort) {
+      case 'az':
+        results.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case 'za':
+        results.sort((a, b) => b.name.compareTo(a.name));
+        break;
+      case 'appearances':
+        results.sort((a, b) => b.animeNames.length.compareTo(a.animeNames.length));
+        break;
+      case 'favorites':
+      default:
+        results.sort((a, b) => b.favorites.compareTo(a.favorites));
+        break;
     }
+
     return results;
   }
 
   void setCharacterSort(String sort) {
+    if (_characterSort == sort) return;
     _characterSort = sort;
     notifyListeners();
   }
@@ -49,8 +59,10 @@ class CharactersProvider extends ChangeNotifier {
   final Map<int, String> _detailErrors = {};
 
   Character? detailFor(int malId) => _detailCache[malId];
+
   FetchState detailStateFor(int malId) =>
       _detailStates[malId] ?? FetchState.initial;
+
   String detailErrorFor(int malId) => _detailErrors[malId] ?? '';
 
   Future<void> fetchTopCharacters({bool loadMore = false}) async {
@@ -64,7 +76,6 @@ class CharactersProvider extends ChangeNotifier {
       _hasMore = true;
     }
 
-    // FIX: Direct notify, no microtask
     _topCharactersState = FetchState.loading;
     _topCharactersError = '';
     notifyListeners();
@@ -75,10 +86,13 @@ class CharactersProvider extends ChangeNotifier {
       final results = await _apiService.getTopCharacters(
         page: pageToFetch,
       );
+
       if (results.isEmpty) _hasMore = false;
+
       _topCharacters = loadMore
           ? [..._topCharacters, ...results]
           : results;
+
       _currentPage = pageToFetch;
       _topCharactersState = FetchState.loaded;
       _topCharactersError = '';
@@ -86,6 +100,7 @@ class CharactersProvider extends ChangeNotifier {
       _topCharactersState = FetchState.error;
       _topCharactersError = friendlyError(e);
     }
+
     notifyListeners();
   }
 
@@ -105,6 +120,7 @@ class CharactersProvider extends ChangeNotifier {
       _detailStates[malId] = FetchState.error;
       _detailErrors[malId] = friendlyError(e);
     }
+
     notifyListeners();
   }
 }
