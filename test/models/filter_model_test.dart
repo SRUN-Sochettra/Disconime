@@ -137,12 +137,8 @@ void main() {
       expect(CharacterSortOption.nameDesc.label, 'Name Z\u2192A');
     });
 
-    test('mostAnime label', () {
-      expect(CharacterSortOption.mostAnime.label, 'Most Appearances');
-    });
-
-    test('has exactly 5 options', () {
-      expect(CharacterSortOption.values.length, 5);
+    test('has exactly 4 options', () {
+      expect(CharacterSortOption.values.length, 4);
     });
   });
 

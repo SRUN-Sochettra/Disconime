@@ -97,10 +97,6 @@ class _CharactersScreenState extends State<CharactersScreen>
       case CharacterSortOption.nameDesc:
         result.sort((a, b) => b.name.compareTo(a.name));
         break;
-      case CharacterSortOption.mostAnime:
-        result.sort(
-            (a, b) => b.animeNames.length.compareTo(a.animeNames.length));
-        break;
     }
     return result;
   }
@@ -351,7 +347,6 @@ class _CharactersScreenState extends State<CharactersScreen>
           character: character,
           rank: rank,
           heroTag: heroTag,
-          sortOption: _sortOption,
         );
       },
     );
@@ -434,38 +429,23 @@ class _CharactersScreenState extends State<CharactersScreen>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        if (_sortOption == CharacterSortOption.mostAnime &&
-                            character.animeNames.length > 1) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            '${character.animeNames.length} anime appearances',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontSize: 10,
-                              color: primary,
-                            ),
-                          ),
-                        ],
                       ],
                     ],
                   ),
                 ),
 
-                // Favorites / Anime Count
+                // Favorites
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _sortOption == CharacterSortOption.mostAnime
-                          ? Icons.movie_filter_rounded
-                          : Icons.favorite_rounded,
+                      Icons.favorite_rounded,
                       size: 12,
                       color: primary,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      _sortOption == CharacterSortOption.mostAnime
-                          ? '${character.animeNames.length}'
-                          : character.formattedFavorites,
+                      character.formattedFavorites,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: primary,
                         fontWeight: FontWeight.bold,
@@ -486,13 +466,11 @@ class _CharacterCard extends StatelessWidget {
   final TopCharacter character;
   final int rank;
   final String heroTag;
-  final CharacterSortOption sortOption;
 
   const _CharacterCard({
     required this.character,
     required this.rank,
     required this.heroTag,
-    required this.sortOption,
   });
 
   @override
@@ -557,18 +535,14 @@ class _CharacterCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          sortOption == CharacterSortOption.mostAnime
-                              ? Icons.movie_filter_rounded
-                              : Icons.favorite_rounded,
+                        const Icon(
+                          Icons.favorite_rounded,
                           size: 8,
                           color: Colors.white,
                         ),
                         const SizedBox(width: 2),
                         Text(
-                          sortOption == CharacterSortOption.mostAnime
-                              ? '${character.animeNames.length}'
-                              : character.formattedFavorites,
+                          character.formattedFavorites,
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: Colors.white,
                             fontSize: 8,

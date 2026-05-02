@@ -125,7 +125,6 @@ enum CharacterSortOption {
   favoritesAsc,
   nameAsc,
   nameDesc,
-  mostAnime,
 }
 
 extension CharacterSortOptionExtension on CharacterSortOption {
@@ -139,8 +138,6 @@ extension CharacterSortOptionExtension on CharacterSortOption {
         return 'Name A→Z';
       case CharacterSortOption.nameDesc:
         return 'Name Z→A';
-      case CharacterSortOption.mostAnime:
-        return 'Most Appearances';
     }
   }
 
@@ -154,8 +151,6 @@ extension CharacterSortOptionExtension on CharacterSortOption {
         return Icons.sort_by_alpha_rounded;
       case CharacterSortOption.nameDesc:
         return Icons.sort_by_alpha_rounded;
-      case CharacterSortOption.mostAnime:
-        return Icons.movie_filter_rounded;
     }
   }
 }
