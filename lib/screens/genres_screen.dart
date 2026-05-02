@@ -23,6 +23,7 @@ class _GenresScreenState extends State<GenresScreen>
   bool get wantKeepAlive => true;
 
   bool _hasFetched = false;
+
   @override
   void initState() {
     super.initState();
@@ -34,13 +35,83 @@ class _GenresScreenState extends State<GenresScreen>
     });
   }
 
+  void _showSortSheet() {
+    final provider = context.read<AnimeProvider>();
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: theme.scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: theme.dividerColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text('Sort Genres', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.sort_by_alpha_rounded),
+                title: const Text('Name (A-Z)'),
+                trailing: provider.genreSort == 'name'
+                    ? Icon(Icons.check_rounded, color: theme.colorScheme.primary)
+                    : null,
+                onTap: () {
+                  provider.setGenreSort('name');
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.bar_chart_rounded),
+                title: const Text('Title Count'),
+                trailing: provider.genreSort == 'count'
+                    ? Icon(Icons.check_rounded, color: theme.colorScheme.primary)
+                    : null,
+                onTap: () {
+                  provider.setGenreSort('count');
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: const SectionAppBar(title: 'Genres'),
+      appBar: SectionAppBar(
+        title: 'Genres',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.sort_rounded),
+            tooltip: 'Sort',
+            onPressed: _showSortSheet,
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: Consumer<AnimeProvider>(
         builder: (context, provider, child) {
           if (provider.genresState == FetchState.initial ||
@@ -69,7 +140,9 @@ class _GenresScreenState extends State<GenresScreen>
             );
           }
 
-          if (provider.genres.isEmpty) {
+          final genres = provider.sortedGenres;
+
+          if (genres.isEmpty) {
             return EmptyState(
               type: EmptyStateType.genres,
               onAction: () => provider.fetchGenres(),
@@ -86,9 +159,9 @@ class _GenresScreenState extends State<GenresScreen>
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
-            itemCount: provider.genres.length,
+            itemCount: genres.length,
             itemBuilder: (context, index) {
-              final genre = provider.genres[index];
+              final genre = genres[index];
               final name = genre['name'] as String;
               final count = genre['count'] as int? ?? 0;
               final genreId = genre['mal_id'] as int;

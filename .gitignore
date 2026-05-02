@@ -35,18 +35,41 @@ build/
 coverage/
 *.g.dart
 
+
 # Android
-android/.gradle/
 android/local.properties
 android/key.properties
-*.jks
-*.keystore
+android/.gradle/
+android/app/google-services.json
 
 # iOS
 ios/Pods/
 ios/.symlinks/
+ios/Flutter/App.framework
 ios/Flutter/Flutter.framework
 ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/app.flx
+ios/Flutter/app.zip
+ios/Flutter/flutter_assets/
+ios/ServiceDefinitions.json
+ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS
+macos/Flutter/GeneratedPluginRegistrant.swift
+macos/Flutter/ephemeral/
+
+# Windows
+windows/flutter/generated_plugin_registrant.cc
+windows/flutter/generated_plugin_registrant.h
+windows/flutter/generated_plugin_registrant.cpp
+
+# Linux
+linux/flutter/generated_plugin_registrant.cc
+linux/flutter/generated_plugin_registrant.h
+
+# Web
+web/flutter_service_worker.js
 
 # Environment files
 .env

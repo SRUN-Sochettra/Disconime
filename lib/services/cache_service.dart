@@ -157,8 +157,21 @@ class CacheService {
       '_o$orderBy'
       '_s$sort';
 
-  static String searchKey(String query, int page) =>
-      'search_${query.toLowerCase().trim()}_p$page';
+  static String searchKey(
+    String query,
+    int page, {
+    String? type,
+    String? status,
+    String? rating,
+    String? orderBy,
+    String? sort,
+  }) =>
+      'search_${query.toLowerCase().trim()}_p$page'
+      '_t$type'
+      '_st$status'
+      '_r$rating'
+      '_o$orderBy'
+      '_s$sort';
 
   static String detailKey(int malId) => 'detail_$malId';
   static String charactersKey(int malId) => 'characters_$malId';

@@ -5,7 +5,6 @@ import 'package:anime_discovery/services/api_service.dart';
 import 'test_data.dart';
 
 /// A manual mock of [ApiService] — no code generation needed.
-/// Override individual methods per test to control behaviour.
 class MockApiService implements ApiService {
   // ── Control flags ─────────────────────────────────────────────
   bool shouldThrow = false;
@@ -27,6 +26,14 @@ class MockApiService implements ApiService {
   int getTopCharactersCallCount = 0;
   int getCharacterDetailCallCount = 0;
 
+  // ── Captured params (for assertion in tests) ──────────────────
+  String? lastSearchQuery;
+  String? lastSearchType;
+  String? lastSearchStatus;
+  String? lastSearchRating;
+  String? lastSearchOrderBy;
+  String? lastSearchSort;
+
   void reset() {
     shouldThrow = false;
     returnEmpty = false;
@@ -43,6 +50,12 @@ class MockApiService implements ApiService {
     getScheduleCallCount = 0;
     getTopCharactersCallCount = 0;
     getCharacterDetailCallCount = 0;
+    lastSearchQuery = null;
+    lastSearchType = null;
+    lastSearchStatus = null;
+    lastSearchRating = null;
+    lastSearchOrderBy = null;
+    lastSearchSort = null;
   }
 
   void _maybeThrow() {
@@ -66,13 +79,27 @@ class MockApiService implements ApiService {
   }
 
   @override
-  Future<List<Anime>> searchAnime(String query, {int page = 1}) async {
+  Future<List<Anime>> searchAnime(
+      String query, {
+        int page = 1,
+        String? type,
+        String? status,
+        String? rating,
+        String? orderBy,
+        String? sort,
+      }) async {
     _maybeThrow();
     searchAnimeCallCount++;
+    // Capture params so tests can assert what was passed.
+    lastSearchQuery = query;
+    lastSearchType = type;
+    lastSearchStatus = status;
+    lastSearchRating = rating;
+    lastSearchOrderBy = orderBy;
+    lastSearchSort = sort;
     if (returnEmpty) return [];
     return TestData.animeList
-        .where((a) =>
-            a.title.toLowerCase().contains(query.toLowerCase()))
+        .where((a) => a.title.toLowerCase().contains(query.toLowerCase()))
         .toList();
   }
 
@@ -88,9 +115,7 @@ class MockApiService implements ApiService {
     _maybeThrow();
     getAnimeCharactersCallCount++;
     if (returnEmpty) return [];
-    return [
-      AnimeCharacter.fromJson(TestData.characterJson),
-    ];
+    return [AnimeCharacter.fromJson(TestData.characterJson)];
   }
 
   @override
@@ -118,10 +143,10 @@ class MockApiService implements ApiService {
 
   @override
   Future<List<Anime>> getSeason(
-    int year,
-    String season, {
-    int page = 1,
-  }) async {
+      int year,
+      String season, {
+        int page = 1,
+      }) async {
     _maybeThrow();
     getSeasonCallCount++;
     if (returnEmpty) return [];
@@ -146,9 +171,9 @@ class MockApiService implements ApiService {
 
   @override
   Future<List<ScheduleEntry>> getSchedule(
-    BroadcastDay day, {
-    int page = 1,
-  }) async {
+      BroadcastDay day, {
+        int page = 1,
+      }) async {
     _maybeThrow();
     getScheduleCallCount++;
     if (returnEmpty) return [];
@@ -160,6 +185,7 @@ class MockApiService implements ApiService {
     _maybeThrow();
     getTopCharactersCallCount++;
     if (returnEmpty) return [];
+    // topCharacterJson uses the correct root-level structure
     return [TopCharacter.fromJson(TestData.topCharacterJson)];
   }
 
@@ -168,13 +194,13 @@ class MockApiService implements ApiService {
     _maybeThrow();
     getCharacterDetailCallCount++;
     return Character.fromJson({
-      ...TestData.characterJson,
+      ...TestData.characterJson['character'] as Map<String, dynamic>,
+      'favorites': TestData.characterJson['favorites'],
       'anime': [],
       'voices': [],
     });
   }
 
-  // ── Unused ApiService internals ───────────────────────────────
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

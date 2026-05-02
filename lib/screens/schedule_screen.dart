@@ -24,18 +24,9 @@ class ScheduleScreen extends StatefulWidget {
 }
 
 class _ScheduleScreenState extends State<ScheduleScreen>
-    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
+    with SingleTickerProviderStateMixin {
   bool _hasFetched = false;
   late final TabController _tabController;
-
-  final Map<BroadcastDay, ScrollController> _scrollControllers = {};
-  final Map<BroadcastDay, Timer?> _scrollDebounces = {};
-
-  static const Duration _scrollDebounceDuration =
-      Duration(milliseconds: 150);
 
   @override
   void initState() {
@@ -49,22 +40,9 @@ class _ScheduleScreenState extends State<ScheduleScreen>
       initialIndex: provider.selectedDay.index,
     );
 
-    for (final day in BroadcastDay.values) {
-      _scrollControllers[day] = ScrollController()
-        ..addListener(() => _onScroll(day));
-    }
-
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       final day = BroadcastDay.values[_tabController.index];
-
-      // FIX: Reset scroll to top on tab switch (Issue #12)
-      // Only scroll if the controller is attached
-      final controller = _scrollControllers[day];
-      if (controller != null && controller.hasClients) {
-        controller.jumpTo(0);
-      }
-
       provider.selectDay(day);
     });
 
@@ -76,44 +54,14 @@ class _ScheduleScreenState extends State<ScheduleScreen>
     });
   }
 
-  void _onScroll(BroadcastDay day) {
-    final controller = _scrollControllers[day];
-    if (controller == null || !controller.hasClients) return;
-
-    final position = controller.position;
-    if (position.maxScrollExtent <= 0) return;
-
-    if (position.pixels < position.maxScrollExtent - 200) {
-      _scrollDebounces[day]?.cancel();
-      return;
-    }
-
-    if (_scrollDebounces[day]?.isActive ?? false) return;
-
-    _scrollDebounces[day] = Timer(_scrollDebounceDuration, () {
-      if (!mounted) return;
-
-      final provider = context.read<ScheduleProvider>();
-      if (provider.stateFor(day) != FetchState.loading &&
-          provider.hasMoreFor(day)) {
-        provider.fetchSchedule(day, loadMore: true);
-      }
-    });
-  }
-
   @override
   void dispose() {
     _tabController.dispose();
-    for (final day in BroadcastDay.values) {
-      _scrollControllers[day]?.dispose();
-      _scrollDebounces[day]?.cancel();
-    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
 
@@ -131,12 +79,9 @@ class _ScheduleScreenState extends State<ScheduleScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: BroadcastDay.values.map((day) {
-          return _ScheduleDayView(
-            day: day,
-            scrollController: _scrollControllers[day]!,
-          );
-        }).toList(),
+        children: BroadcastDay.values
+            .map((day) => _ScheduleDayView(day: day))
+            .toList(),
       ),
     );
   }
@@ -202,22 +147,72 @@ class _ScheduleTabBar extends StatelessWidget {
   }
 }
 
-class _ScheduleDayView extends StatelessWidget {
+class _ScheduleDayView extends StatefulWidget {
   final BroadcastDay day;
-  final ScrollController scrollController;
 
-  const _ScheduleDayView({
-    required this.day,
-    required this.scrollController,
-  });
+  const _ScheduleDayView({required this.day});
+
+  @override
+  State<_ScheduleDayView> createState() => _ScheduleDayViewState();
+}
+
+class _ScheduleDayViewState extends State<_ScheduleDayView>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  late final ScrollController _scrollController;
+  Timer? _scrollDebounce;
+
+  static const Duration _scrollDebounceDuration =
+      Duration(milliseconds: 150);
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+
+    final position = _scrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+
+    if (position.pixels < position.maxScrollExtent - 200) {
+      _scrollDebounce?.cancel();
+      return;
+    }
+
+    if (_scrollDebounce?.isActive ?? false) return;
+
+    _scrollDebounce = Timer(_scrollDebounceDuration, () {
+      if (!mounted) return;
+
+      final provider = context.read<ScheduleProvider>();
+      if (provider.stateFor(widget.day) != FetchState.loading &&
+          provider.hasMoreFor(widget.day)) {
+        provider.fetchSchedule(widget.day, loadMore: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollDebounce?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     final provider = context.watch<ScheduleProvider>();
-    final state = provider.stateFor(day);
-    final entries = provider.entriesFor(day);
-    final errorMessage = provider.errorFor(day);
-    final hasMore = provider.hasMoreFor(day);
+    final state = provider.stateFor(widget.day);
+    final entries = provider.entriesFor(widget.day);
+    final errorMessage = provider.errorFor(widget.day);
+    final hasMore = provider.hasMoreFor(widget.day);
 
     if (state == FetchState.initial ||
         (state == FetchState.loading && entries.isEmpty)) {
@@ -227,29 +222,31 @@ class _ScheduleDayView extends StatelessWidget {
     if (state == FetchState.error && entries.isEmpty) {
       return ErrorView(
         message: errorMessage,
-        onRetry: () => provider.fetchSchedule(day),
+        onRetry: () => provider.fetchSchedule(widget.day),
       );
     }
 
     if (state == FetchState.loaded && entries.isEmpty) {
       return EmptyState(
         type: EmptyStateType.seasonal,
-        subtitle: 'No anime scheduled for ${day.fullName}.',
+        subtitle: 'No anime scheduled for ${widget.day.fullName}.',
       );
     }
 
     return RefreshIndicator(
-      onRefresh: () => provider.refreshDay(day),
+      onRefresh: () => provider.refreshDay(widget.day),
       child: ListView.builder(
-        controller: scrollController,
+        controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         itemCount: entries.length +
             1 +
-            (state == FetchState.loading || state == FetchState.error ? 1 : 0) +
+            (state == FetchState.loading || state == FetchState.error
+                ? 1
+                : 0) +
             (!hasMore && entries.isNotEmpty ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == 0) {
-            return _DayBanner(day: day, count: entries.length);
+            return _DayBanner(day: widget.day, count: entries.length);
           }
 
           final itemIndex = index - 1;
@@ -261,13 +258,14 @@ class _ScheduleDayView extends StatelessWidget {
           if (itemIndex == entries.length && state == FetchState.error) {
             return ErrorView(
               message: errorMessage,
-              onRetry: () => provider.fetchSchedule(day, loadMore: true),
+              onRetry: () =>
+                  provider.fetchSchedule(widget.day, loadMore: true),
               expand: false,
             );
           }
 
           if (itemIndex >= entries.length) {
-            return _EndOfSchedule(day: day);
+            return _EndOfSchedule(day: widget.day);
           }
 
           return _ScheduleEntryTile(entry: entries[itemIndex]);
@@ -354,15 +352,17 @@ class _ScheduleEntryTile extends StatelessWidget {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
     final anime = entry.anime;
-    final heroTag = 'schedule_hero_${anime.malId}';
+
+    // No Hero on schedule: tabs use wantKeepAlive, so the same malId can
+    // exist on multiple day tabs and duplicate tags crash when pushing detail.
+    const String? heroTag = null;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => context.push(
-          '${RouteNames.animeDetailPath(anime.malId)}'
-          '?heroTag=${Uri.encodeComponent(heroTag)}',
+          RouteNames.animeDetailPath(anime.malId),
           extra: anime,
         ),
         child: Container(

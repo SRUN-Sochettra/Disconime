@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../models/character_model.dart';
+import '../models/filter_model.dart';
 import '../providers/characters_provider.dart';
 import '../providers/fetch_state.dart';
 import '../router/route_names.dart';
@@ -31,6 +32,7 @@ class _CharactersScreenState extends State<CharactersScreen>
   bool _hasFetched = false;
   final ScrollController _scrollController = ScrollController();
   bool _isGridView = true; // Default to grid since characters look best as grid
+  CharacterSortOption _sortOption = CharacterSortOption.favoritesDesc;
 
   static const Duration _scrollDebounceDuration =
       Duration(milliseconds: 150);
@@ -80,6 +82,165 @@ class _CharactersScreenState extends State<CharactersScreen>
     super.dispose();
   }
 
+  List<TopCharacter> _applySortOption(List<TopCharacter> source) {
+    final result = List<TopCharacter>.from(source);
+    switch (_sortOption) {
+      case CharacterSortOption.favoritesDesc:
+        result.sort((a, b) => b.favorites.compareTo(a.favorites));
+        break;
+      case CharacterSortOption.favoritesAsc:
+        result.sort((a, b) => a.favorites.compareTo(b.favorites));
+        break;
+      case CharacterSortOption.nameAsc:
+        result.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case CharacterSortOption.nameDesc:
+        result.sort((a, b) => b.name.compareTo(a.name));
+        break;
+      case CharacterSortOption.mostAnime:
+        result.sort(
+            (a, b) => b.animeNames.length.compareTo(a.animeNames.length));
+        break;
+    }
+    return result;
+  }
+
+  void _showSortSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (builderContext, setSheetState) {
+            final theme = Theme.of(builderContext);
+            final primary = theme.colorScheme.primary;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: theme.scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(builderContext).size.height * 0.75,
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: theme.dividerColor,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Text('Sort Characters', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: CharacterSortOption.values.map((option) {
+                          final isSelected = _sortOption == option;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                setState(() => _sortOption = option);
+                                setSheetState(() {});
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? primary.withAlpha(20)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? primary
+                                        : theme.dividerColor.withAlpha(60),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      option.icon,
+                                      size: 18,
+                                      color: isSelected
+                                          ? primary
+                                          : theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        option.label,
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                          fontSize: 14,
+                                          fontWeight: isSelected
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                          color: isSelected ? primary : null,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isSelected)
+                                      Icon(
+                                        Icons.check_rounded,
+                                        size: 18,
+                                        color: primary,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Done',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -88,6 +249,28 @@ class _CharactersScreenState extends State<CharactersScreen>
       appBar: SectionAppBar(
         title: 'Characters',
         actions: [
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.tune_rounded),
+                tooltip: 'Sort',
+                onPressed: _showSortSheet,
+              ),
+              if (_sortOption != CharacterSortOption.favoritesDesc)
+                Positioned(
+                  right: 6,
+                  top: 6,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           ViewToggleButton(
             isGridView: _isGridView,
             onToggle: () => setState(() => _isGridView = !_isGridView),
@@ -96,11 +279,13 @@ class _CharactersScreenState extends State<CharactersScreen>
       ),
       body: Consumer<CharactersProvider>(
         builder: (context, provider, child) {
-          if (provider.topCharactersState == FetchState.initial ||
-              (provider.topCharactersState == FetchState.loading &&
-                  provider.topCharacters.isEmpty)) {
+          if (provider.topCharacters.isEmpty &&
+              (provider.topCharactersState == FetchState.loading ||
+                  provider.topCharactersState == FetchState.initial)) {
             return const _CharactersGridSkeleton();
           }
+
+          final sortedCharacters = _applySortOption(provider.topCharacters);
 
           if (provider.topCharactersState == FetchState.error &&
               provider.topCharacters.isEmpty) {
@@ -110,7 +295,7 @@ class _CharactersScreenState extends State<CharactersScreen>
             );
           }
 
-          if (provider.topCharacters.isEmpty) {
+          if (sortedCharacters.isEmpty) {
             return const EmptyState(
               type: EmptyStateType.recommendations,
               subtitle: 'No characters found.',
@@ -120,7 +305,7 @@ class _CharactersScreenState extends State<CharactersScreen>
           return Column(
             children: [
               PaginationIndicator(
-                loadedCount: provider.topCharacters.length,
+                loadedCount: sortedCharacters.length,
                 isLoading: provider.topCharactersState == FetchState.loading,
                 hasMore: provider.hasMore,
                 itemLabel: 'characters',
@@ -128,7 +313,9 @@ class _CharactersScreenState extends State<CharactersScreen>
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () => provider.fetchTopCharacters(),
-                  child: _isGridView ? _buildGrid(provider) : _buildList(provider),
+                  child: _isGridView
+                      ? _buildGrid(provider, sortedCharacters)
+                      : _buildList(provider, sortedCharacters),
                 ),
               ),
             ],
@@ -138,7 +325,8 @@ class _CharactersScreenState extends State<CharactersScreen>
     );
   }
 
-  Widget _buildGrid(CharactersProvider provider) {
+  Widget _buildGrid(
+      CharactersProvider provider, List<TopCharacter> sortedCharacters) {
     return GridView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
@@ -148,14 +336,14 @@ class _CharactersScreenState extends State<CharactersScreen>
         crossAxisSpacing: 12,
         mainAxisSpacing: 16,
       ),
-      itemCount: provider.topCharacters.length +
+      itemCount: sortedCharacters.length +
           (provider.topCharactersState == FetchState.loading ? 3 : 0),
       itemBuilder: (context, index) {
-        if (index >= provider.topCharacters.length) {
+        if (index >= sortedCharacters.length) {
           return const _CharacterCardSkeleton();
         }
 
-        final character = provider.topCharacters[index];
+        final character = sortedCharacters[index];
         final rank = index + 1;
         final heroTag = 'character_hero_${character.malId}';
 
@@ -168,21 +356,22 @@ class _CharactersScreenState extends State<CharactersScreen>
     );
   }
 
-  Widget _buildList(CharactersProvider provider) {
+  Widget _buildList(
+      CharactersProvider provider, List<TopCharacter> sortedCharacters) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
 
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
-      itemCount: provider.topCharacters.length +
+      itemCount: sortedCharacters.length +
           (provider.topCharactersState == FetchState.loading ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index >= provider.topCharacters.length) {
+        if (index >= sortedCharacters.length) {
           return const _CharacterListSkeleton();
         }
 
-        final character = provider.topCharacters[index];
+        final character = sortedCharacters[index];
         final rank = index + 1;
         final heroTag = 'character_list_${character.malId}';
 
@@ -244,6 +433,17 @@ class _CharactersScreenState extends State<CharactersScreen>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        if (_sortOption == CharacterSortOption.mostAnime &&
+                            character.animeNames.length > 1) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            '${character.animeNames.length} anime appearances',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 10,
+                              color: primary,
+                            ),
+                          ),
+                        ],
                       ],
                     ],
                   ),
@@ -438,6 +638,7 @@ class _CharacterCardSkeleton extends StatelessWidget {
     );
   }
 }
+
 class _CharacterListSkeleton extends StatelessWidget {
   const _CharacterListSkeleton();
 

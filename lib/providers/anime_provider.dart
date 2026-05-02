@@ -32,10 +32,12 @@ class AnimeProvider extends ChangeNotifier {
   int _currentSearchPage = 1;
   bool _hasMoreSearchResults = true;
   String _currentQuery = '';
+  AnimeFilter _searchFilter = const AnimeFilter();
   String _searchError = '';
 
   List<Anime> get searchResults => _searchResults;
   FetchState get searchState => _searchState;
+  AnimeFilter get searchFilter => _searchFilter;
   String get searchErrorMessage => _searchError;
   int get currentSearchPage => _currentSearchPage;
   bool get hasMoreSearchResults => _hasMoreSearchResults;
@@ -80,6 +82,10 @@ class AnimeProvider extends ChangeNotifier {
   String? _selectedSeason;
   String _seasonalError = '';
 
+  // Client-side seasonal filter state
+  String _seasonalSort = 'score'; // 'score' or 'title'
+  String? _seasonalTypeFilter;   // null = all
+
   List<Anime> get seasonalAnime => _seasonalAnime;
   FetchState get seasonalState => _seasonalState;
   int? get selectedYear => _selectedYear;
@@ -87,6 +93,43 @@ class AnimeProvider extends ChangeNotifier {
   String get seasonalErrorMessage => _seasonalError;
   int get currentSeasonalPage => _currentSeasonalPage;
   bool get hasMoreSeasonalAnime => _hasMoreSeasonalAnime;
+  String get seasonalSort => _seasonalSort;
+  String? get seasonalTypeFilter => _seasonalTypeFilter;
+
+  List<Anime> get filteredSeasonalAnime {
+    if (_seasonalAnime.isEmpty) return [];
+
+    var results = List<Anime>.from(_seasonalAnime);
+
+    // Apply type filter
+    if (_seasonalTypeFilter != null) {
+      results = results
+          .where((a) =>
+      a.type?.toLowerCase() == _seasonalTypeFilter!.toLowerCase())
+          .toList();
+    }
+
+    // Apply sorting
+    if (_seasonalSort == 'title') {
+      results.sort((a, b) => a.title.compareTo(b.title));
+    } else {
+      // Default: sort by score descending
+      results.sort(
+              (a, b) => (b.score.value ?? 0.0).compareTo(a.score.value ?? 0.0));
+    }
+
+    return results;
+  }
+
+  void setSeasonalSort(String sort) {
+    _seasonalSort = sort;
+    notifyListeners();
+  }
+
+  void setSeasonalTypeFilter(String? type) {
+    _seasonalTypeFilter = type;
+    notifyListeners();
+  }
 
   String get seasonLabel {
     if (_selectedYear == null || _selectedSeason == null) {
@@ -99,11 +142,32 @@ class AnimeProvider extends ChangeNotifier {
   // ── Genres ───────────────────────────────────────────────────
   List<Map<String, dynamic>> _genres = [];
   FetchState _genresState = FetchState.initial;
+  String _genreSort = 'name'; // 'name' or 'count'
   String _genresError = '';
 
   List<Map<String, dynamic>> get genres => _genres;
   FetchState get genresState => _genresState;
+  String get genreSort => _genreSort;
   String get genresErrorMessage => _genresError;
+
+  // Single definition of sortedGenres
+  List<Map<String, dynamic>> get sortedGenres {
+    if (_genres.isEmpty) return [];
+    final list = List<Map<String, dynamic>>.from(_genres);
+    if (_genreSort == 'name') {
+      list.sort(
+              (a, b) => (a['name'] as String).compareTo(b['name'] as String));
+    } else if (_genreSort == 'count') {
+      list.sort((a, b) =>
+          ((b['count'] as int?) ?? 0).compareTo((a['count'] as int?) ?? 0));
+    }
+    return list;
+  }
+
+  void setGenreSort(String sort) {
+    _genreSort = sort;
+    notifyListeners();
+  }
 
   // ── Genre Detail ─────────────────────────────────────────────
   List<Anime> _genreAnime = [];
@@ -143,7 +207,6 @@ class AnimeProvider extends ChangeNotifier {
       _hasMoreTopAnime = true;
     }
 
-    // FIX: Set state and notify ONCE — no Future.microtask
     _topAnimeState = FetchState.loading;
     _topAnimeError = '';
     notifyListeners();
@@ -172,7 +235,25 @@ class AnimeProvider extends ChangeNotifier {
   }
 
   // ── Search ───────────────────────────────────────────────────
-  Future<void> searchAnime(String query, {bool loadMore = false}) async {
+  void applySearchFilter(AnimeFilter filter) {
+    _searchFilter = filter;
+    if (_currentQuery.isNotEmpty) {
+      searchAnime(_currentQuery);
+    }
+  }
+
+  void clearSearchFilter() {
+    _searchFilter = const AnimeFilter();
+    if (_currentQuery.isNotEmpty) {
+      searchAnime(_currentQuery);
+    }
+  }
+
+  Future<void> searchAnime(
+      String query, {
+        bool loadMore = false,
+        String? status,
+      }) async {
     if (query.isEmpty) {
       _searchState = FetchState.initial;
       _searchResults = [];
@@ -180,6 +261,14 @@ class AnimeProvider extends ChangeNotifier {
       _hasMoreSearchResults = true;
       notifyListeners();
       return;
+    }
+
+    // If a direct status arg is passed (from the quick filter chips),
+    // update the search filter's 'filter' field to match.
+    if (status != null) {
+      _searchFilter = _searchFilter.copyWith(
+        filter: () => (status.isEmpty) ? null : status,
+      );
     }
 
     if (query != _currentQuery) {
@@ -196,19 +285,25 @@ class AnimeProvider extends ChangeNotifier {
       _searchResults = [];
     }
 
-    // FIX: Single notify, no microtask
     _searchState = FetchState.loading;
     notifyListeners();
 
     final pageToFetch = loadMore ? _currentSearchPage + 1 : 1;
 
     try {
-      final results =
-          await _apiService.searchAnime(query, page: pageToFetch);
+      final results = await _apiService.searchAnime(
+        query,
+        page: pageToFetch,
+        type: _searchFilter.type,
+        status: _searchFilter.filter,
+        rating: _searchFilter.rating,
+        orderBy: _searchFilter.orderBy,
+        sort: _searchFilter.sort,
+      );
       if (query != _currentQuery) return;
       if (results.isEmpty) _hasMoreSearchResults = false;
       _searchResults =
-          loadMore ? [..._searchResults, ...results] : results;
+      loadMore ? [..._searchResults, ...results] : results;
       _currentSearchPage = pageToFetch;
       _searchState = FetchState.loaded;
       _searchError = '';
@@ -232,7 +327,6 @@ class AnimeProvider extends ChangeNotifier {
     _recommendations = [];
     _recommendationsState = FetchState.loading;
     _recommendationsError = '';
-    // FIX: No microtask — direct notify
     notifyListeners();
 
     try {
@@ -372,7 +466,7 @@ class AnimeProvider extends ChangeNotifier {
       }
       if (results.isEmpty) _hasMoreSeasonalAnime = false;
       _seasonalAnime =
-          loadMore ? [..._seasonalAnime, ...results] : results;
+      loadMore ? [..._seasonalAnime, ...results] : results;
       _currentSeasonalPage = pageToFetch;
       _seasonalState = FetchState.loaded;
       _seasonalError = '';
@@ -404,10 +498,10 @@ class AnimeProvider extends ChangeNotifier {
   }
 
   Future<void> fetchAnimeByGenre(
-    int genreId,
-    String genreName, {
-    bool loadMore = false,
-  }) async {
+      int genreId,
+      String genreName, {
+        bool loadMore = false,
+      }) async {
     if (_currentGenreId != genreId) {
       _currentGenreId = genreId;
       _currentGenreName = genreName;

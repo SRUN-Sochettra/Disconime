@@ -2,10 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:anime_discovery/models/filter_model.dart';
 
 void main() {
+  // ── AnimeFilter ───────────────────────────────────────────────
   group('AnimeFilter', () {
     test('default constructor creates empty filter', () {
       const filter = AnimeFilter();
-
       expect(filter.type, isNull);
       expect(filter.filter, isNull);
       expect(filter.rating, isNull);
@@ -50,14 +50,13 @@ void main() {
           filter: 'airing',
           rating: 'pg',
           orderBy: 'score',
-          sort: 'desc', // sort should NOT count
+          sort: 'desc', // should NOT count
         );
         expect(filter.activeCount, 4);
       });
 
       test('sort is excluded from count', () {
-        const filter = AnimeFilter(sort: 'asc');
-        expect(filter.activeCount, 0);
+        expect(const AnimeFilter(sort: 'asc').activeCount, 0);
       });
     });
 
@@ -65,7 +64,6 @@ void main() {
       test('copies all fields when no overrides', () {
         const original = AnimeFilter(type: 'tv', filter: 'airing');
         final copy = original.copyWith();
-
         expect(copy.type, 'tv');
         expect(copy.filter, 'airing');
       });
@@ -73,7 +71,6 @@ void main() {
       test('overrides specified field', () {
         const original = AnimeFilter(type: 'tv', filter: 'airing');
         final copy = original.copyWith(type: () => 'movie');
-
         expect(copy.type, 'movie');
         expect(copy.filter, 'airing');
       });
@@ -81,7 +78,6 @@ void main() {
       test('sets field to null when override returns null', () {
         const original = AnimeFilter(type: 'tv');
         final copy = original.copyWith(type: () => null);
-
         expect(copy.type, isNull);
       });
     });
@@ -108,6 +104,87 @@ void main() {
         const b = AnimeFilter(type: 'tv', sort: 'desc');
         expect(a.hashCode, b.hashCode);
       });
+    });
+  });
+
+  // ── CharacterSortOption ───────────────────────────────────────
+  group('CharacterSortOption', () {
+    test('all options have non-empty labels', () {
+      for (final option in CharacterSortOption.values) {
+        expect(option.label, isNotEmpty);
+      }
+    });
+
+    test('all options have icons', () {
+      for (final option in CharacterSortOption.values) {
+        expect(option.icon, isNotNull);
+      }
+    });
+
+    test('favoritesDesc label', () {
+      expect(CharacterSortOption.favoritesDesc.label, 'Most Favorited');
+    });
+
+    test('favoritesAsc label', () {
+      expect(CharacterSortOption.favoritesAsc.label, 'Least Favorited');
+    });
+
+    test('nameAsc label', () {
+      expect(CharacterSortOption.nameAsc.label, 'Name A\u2192Z');
+    });
+
+    test('nameDesc label', () {
+      expect(CharacterSortOption.nameDesc.label, 'Name Z\u2192A');
+    });
+
+    test('mostAnime label', () {
+      expect(CharacterSortOption.mostAnime.label, 'Most Appearances');
+    });
+
+    test('has exactly 5 options', () {
+      expect(CharacterSortOption.values.length, 5);
+    });
+  });
+
+  // ── FavoritesActiveFilter ─────────────────────────────────────
+  group('FavoritesActiveFilter', () {
+    test('default is not active', () {
+      const filter = FavoritesActiveFilter();
+      expect(filter.isActive, isFalse);
+    });
+
+    test('isActive when type is set', () {
+      const filter = FavoritesActiveFilter(type: 'tv');
+      expect(filter.isActive, isTrue);
+    });
+
+    test('isActive when orderBy is not default', () {
+      const filter = FavoritesActiveFilter(orderBy: 'score');
+      expect(filter.isActive, isTrue);
+    });
+
+    test('default orderBy is date_added', () {
+      const filter = FavoritesActiveFilter();
+      expect(filter.orderBy, 'date_added');
+    });
+
+    test('copyWith overrides type', () {
+      const original = FavoritesActiveFilter(type: 'tv');
+      final copy = original.copyWith(type: () => 'movie');
+      expect(copy.type, 'movie');
+      expect(copy.orderBy, 'date_added');
+    });
+
+    test('copyWith sets type to null', () {
+      const original = FavoritesActiveFilter(type: 'tv');
+      final copy = original.copyWith(type: () => null);
+      expect(copy.type, isNull);
+    });
+
+    test('copyWith overrides orderBy', () {
+      const original = FavoritesActiveFilter();
+      final copy = original.copyWith(orderBy: 'score');
+      expect(copy.orderBy, 'score');
     });
   });
 }

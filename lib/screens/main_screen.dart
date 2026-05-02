@@ -6,7 +6,7 @@ import 'package:anime_discovery/widgets/offline_banner.dart';
 import 'package:anime_discovery/router/route_names.dart';
 import 'package:anime_discovery/widgets/app_chrome.dart';
 
-class MainScreen extends StatelessWidget {
+class MainScreen extends StatefulWidget {
   final Widget child;
 
   const MainScreen({super.key, required this.child});
@@ -73,9 +73,22 @@ class MainScreen extends StatelessWidget {
     ),
   ];
 
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  final ValueNotifier<String> _pathNotifier = ValueNotifier<String>('/');
+
+  @override
+  void dispose() {
+    _pathNotifier.dispose();
+    super.dispose();
+  }
+
   int _currentBottomIndex(String path) {
-    for (var i = 0; i < _bottomTabs.length; i++) {
-      final route = _bottomTabs[i].route;
+    for (var i = 0; i < MainScreen._bottomTabs.length; i++) {
+      final route = MainScreen._bottomTabs[i].route;
       if (route == '/') {
         if (path == '/') return i;
       } else {
@@ -86,7 +99,7 @@ class MainScreen extends StatelessWidget {
   }
 
   bool _isMoreRoute(String path) {
-    for (final item in _moreItems) {
+    for (final item in MainScreen._moreItems) {
       if (path == item.route || path.startsWith('${item.route}/')) {
         return true;
       }
@@ -98,6 +111,13 @@ class MainScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
     final path = location.split('?').first;
+
+    if (_pathNotifier.value != path) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _pathNotifier.value = path;
+      });
+    }
+
     final currentBottomIndex = _currentBottomIndex(path);
     final isOnMorePage = _isMoreRoute(path);
 
@@ -109,7 +129,7 @@ class MainScreen extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-          child,
+          widget.child,
           const Positioned(
             top: 0,
             left: 0,
@@ -131,7 +151,7 @@ class MainScreen extends StatelessWidget {
             height: AppChrome.bottomNavHeight,
             child: Row(
               children: [
-                ..._bottomTabs.asMap().entries.map((entry) {
+                ...MainScreen._bottomTabs.asMap().entries.map((entry) {
                   final i = entry.key;
                   final tab = entry.value;
                   final selected = i == currentBottomIndex;
@@ -156,7 +176,7 @@ class MainScreen extends StatelessWidget {
 
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => _showMoreSheet(context, path),
+                    onTap: () => _showMoreSheet(context),
                     behavior: HitTestBehavior.opaque,
                     child: _NavBarIcon(
                       icon: isOnMorePage
@@ -177,15 +197,31 @@ class MainScreen extends StatelessWidget {
     );
   }
 
-  void _showMoreSheet(BuildContext context, String currentPath) {
-    final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
-
+  void _showMoreSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetContext) {
+        return _MoreSheet(pathNotifier: _pathNotifier);
+      },
+    );
+  }
+}
+
+class _MoreSheet extends StatelessWidget {
+  final ValueNotifier<String> pathNotifier;
+
+  const _MoreSheet({required this.pathNotifier});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return ValueListenableBuilder<String>(
+      valueListenable: pathNotifier,
+      builder: (context, currentPath, _) {
         return Container(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.75,
@@ -204,7 +240,6 @@ class MainScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Handle ────────────────────────────────────
                   Center(
                     child: Container(
                       width: 32,
@@ -216,8 +251,6 @@ class MainScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-
-                  // ── Title ─────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.only(left: 4, bottom: 16),
                     child: Row(
@@ -241,15 +274,13 @@ class MainScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-
-                  // ── Scrollable menu items ─────────────────────
                   Flexible(
                     child: SingleChildScrollView(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ..._moreItems.map((item) {
+                          ...MainScreen._moreItems.map((item) {
                             final isActive = currentPath == item.route ||
                                 currentPath.startsWith('${item.route}/');
 
@@ -258,7 +289,7 @@ class MainScreen extends StatelessWidget {
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(12),
                                 onTap: () {
-                                  Navigator.pop(sheetContext);
+                                  Navigator.pop(context);
                                   if (!isActive) {
                                     context.go(item.route);
                                   }
@@ -276,9 +307,8 @@ class MainScreen extends StatelessWidget {
                                         ),
                                         width: 3,
                                         height: isActive ? 20 : 0,
-                                        margin: const EdgeInsets.only(
-                                          right: 12,
-                                        ),
+                                        margin:
+                                            const EdgeInsets.only(right: 12),
                                         decoration: BoxDecoration(
                                           color: primary,
                                           borderRadius:
@@ -299,7 +329,8 @@ class MainScreen extends StatelessWidget {
                                           style: theme.textTheme.titleMedium
                                               ?.copyWith(
                                             fontSize: 14,
-                                            color: isActive ? primary : null,
+                                            color:
+                                                isActive ? primary : null,
                                             fontWeight: isActive
                                                 ? FontWeight.bold
                                                 : FontWeight.normal,
@@ -322,8 +353,6 @@ class MainScreen extends StatelessWidget {
                               ),
                             );
                           }),
-
-                          // ── Divider ──────────────────────────
                           Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
@@ -334,8 +363,6 @@ class MainScreen extends StatelessWidget {
                               height: 1,
                             ),
                           ),
-
-                          // ── Theme toggle ─────────────────────
                           Consumer<ThemeProvider>(
                             builder: (context, themeProvider, child) {
                               final isDark = themeProvider.isDarkMode;
@@ -355,9 +382,8 @@ class MainScreen extends StatelessWidget {
                                       Container(
                                         width: 3,
                                         height: 20,
-                                        margin: const EdgeInsets.only(
-                                          right: 12,
-                                        ),
+                                        margin:
+                                            const EdgeInsets.only(right: 12),
                                         decoration: BoxDecoration(
                                           color: primary,
                                           borderRadius:
@@ -374,7 +400,9 @@ class MainScreen extends StatelessWidget {
                                       const SizedBox(width: 14),
                                       Expanded(
                                         child: Text(
-                                          isDark ? 'Light Mode' : 'Dark Mode',
+                                          isDark
+                                              ? 'Light Mode'
+                                              : 'Dark Mode',
                                           style: theme.textTheme.titleMedium
                                               ?.copyWith(
                                             fontSize: 14,
@@ -404,7 +432,8 @@ class MainScreen extends StatelessWidget {
                                           child: Container(
                                             width: 16,
                                             height: 16,
-                                            margin: const EdgeInsets.all(1),
+                                            margin:
+                                                const EdgeInsets.all(1),
                                             decoration: BoxDecoration(
                                               color: primary,
                                               shape: BoxShape.circle,

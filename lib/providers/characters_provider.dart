@@ -15,12 +15,34 @@ class CharactersProvider extends ChangeNotifier {
   int _currentPage = 1;
   bool _hasMore = true;
   String _topCharactersError = '';
+  String _characterSort = 'favorites'; // 'favorites', 'name', 'az'
 
   List<TopCharacter> get topCharacters => _topCharacters;
   FetchState get topCharactersState => _topCharactersState;
+  String get characterSort => _characterSort;
   int get currentPage => _currentPage;
   bool get hasMore => _hasMore;
   String get topCharactersErrorMessage => _topCharactersError;
+
+  List<TopCharacter> get sortedCharacters {
+    if (_topCharacters.isEmpty) return [];
+    var results = List<TopCharacter>.from(_topCharacters);
+
+    if (_characterSort == 'name') {
+      results.sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+    } else if (_characterSort == 'az') {
+      results.sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+    } else if (_characterSort == 'favorites') {
+      results.sort(
+          (a, b) => (b.favorites ?? 0).compareTo(a.favorites ?? 0));
+    }
+    return results;
+  }
+
+  void setCharacterSort(String sort) {
+    _characterSort = sort;
+    notifyListeners();
+  }
 
   final Map<int, Character> _detailCache = {};
   final Map<int, FetchState> _detailStates = {};

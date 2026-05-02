@@ -137,8 +137,8 @@ class _SeasonalScreenState extends State<SeasonalScreen>
                         },
                         child: Text(
                           'Current Season',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                              color: primary),
+                          style: theme.textTheme.labelMedium
+                              ?.copyWith(color: primary),
                         ),
                       ),
                     ],
@@ -232,24 +232,166 @@ class _SeasonalScreenState extends State<SeasonalScreen>
                     width: double.infinity,
                     child: FilledButton(
                       onPressed:
-                          (pickedYear != null && pickedSeason != null)
-                              ? () {
-                                  provider.fetchSeasonalAnime(
-                                    year: pickedYear,
-                                    season: pickedSeason,
-                                  );
-                                  Navigator.pop(builderContext);
-                                }
-                              : null,
+                      (pickedYear != null && pickedSeason != null)
+                          ? () {
+                        provider.fetchSeasonalAnime(
+                          year: pickedYear,
+                          season: pickedSeason,
+                        );
+                        Navigator.pop(builderContext);
+                      }
+                          : null,
                       style: FilledButton.styleFrom(
                         padding:
-                            const EdgeInsets.symmetric(vertical: 14),
+                        const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: Text(
                         'Load Season',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showFilterSheet() {
+    final provider = context.read<AnimeProvider>();
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (builderContext, setSheetState) {
+            final primary = theme.colorScheme.primary;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: theme.scaffoldBackgroundColor,
+                borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: theme.dividerColor,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Sort & Filter',
+                          style: theme.textTheme.titleMedium),
+                      if (provider.seasonalTypeFilter != null)
+                        TextButton(
+                          onPressed: () {
+                            provider.setSeasonalTypeFilter(null);
+                            setSheetState(() {});
+                          },
+                          child: Text(
+                            'Clear',
+                            style: theme.textTheme.labelMedium
+                                ?.copyWith(color: primary),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text('SORT BY', style: theme.textTheme.labelSmall),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _FilterChip(
+                        label: 'Score',
+                        isSelected: provider.seasonalSort == 'score',
+                        onTap: () {
+                          provider.setSeasonalSort('score');
+                          setSheetState(() {});
+                        },
+                      ),
+                      _FilterChip(
+                        label: 'Title A→Z',
+                        isSelected: provider.seasonalSort == 'title',
+                        onTap: () {
+                          provider.setSeasonalSort('title');
+                          setSheetState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Text('TYPE', style: theme.textTheme.labelSmall),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _FilterChip(
+                        label: 'All',
+                        isSelected: provider.seasonalTypeFilter == null,
+                        onTap: () {
+                          provider.setSeasonalTypeFilter(null);
+                          setSheetState(() {});
+                        },
+                      ),
+                      ...[
+                        'TV',
+                        'Movie',
+                        'OVA',
+                        'Special',
+                        'ONA',
+                        'Music'
+                      ].map((type) {
+                        return _FilterChip(
+                          label: type,
+                          isSelected:
+                          provider.seasonalTypeFilter == type,
+                          onTap: () {
+                            provider.setSeasonalTypeFilter(type);
+                            setSheetState(() {});
+                          },
+                        );
+                      }),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      style: FilledButton.styleFrom(
+                        padding:
+                        const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Done',
                         style: theme.textTheme.labelMedium?.copyWith(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -273,6 +415,34 @@ class _SeasonalScreenState extends State<SeasonalScreen>
       appBar: SectionAppBar(
         title: 'Seasonal',
         actions: [
+          Consumer<AnimeProvider>(
+            builder: (context, provider, _) {
+              final isActive = provider.seasonalTypeFilter != null ||
+                  provider.seasonalSort != 'score';
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.filter_list_rounded),
+                    tooltip: 'Filter',
+                    onPressed: _showFilterSheet,
+                  ),
+                  if (isActive)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.calendar_month_outlined),
             tooltip: 'Select season',
@@ -321,9 +491,9 @@ class _SeasonalScreenState extends State<SeasonalScreen>
                 onTap: _showSeasonPicker,
               ),
               PaginationIndicator(
-                loadedCount: provider.seasonalAnime.length,
+                loadedCount: provider.filteredSeasonalAnime.length,
                 isLoading:
-                    provider.seasonalState == FetchState.loading,
+                provider.seasonalState == FetchState.loading,
                 hasMore: provider.hasMoreSeasonalAnime,
               ),
               Expanded(
@@ -345,22 +515,23 @@ class _SeasonalScreenState extends State<SeasonalScreen>
   }
 
   Widget _buildListView(AnimeProvider provider) {
+    final items = provider.filteredSeasonalAnime;
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
-      itemCount: provider.seasonalAnime.length +
+      itemCount: items.length +
           (provider.seasonalState == FetchState.loading ||
-                  provider.seasonalState == FetchState.error
+              provider.seasonalState == FetchState.error
               ? 1
               : 0) +
           (provider.seasonalAnime.isNotEmpty ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index == provider.seasonalAnime.length &&
+        if (index == items.length &&
             provider.seasonalState == FetchState.loading) {
           return const LoadMoreSkeleton();
         }
 
-        if (index == provider.seasonalAnime.length &&
+        if (index == items.length &&
             provider.seasonalState == FetchState.error) {
           return ErrorView(
             message: provider.seasonalErrorMessage,
@@ -373,14 +544,14 @@ class _SeasonalScreenState extends State<SeasonalScreen>
           );
         }
 
-        if (index >= provider.seasonalAnime.length) {
+        if (index >= items.length) {
           return PageCounter(
             currentPage: provider.currentSeasonalPage,
             isLoading: provider.seasonalState == FetchState.loading,
           );
         }
 
-        final Anime item = provider.seasonalAnime[index];
+        final Anime item = items[index];
         final heroTag = 'seasonal_hero_${item.malId}';
         return AnimeListTile(
           anime: item,
@@ -396,6 +567,7 @@ class _SeasonalScreenState extends State<SeasonalScreen>
   }
 
   Widget _buildGridView(AnimeProvider provider) {
+    final items = provider.filteredSeasonalAnime;
     return GridView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
@@ -405,20 +577,20 @@ class _SeasonalScreenState extends State<SeasonalScreen>
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
-      itemCount: provider.seasonalAnime.length +
+      itemCount: items.length +
           (provider.seasonalState == FetchState.loading ||
-                  provider.seasonalState == FetchState.error
+              provider.seasonalState == FetchState.error
               ? 2
               : 0),
       itemBuilder: (context, index) {
-        if (index >= provider.seasonalAnime.length &&
+        if (index >= items.length &&
             provider.seasonalState == FetchState.loading) {
           return const SkeletonLoader(child: AnimeCardSkeleton());
         }
 
-        if (index >= provider.seasonalAnime.length &&
+        if (index >= items.length &&
             provider.seasonalState == FetchState.error) {
-          if (index == provider.seasonalAnime.length) {
+          if (index == items.length) {
             return ErrorView(
               message: provider.seasonalErrorMessage,
               onRetry: () => provider.fetchSeasonalAnime(
@@ -432,7 +604,7 @@ class _SeasonalScreenState extends State<SeasonalScreen>
           return const SizedBox.shrink();
         }
 
-        final item = provider.seasonalAnime[index];
+        final item = items[index];
         final heroTag = 'seasonal_hero_${item.malId}';
         return InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -473,6 +645,60 @@ class _SeasonalScreenState extends State<SeasonalScreen>
   }
 }
 
+// ── Shared filter chip widget ─────────────────────────────────────
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? primary : theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? primary : theme.dividerColor,
+          ),
+          boxShadow: isSelected
+              ? [
+            BoxShadow(
+              color: primary.withAlpha(80),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: isSelected
+                ? Colors.white
+                : theme.colorScheme.onSurface,
+            fontWeight:
+            isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SeasonContextChip extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
@@ -491,7 +717,8 @@ class _SeasonContextChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: theme.colorScheme.primary.withAlpha(20),
             borderRadius: BorderRadius.circular(8),

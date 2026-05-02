@@ -211,11 +211,36 @@ class ApiService {
   }
 
   // ── Search ────────────────────────────────────────────────────
-  Future<List<Anime>> searchAnime(String query, {int page = 1}) async {
-    final uri = Uri.parse('$baseUrl/anime').replace(
-      queryParameters: {'q': query, 'page': page.toString()},
+  Future<List<Anime>> searchAnime(
+    String query, {
+    int page = 1,
+    String? type,
+    String? status,
+    String? rating,
+    String? orderBy,
+    String? sort,
+  }) async {
+    final params = <String, String>{
+      'q': query,
+      'page': page.toString(),
+    };
+    if (type != null && type.isNotEmpty) params['type'] = type;
+    if (status != null && status.isNotEmpty) params['status'] = status;
+    if (rating != null && rating.isNotEmpty) params['rating'] = rating;
+    if (orderBy != null && orderBy.isNotEmpty) params['order_by'] = orderBy;
+    if (sort != null && sort.isNotEmpty) params['sort'] = sort;
+
+    final uri = Uri.parse('$baseUrl/anime').replace(queryParameters: params);
+    final cacheKey = CacheService.searchKey(
+      query,
+      page,
+      type: type,
+      status: status,
+      rating: rating,
+      orderBy: orderBy,
+      sort: sort,
     );
-    final cacheKey = CacheService.searchKey(query, page);
+
     final data = await _getCached(
       uri,
       cacheKey,

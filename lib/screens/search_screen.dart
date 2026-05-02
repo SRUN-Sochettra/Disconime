@@ -58,7 +58,10 @@ class _SearchScreenState extends State<SearchScreen> {
 
     _typingDebounce = Timer(_typingDebounceDuration, () {
       if (!mounted) return;
-      context.read<AnimeProvider>().searchAnime(text);
+      context.read<AnimeProvider>().searchAnime(
+            text,
+            status: _selectedStatus == 'All' ? null : _selectedStatus.toLowerCase(),
+          );
     });
   }
 
@@ -97,12 +100,17 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
+  String _selectedStatus = 'All';
+
   void _performSearch(String query) {
     FocusScope.of(context).unfocus();
     _typingDebounce?.cancel();
     if (query.isNotEmpty) {
       context.read<SearchHistoryProvider>().addQuery(query);
-      context.read<AnimeProvider>().searchAnime(query);
+      context.read<AnimeProvider>().searchAnime(
+            query,
+            status: _selectedStatus == 'All' ? null : _selectedStatus.toLowerCase(),
+          );
     }
   }
 
@@ -171,6 +179,44 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
           ),
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: ['All', 'Airing', 'Complete', 'Upcoming'].map((status) {
+                final isSelected = _selectedStatus == status;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(status),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() => _selectedStatus = status);
+                        _performSearch(_controller.text);
+                      }
+                    },
+                    selectedColor: primary.withAlpha(40),
+                    labelStyle: TextStyle(
+                      color: isSelected ? primary : theme.colorScheme.onSurface,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 12,
+                    ),
+                    backgroundColor: theme.colorScheme.surface,
+                    side: BorderSide(
+                      color: isSelected ? primary : theme.dividerColor,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: Consumer<AnimeProvider>(
               builder: (context, provider, child) {

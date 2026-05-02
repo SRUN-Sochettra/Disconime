@@ -39,6 +39,7 @@ class _BarChartState extends State<BarChart>
   late final Animation<double> _animation;
 
   @override
+
   void initState() {
     super.initState();
     _controller = AnimationController(
@@ -545,7 +546,7 @@ class _ScoreDistributionChartState extends State<ScoreDistributionChart>
           animation: _animation,
           builder: (context, _) {
             return SizedBox(
-              height: 100,
+              height: 124,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: widget.distribution.entries.map((entry) {
@@ -574,7 +575,7 @@ class _ScoreDistributionChartState extends State<ScoreDistributionChart>
                           const SizedBox(height: 2),
                           // Bar
                           Container(
-                            height: 80 * animatedRatio,
+                            height: 90 * animatedRatio,
                             decoration: BoxDecoration(
                               color: primary.withAlpha(
                                 (100 + (ratio * 155)).toInt(),
@@ -603,4 +604,4 @@ class _ScoreDistributionChartState extends State<ScoreDistributionChart>
       ],
     );
   }
-}
+}
